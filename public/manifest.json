@@ -1,0 +1,25 @@
+{
+  "name": "ATTENDS",
+  "short_name": "ATTENDS",
+  "description": "Ne perdez plus votre temps à attendre. Gérez vos files intelligemment.",
+  "theme_color": "#F97316",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "scope": "/",
+  "start_url": "/",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ]
+}
