@@ -19,7 +19,12 @@ export async function joinQueue(serviceId: string, orgId: string, priorityLevel:
       throw new Error("Service ou file d'attente introuvable")
     }
 
-    const queue = service.branch.queues[0] // Assume first queue for MVP
+    // Match queue to service by name or prefix if possible, fallback to first queue
+    const queue = service.branch.queues.find(q => 
+      service.name.toLowerCase().includes(q.name.toLowerCase()) || 
+      q.name.toLowerCase().includes(service.name.toLowerCase()) ||
+      q.prefix.toUpperCase() === service.name.trim()[0]?.toUpperCase()
+    ) || service.branch.queues[0]
 
     // Get last ticket number in queue
     const lastTicket = await prisma.ticket.findFirst({
@@ -28,7 +33,7 @@ export async function joinQueue(serviceId: string, orgId: string, priorityLevel:
     })
 
     const newNumber = (lastTicket?.number || 0) + 1
-    const displayNum = `${queue.prefix}-${newNumber.toString().padStart(3, '0')}`
+    const displayNum = `${queue.prefix}${newNumber.toString().padStart(3, '0')}`
 
     // Calculate position
     const currentWaiters = await prisma.ticket.count({
@@ -42,13 +47,15 @@ export async function joinQueue(serviceId: string, orgId: string, priorityLevel:
     if (priorityLevel === 'VIP') priorityScore = 3;
     else if (priorityLevel === 'PRIORITY') priorityScore = 2;
 
+    const guestName = session?.user?.name || 'Client Visiteur'
+
     // Create ticket
     const ticket = await prisma.ticket.create({
       data: {
         queueId: queue.id,
         serviceId: service.id,
-        userId: (session?.user as any)?.id || null, // Guest if no user
-        guestName: session?.user ? null : 'Guest',
+        userId: (session?.user as any)?.id || null,
+        guestName,
         number: newNumber,
         displayNum,
         priorityScore,
@@ -64,6 +71,9 @@ export async function joinQueue(serviceId: string, orgId: string, priorityLevel:
     })
 
     revalidatePath(`/org/${orgId}`)
+    revalidatePath(`/tv/${orgId}`)
+    revalidatePath('/dashboard')
+    revalidatePath('/agent')
     
     return { success: true, ticketId: ticket.id }
   } catch (error: any) {

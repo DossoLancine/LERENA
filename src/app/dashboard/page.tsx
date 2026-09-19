@@ -6,49 +6,52 @@ import AnalyticsTab from './analytics-tab'
 import PromotionsTab from './promotions-tab'
 import SettingsTab from './settings-tab'
 
-const QUEUE = [
-  { num: 'A-021', name: 'Mariama D.',  service: 'Consultation',  status: 'SERVING',  wait: 0 },
-  { num: 'A-022', name: 'Ibrahima K.', service: 'Pédiatrie',      status: 'WAITING',  wait: 8 },
-  { num: 'A-023', name: 'Fatou N.',    service: 'Consultation',   status: 'WAITING',  wait: 18 },
-  { num: 'A-024', name: 'Ousmane B.',  service: 'Laboratoire',    status: 'WAITING',  wait: 12 },
-  { num: 'A-025', name: 'Aïssatou T.', service: 'Pédiatrie',      status: 'WAITING',  wait: 28 },
-  { num: 'A-026', name: 'Mamadou S.',  service: 'Consultation',   status: 'WAITING',  wait: 35 },
-  { num: 'A-027', name: 'Rokhaya M.',  service: 'Laboratoire',    status: 'WAITING',  wait: 20 },
-]
-
-const SERVICES = [
-  { name: 'Consultation générale', count: 3, avgMin: 18, agents: 2 },
-  { name: 'Pédiatrie',             count: 2, avgMin: 25, agents: 1 },
-  { name: 'Laboratoire',           count: 2, avgMin: 12, agents: 1 },
-]
-
 const statusBadge: Record<string, string> = {
   SERVING: 'badge-serving',
   WAITING: 'badge-waiting',
   CALLED:  'badge-called',
+  COMPLETED: 'bg-green-100 text-green-700 px-2.5 py-1 rounded-full text-xs font-semibold',
+  ABSENT: 'bg-red-100 text-red-700 px-2.5 py-1 rounded-full text-xs font-semibold',
+  CANCELLED: 'bg-gray-100 text-gray-700 px-2.5 py-1 rounded-full text-xs font-semibold',
 }
 const statusLabel: Record<string, string> = {
   SERVING: 'En service',
   WAITING: 'En attente',
   CALLED:  'Appelé',
+  COMPLETED: 'Terminé',
+  ABSENT: 'Absent',
+  CANCELLED: 'Annulé',
 }
 
-import { getManagerStats, toggleOrganizationStatus } from '../actions/manager'
+import { getManagerStats, toggleOrganizationStatus, getLiveQueue, getOrganizationServices } from '../actions/manager'
 
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<'overview' | 'queue' | 'services' | 'analytics' | 'marketing' | 'settings'>('overview')
   const [stats, setStats] = useState<any>(null)
+  const [liveQueue, setLiveQueue] = useState<any[]>([])
+  const [orgServices, setOrgServices] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   const fetchStats = async () => {
-    const data = await getManagerStats()
-    setStats(data)
-    setLoading(false)
+    try {
+      const [data, queueData, servicesData] = await Promise.all([
+        getManagerStats(),
+        getLiveQueue(),
+        getOrganizationServices()
+      ])
+      setStats(data)
+      setLiveQueue(queueData || [])
+      setOrgServices(servicesData || [])
+    } catch (e) {
+      console.error("Dashboard fetch error:", e)
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => {
     fetchStats()
-    const interval = setInterval(fetchStats, 10000)
+    const interval = setInterval(fetchStats, 5000)
     return () => clearInterval(interval)
   }, [])
 
@@ -163,42 +166,57 @@ export default function DashboardPage() {
             {/* Current queue preview */}
             <div className="bg-white rounded-2xl border border-gray-100">
               <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-                <h2 className="font-semibold text-gray-900">File actuelle</h2>
+                <h2 className="font-semibold text-gray-900">File en direct</h2>
                 <button onClick={() => setActiveTab('queue')} className="text-sm text-orange-500 font-medium">Tout voir</button>
               </div>
-              <div className="divide-y divide-gray-50">
-                {QUEUE.slice(0, 5).map((ticket) => (
-                  <div key={ticket.num} className="px-5 py-3 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <span className="font-mono text-sm font-bold text-gray-700 w-14">{ticket.num}</span>
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{ticket.name}</p>
-                        <p className="text-xs text-gray-500">{ticket.service}</p>
+              {liveQueue.length === 0 ? (
+                <div className="p-6 text-center text-xs text-gray-400">
+                  Aucun ticket actif pour le moment.
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-50">
+                  {liveQueue.slice(0, 5).map((ticket) => (
+                    <div key={ticket.id || ticket.num} className="px-5 py-3 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="font-mono text-sm font-bold text-gray-700 w-14">{ticket.num}</span>
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{ticket.name}</p>
+                          <p className="text-xs text-gray-500">{ticket.service}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={statusBadge[ticket.status] || 'badge-waiting'}>{statusLabel[ticket.status] || ticket.status}</span>
                       </div>
                     </div>
-                    <span className={statusBadge[ticket.status]}>{statusLabel[ticket.status]}</span>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Services overview */}
             <div className="bg-white rounded-2xl border border-gray-100">
-              <div className="px-5 py-4 border-b border-gray-100">
-                <h2 className="font-semibold text-gray-900">Services actifs</h2>
+              <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                <h2 className="font-semibold text-gray-900">Services configurés ({orgServices.length})</h2>
+                <button onClick={() => setActiveTab('services')} className="text-sm text-orange-500 font-medium">Détails</button>
               </div>
-              {SERVICES.map((svc) => (
-                <div key={svc.name} className="px-5 py-4 border-b border-gray-50 last:border-0">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="font-medium text-gray-900 text-sm">{svc.name}</p>
-                    <span className="text-xs text-gray-500">{svc.agents} agent{svc.agents > 1 ? 's' : ''}</span>
-                  </div>
-                  <div className="flex items-center gap-4 text-xs text-gray-500">
-                    <span className="flex items-center gap-1"><Users size={11} />{svc.count} en attente</span>
-                    <span className="flex items-center gap-1"><Clock size={11} />~{svc.avgMin} min</span>
-                  </div>
+              {orgServices.length === 0 ? (
+                <div className="p-6 text-center text-xs text-gray-400">
+                  Aucun service configuré.
                 </div>
-              ))}
+              ) : (
+                orgServices.map((svc) => (
+                  <div key={svc.id || svc.name} className="px-5 py-4 border-b border-gray-50 last:border-0">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="font-medium text-gray-900 text-sm">{svc.name}</p>
+                      <span className="text-xs text-gray-500">{svc.completedToday || 0} servis auj.</span>
+                    </div>
+                    <div className="flex items-center gap-4 text-xs text-gray-500">
+                      <span className="flex items-center gap-1"><Users size={11} />{svc.count} en attente</span>
+                      <span className="flex items-center gap-1"><Clock size={11} />~{svc.avgMin} min</span>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </>
         )}
@@ -206,60 +224,79 @@ export default function DashboardPage() {
         {activeTab === 'queue' && (
           <div className="bg-white rounded-2xl border border-gray-100">
             <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-              <h2 className="font-semibold text-gray-900">File complète</h2>
-              <span className="text-sm text-gray-500">{QUEUE.length} tickets</span>
+              <h2 className="font-semibold text-gray-900">File complète en direct</h2>
+              <span className="text-sm text-gray-500">{liveQueue.length} tickets</span>
             </div>
-            <div className="divide-y divide-gray-50">
-              {QUEUE.map((ticket, i) => (
-                <div key={ticket.num} className="px-5 py-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                      ticket.status === 'SERVING' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600'
-                    }`}>{i + 1}</div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-sm font-bold text-gray-700">{ticket.num}</span>
-                        <span className="text-sm text-gray-900">— {ticket.name}</span>
+            {liveQueue.length === 0 ? (
+              <div className="p-12 text-center text-gray-400">
+                <Users size={36} className="mx-auto mb-2 text-gray-300" />
+                <p className="font-semibold text-sm text-gray-600">Aucun ticket dans la file</p>
+                <p className="text-xs text-gray-400 mt-1">Les tickets pris par les clients apparaîtront ici en temps réel.</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-50">
+                {liveQueue.map((ticket, i) => (
+                  <div key={ticket.id || ticket.num} className="px-5 py-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                        ticket.status === 'SERVING' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600'
+                      }`}>{i + 1}</div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-sm font-bold text-gray-700">{ticket.num}</span>
+                          <span className="text-sm text-gray-900">— {ticket.name}</span>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-0.5">{ticket.service}</p>
                       </div>
-                      <p className="text-xs text-gray-500 mt-0.5">{ticket.service}</p>
+                    </div>
+                    <div className="text-right">
+                      <span className={statusBadge[ticket.status] || 'badge-waiting'}>{statusLabel[ticket.status] || ticket.status}</span>
+                      {ticket.wait > 0 && (
+                        <p className="text-xs text-gray-400 mt-1">~{ticket.wait} min</p>
+                      )}
                     </div>
                   </div>
-                  <div className="text-right">
-                    <span className={statusBadge[ticket.status]}>{statusLabel[ticket.status]}</span>
-                    {ticket.wait > 0 && (
-                      <p className="text-xs text-gray-400 mt-1">~{ticket.wait} min</p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
         {activeTab === 'services' && (
           <div className="space-y-3">
-            {SERVICES.map((svc) => (
-              <div key={svc.name} className="bg-white rounded-2xl border border-gray-100 p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-semibold text-gray-900">{svc.name}</h3>
-                  <ChevronRight size={18} className="text-gray-300" />
-                </div>
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="text-center">
-                    <p className="text-2xl font-black text-orange-500">{svc.count}</p>
-                    <p className="text-xs text-gray-500">En attente</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-2xl font-black text-blue-500">{svc.avgMin}</p>
-                    <p className="text-xs text-gray-500">Min moy.</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-2xl font-black text-green-500">{svc.agents}</p>
-                    <p className="text-xs text-gray-500">Agent{svc.agents > 1 ? 's' : ''}</p>
-                  </div>
-                </div>
+            {orgServices.length === 0 ? (
+              <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center text-gray-400">
+                <Settings size={36} className="mx-auto mb-2 text-gray-300" />
+                <p className="font-semibold text-sm text-gray-600">Aucun service configuré</p>
+                <p className="text-xs text-gray-400 mt-1">Configurez vos services dans l&apos;onglet Paramètres.</p>
               </div>
-            ))}
+            ) : (
+              orgServices.map((svc) => (
+                <div key={svc.id || svc.name} className="bg-white rounded-2xl border border-gray-100 p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h3 className="font-semibold text-gray-900">{svc.name}</h3>
+                      <p className="text-xs text-gray-500">{svc.completedToday || 0} tickets traités aujourd&apos;hui</p>
+                    </div>
+                    <ChevronRight size={18} className="text-gray-300" />
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="text-center">
+                      <p className="text-2xl font-black text-orange-500">{svc.count}</p>
+                      <p className="text-xs text-gray-500">En attente</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-2xl font-black text-blue-500">{svc.avgMin} min</p>
+                      <p className="text-xs text-gray-500">Moy. traitement</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-2xl font-black text-green-500">{svc.completedToday || 0}</p>
+                      <p className="text-xs text-gray-500">Clôturés</p>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         )}
 

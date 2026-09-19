@@ -36,9 +36,20 @@ export async function getTVQueue(orgId: string) {
       b.queues.flatMap(q => q.tickets)
     )
 
+    const mapTicket = (t: any) => ({
+      ...t,
+      counter: t.guestPhone?.startsWith('G-') ? t.guestPhone.replace('G-', '') : 'Guichet 1'
+    })
+
     // Sort: CALLED and SERVING first, then WAITING
-    const active = allTickets.filter(t => t.status === 'CALLED' || t.status === 'SERVING')
-    const waiting = allTickets.filter(t => t.status === 'WAITING').slice(0, 8) // Show next 8
+    const active = allTickets
+      .filter(t => t.status === 'CALLED' || t.status === 'SERVING')
+      .map(mapTicket)
+
+    const waiting = allTickets
+      .filter(t => t.status === 'WAITING')
+      .slice(0, 8)
+      .map(mapTicket)
 
     let playlist: Array<{ id: string; title: string; url: string }> = []
     if (org.tvVideoUrl && org.tvVideoUrl.trim()) {

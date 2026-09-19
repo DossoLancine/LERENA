@@ -149,8 +149,9 @@ export default function TVPage({ params }: { params: { orgId: string } }) {
 
         try {
           if ('speechSynthesis' in window) {
+            const counterLabel = newCalledTicket.counter || (newCalledTicket.guestPhone?.startsWith('G-') ? newCalledTicket.guestPhone.replace('G-', '') : 'Guichet 1')
             const utterance = new SpeechSynthesisUtterance(
-              `Ticket numéro ${newCalledTicket.displayNum}. Veuillez vous rendre au guichet ${newCalledTicket.service?.name}.`
+              `Ticket numéro ${newCalledTicket.displayNum}. Veuillez vous rendre au ${counterLabel}.`
             )
             utterance.lang = 'fr-FR'
             utterance.rate = 0.95
@@ -341,7 +342,10 @@ export default function TVPage({ params }: { params: { orgId: string } }) {
             <div className="border-t border-gray-800/80 pt-6">
               <p className="text-gray-400 text-base font-mono uppercase tracking-widest mb-1">Veuillez vous orienter vers le</p>
               <p className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-amber-300 to-cyan-400">
-                {urgentCall.service?.name}
+                {urgentCall.counter || (urgentCall.guestPhone?.startsWith('G-') ? urgentCall.guestPhone.replace('G-', '') : 'GUICHET 1')}
+              </p>
+              <p className="text-cyan-400 text-base font-mono mt-2">
+                Service : {urgentCall.service?.name}
               </p>
             </div>
           </div>
@@ -597,6 +601,9 @@ function QueueDisplay({ data }: { data: any }) {
                       ticket.status === 'CALLED' ? 'text-orange-400' : 'text-cyan-400'
                     }`}
                   >
+                    {ticket.counter || (ticket.guestPhone?.startsWith('G-') ? ticket.guestPhone.replace('G-', '') : 'GUICHET 1')}
+                  </p>
+                  <p className="text-xs font-mono text-gray-400 mt-1">
                     {ticket.service?.name}
                   </p>
                 </div>
