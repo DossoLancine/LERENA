@@ -55,7 +55,8 @@ export default function TicketPage({ params }: { params: { id: string } }) {
       }
       
       if (prevStatus.current === 'WAITING' && data.status === 'CALLED') {
-        setPushMessage(`C'est à votre tour ! Veuillez vous présenter au guichet.`)
+        const counterName = data.guestPhone?.startsWith('G-') ? data.guestPhone.replace('G-', '') : 'guichet'
+        setPushMessage(`C'est à votre tour ! Veuillez vous présenter au ${counterName}.`)
         setShowPush(true)
         if (navigator.vibrate) navigator.vibrate([200, 100, 200])
       }
@@ -227,8 +228,39 @@ export default function TicketPage({ params }: { params: { id: string } }) {
           </div>
         </div>
 
+        {/* Desk Call banner */}
+        {ticket.status === 'CALLED' && (
+          <div className="bg-gradient-to-r from-orange-500 to-amber-500 rounded-2xl p-5 text-white flex items-center gap-4 shadow-lg shadow-orange-200 animate-pulse">
+            <Megaphone size={36} className="shrink-0" />
+            <div>
+              <p className="text-xs uppercase tracking-wider font-bold opacity-90">Appel en cours</p>
+              <p className="text-xl font-black">
+                {ticket.guestPhone?.startsWith('G-')
+                  ? `Présentez-vous au ${ticket.guestPhone.replace('G-', '')}`
+                  : "C'est à votre tour au guichet !"}
+              </p>
+              <p className="text-xs opacity-90 mt-0.5">Votre numéro vient d&apos;être appelé.</p>
+            </div>
+          </div>
+        )}
+
+        {/* Serving banner */}
+        {ticket.status === 'SERVING' && (
+          <div className="bg-blue-600 rounded-2xl p-4 text-white flex items-center gap-3">
+            <Settings size={26} className="shrink-0 animate-spin" style={{ animationDuration: '6s' }} />
+            <div>
+              <p className="font-bold text-sm">Prise en charge en cours</p>
+              <p className="text-xs opacity-90">
+                {ticket.guestPhone?.startsWith('G-')
+                  ? `Au ${ticket.guestPhone.replace('G-', '')}`
+                  : "Vous êtes actuellement au guichet."}
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Info banner */}
-        {ticket.position > 0 && ticket.position <= 3 && (
+        {ticket.status === 'WAITING' && ticket.position > 0 && ticket.position <= 3 && (
           <div className="bg-orange-500 rounded-2xl p-4 text-white flex items-center gap-3">
             <Megaphone size={28} />
             <div>

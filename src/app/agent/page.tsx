@@ -3,20 +3,26 @@
 import { useState, useEffect } from 'react'
 import { Users, Clock, CheckCircle2, SkipForward, UserX, Play, Square, ChevronDown, Megaphone, PartyPopper } from 'lucide-react'
 
-import { getAgentQueue, updateTicketStatus } from '../actions/agent'
+import { getAgentQueue, updateTicketStatus, getAgentStats } from '../actions/agent'
 import { useSession } from 'next-auth/react'
 
 export default function AgentPage() {
   const { data: session } = useSession()
   const [queue, setQueue] = useState<any[]>([])
-  const [servedToday, setServedToday] = useState(34)
-  const [avgMin, setAvgMin] = useState(14)
+  const [servedToday, setServedToday] = useState(0)
+  const [avgMin, setAvgMin] = useState(15)
+  const [counter, setCounter] = useState('Guichet 1')
   const [isLoading, setIsLoading] = useState(true)
   const [lastAction, setLastAction] = useState<string | null>(null)
 
   const fetchQueue = async () => {
     const data = await getAgentQueue()
     setQueue(data)
+    const stats = await getAgentStats()
+    if (stats) {
+      setServedToday(stats.servedToday)
+      setAvgMin(stats.avgMin)
+    }
     setIsLoading(false)
   }
 
@@ -33,21 +39,21 @@ export default function AgentPage() {
     if (current || waiting.length === 0) return
     setIsLoading(true)
     const nextTicket = waiting[0]
-    await updateTicketStatus(nextTicket.id, 'CALLED')
-    setLastAction(`${nextTicket.displayNum} appelé`)
+    await updateTicketStatus(nextTicket.id, 'CALLED', counter)
+    setLastAction(`${nextTicket.displayNum} appelé au ${counter}`)
     await fetchQueue()
   }
 
   const startService = async (ticketId: string) => {
     setIsLoading(true)
-    await updateTicketStatus(ticketId, 'SERVING')
+    await updateTicketStatus(ticketId, 'SERVING', counter)
     setLastAction('Service commencé')
     await fetchQueue()
   }
 
   const completeService = async (ticketId: string) => {
     setIsLoading(true)
-    await updateTicketStatus(ticketId, 'COMPLETED')
+    await updateTicketStatus(ticketId, 'COMPLETED', counter)
     setServedToday((n) => n + 1)
     setLastAction('Service terminé')
     await fetchQueue()
@@ -55,7 +61,7 @@ export default function AgentPage() {
 
   const markAbsent = async (ticketId: string) => {
     setIsLoading(true)
-    await updateTicketStatus(ticketId, 'ABSENT')
+    await updateTicketStatus(ticketId, 'ABSENT', counter)
     setLastAction('Client marqué absent')
     await fetchQueue()
   }
@@ -70,14 +76,36 @@ export default function AgentPage() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-100">
-        <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="max-w-2xl mx-auto px-4 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-lg font-bold text-gray-900">Interface Agent</h1>
-            <p className="text-sm text-gray-500">Clinique Horizon · Dr. Diallo</p>
+            <h1 className="text-lg font-bold text-gray-900">Interface Guichetier</h1>
+            <p className="text-sm text-gray-500">
+              {session?.user?.name || 'Awa Traoré'} · Poste actif
+            </p>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-            <span className="text-xs text-green-600 font-medium">En ligne</span>
+          
+          <div className="flex items-center gap-3">
+            {/* Sélecteur de Guichet */}
+            <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-xl px-2.5 py-1.5">
+              <span className="text-xs font-semibold text-gray-500">Poste :</span>
+              <select
+                value={counter}
+                onChange={(e) => setCounter(e.target.value)}
+                className="bg-transparent text-xs font-bold text-gray-900 focus:outline-none cursor-pointer"
+              >
+                <option value="Guichet 1">Guichet 1</option>
+                <option value="Guichet 2">Guichet 2</option>
+                <option value="Guichet 3">Guichet 3</option>
+                <option value="Guichet 4">Guichet 4</option>
+                <option value="Caisse">Caisse</option>
+                <option value="Accueil">Accueil</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-1.5 bg-green-50 text-green-700 border border-green-200 px-2.5 py-1.5 rounded-xl">
+              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+              <span className="text-xs font-semibold">En ligne</span>
+            </div>
           </div>
         </div>
       </div>
@@ -91,11 +119,11 @@ export default function AgentPage() {
           </div>
           <div className="stat-card text-center">
             <p className="text-2xl font-black text-green-500">{servedToday}</p>
-            <p className="text-xs text-gray-500 mt-1">Servis</p>
+            <p className="text-xs text-gray-500 mt-1">Servis aujourd&apos;hui</p>
           </div>
           <div className="stat-card text-center">
             <p className="text-2xl font-black text-blue-500">{avgMin} min</p>
-            <p className="text-xs text-gray-500 mt-1">Moy. service</p>
+            <p className="text-xs text-gray-500 mt-1">Moy. traitement</p>
           </div>
         </div>
 
