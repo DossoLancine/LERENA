@@ -18,6 +18,7 @@ export default withAuth(
     callbacks: {
       authorized: ({ token }) => !!token,
     },
+    secret: process.env.NEXTAUTH_SECRET || "attends-super-secret-jwt-key-2026-xK9mP2nL",
   }
 )
 
