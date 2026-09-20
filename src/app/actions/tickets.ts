@@ -9,6 +9,10 @@ export async function joinQueue(serviceId: string, orgId: string, priorityLevel:
   try {
     const session = await getServerSession(authOptions)
     
+    if (!session?.user) {
+      throw new Error("Vous devez être connecté pour prendre un ticket")
+    }
+
     // Find the queue associated with the service (via branch)
     const service = await prisma.service.findUnique({
       where: { id: serviceId },
@@ -47,14 +51,14 @@ export async function joinQueue(serviceId: string, orgId: string, priorityLevel:
     if (priorityLevel === 'VIP') priorityScore = 3;
     else if (priorityLevel === 'PRIORITY') priorityScore = 2;
 
-    const guestName = session?.user?.name || 'Client Visiteur'
+    const guestName = session.user.name || 'Client'
 
     // Create ticket
     const ticket = await prisma.ticket.create({
       data: {
         queueId: queue.id,
         serviceId: service.id,
-        userId: (session?.user as any)?.id || null,
+        userId: (session.user as any).id,
         guestName,
         number: newNumber,
         displayNum,

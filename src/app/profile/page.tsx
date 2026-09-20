@@ -22,8 +22,8 @@ export default function ProfilePage() {
           <div className="animate-pulse bg-white rounded-2xl border border-gray-100 p-5 h-28"></div>
         ) : session?.user ? (
           <div className="bg-white rounded-2xl border border-gray-100 p-5 flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-orange-500 flex items-center justify-center text-white text-2xl font-bold">
-              {session.user.name?.[0]?.toUpperCase() || 'U'}
+            <div className="w-16 h-16 rounded-2xl bg-orange-500 flex items-center justify-center text-white text-3xl font-bold">
+              {session.user.image || session.user.name?.[0]?.toUpperCase() || 'U'}
             </div>
             <div className="flex-1">
               <p className="font-bold text-gray-900 text-lg">{session.user.name || 'Utilisateur'}</p>
