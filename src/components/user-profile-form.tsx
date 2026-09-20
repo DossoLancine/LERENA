@@ -16,6 +16,7 @@ export default function UserProfileForm({ theme = 'orange' }: { theme?: 'orange'
   })
   const avatars = ['👨', '👩', '🧑', '👨‍🦱', '👩‍🦱', '👨‍🦳', '👩‍🦳', '🦸‍♂️', '🦸‍♀️', '🥷', '🐶', '🐱', '🐼']
   const [selectedAvatar, setSelectedAvatar] = useState('')
+  const [role, setRole] = useState('')
 
   useEffect(() => {
     async function loadData() {

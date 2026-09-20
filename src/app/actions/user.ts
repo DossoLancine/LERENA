@@ -1,13 +1,13 @@
 'use server'
 
-import prisma from '@/lib/prisma'
+import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
-import { authOptions } from '../api/auth/[...nextauth]/route'
+import { authOptions } from '@/lib/auth'
 
 export async function updateUserProfile(data: { name?: string; phone?: string; password?: string; image?: string }) {
   const session = await getServerSession(authOptions)
   
-  if (!session?.user?.id) {
+  if (!session || !session.user || !(session.user as any).id) {
     throw new Error("Non autorisé")
   }
 
@@ -23,7 +23,7 @@ export async function updateUserProfile(data: { name?: string; phone?: string; p
   }
 
   await prisma.user.update({
-    where: { id: (session.user as any).id },
+    where: { id: (session?.user as any).id },
     data: updateData
   })
 
@@ -33,7 +33,7 @@ export async function updateUserProfile(data: { name?: string; phone?: string; p
 export async function getUserProfile() {
   const session = await getServerSession(authOptions)
   
-  if (!session?.user?.id) {
+  if (!session || !session.user || !(session.user as any).id) {
     return null
   }
 
