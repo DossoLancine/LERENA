@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { getOrganizationById } from '../../actions/orgs'
 import { joinQueue } from '../../actions/tickets'
+import { toggleFavorite, checkIsFavorite } from '../../actions/favorites'
 import { useSession, signOut } from 'next-auth/react'
 
 export default function OrgPage({ params }: { params: { id: string } }) {
@@ -21,12 +22,34 @@ export default function OrgPage({ params }: { params: { id: string } }) {
 
   useEffect(() => {
     fetchOrg()
+    fetchFavoriteStatus()
   }, [params.id])
 
   const fetchOrg = async () => {
     const data = await getOrganizationById(params.id)
     setOrg(data)
     setLoading(false)
+  }
+
+  const fetchFavoriteStatus = async () => {
+    if (session?.user) {
+      const status = await checkIsFavorite(params.id)
+      setIsFavorite(status)
+    }
+  }
+
+  const handleFavoriteClick = async () => {
+    if (!session?.user) {
+      router.push(`/auth/login?callbackUrl=/org/${params.id}`)
+      return
+    }
+    // Optimistic UI update
+    setIsFavorite(!isFavorite)
+    const res = await toggleFavorite(params.id)
+    if (!res.success) {
+      // Revert if error
+      setIsFavorite(isFavorite)
+    }
   }
 
   const handleJoinQueue = async () => {
@@ -104,7 +127,7 @@ export default function OrgPage({ params }: { params: { id: string } }) {
 
         <div className="absolute top-4 right-4 flex gap-2">
           <button
-            onClick={() => setIsFavorite(!isFavorite)}
+            onClick={handleFavoriteClick}
             className="w-9 h-9 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow"
           >
             <Heart size={16} className={isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-600'} />
