@@ -1,14 +1,26 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Search, Filter, MapPin, Clock, Users, Star, ChevronRight, PlusSquare, Scissors, Utensils, Building2, Home, Compass, Ticket, Heart, User as UserIcon } from 'lucide-react'
+import { Search, Filter, MapPin, Clock, Users, Star, ChevronRight, PlusSquare, Scissors, Utensils, Building2, Home, Compass, Ticket, Heart, User as UserIcon, Map as MapIcon, List as ListIcon } from 'lucide-react'
 import Link from 'next/link'
 import { getOrganizations } from '../actions/orgs'
+import dynamic from 'next/dynamic'
+
+// Dynamic import for Leaflet (SSR disabled)
+const ExploreMap = dynamic(() => import('@/components/ExploreMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-[calc(100vh-140px)] flex items-center justify-center bg-gray-100 animate-pulse rounded-t-3xl">
+      <MapIcon size={32} className="text-gray-300" />
+    </div>
+  )
+})
 
 export default function ExplorePage() {
   const [search, setSearch] = useState('')
   const [onlyOpen, setOnlyOpen] = useState(false)
   const [dbOrgs, setDbOrgs] = useState<any[]>([])
   const [location, setLocation] = useState<{lat: number, lng: number} | null>(null)
+  const [isMapView, setIsMapView] = useState(false)
 
   useEffect(() => {
     // 1. Demander la localisation
@@ -42,10 +54,18 @@ export default function ExplorePage() {
   })
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b border-gray-100 sticky top-0 z-20">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <div className="bg-white border-b border-gray-100 z-20">
         <div className="max-w-lg mx-auto px-4 pt-4 pb-3">
-          <h1 className="text-xl font-bold text-gray-900 mb-3">Explorer</h1>
+          <div className="flex items-center justify-between mb-3">
+            <h1 className="text-xl font-bold text-gray-900">Explorer</h1>
+            <button 
+              onClick={() => setIsMapView(!isMapView)}
+              className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-full text-sm font-semibold transition-colors"
+            >
+              {isMapView ? <><ListIcon size={16} /> Liste</> : <><MapIcon size={16} /> Carte</>}
+            </button>
+          </div>
           <div className="relative mb-3">
             <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input type="text" placeholder="Rechercher un établissement..." value={search} onChange={(e) => setSearch(e.target.value)}
@@ -61,7 +81,11 @@ export default function ExplorePage() {
         </div>
       </div>
 
-      <div className="max-w-lg mx-auto px-4 py-4 space-y-3 pb-24">
+      <div className="flex-1 relative">
+        {isMapView ? (
+          <ExploreMap orgs={filtered} userLocation={location} />
+        ) : (
+          <div className="max-w-lg mx-auto px-4 py-4 space-y-3 pb-24">
         <p className="text-sm text-gray-500">{filtered.length} établissement{filtered.length > 1 ? 's' : ''}</p>
         {filtered.map((org) => (
           <Link key={org.id} href={`/org/${org.id}`}>
@@ -100,6 +124,8 @@ export default function ExplorePage() {
             </div>
           </Link>
         ))}
+          </div>
+        )}
       </div>
       <BottomNav active="explore" />
     </div>
