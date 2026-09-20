@@ -117,7 +117,33 @@ export async function getTicketById(id: string) {
         service: true
       }
     })
-    return ticket
+
+    if (!ticket) return null;
+
+    // Calculer la position réelle dynamiquement (nombre de tickets WAITING créés avant celui-ci dans la même file)
+    let realPosition = ticket.position;
+    if (ticket.status === 'WAITING') {
+      const earlierWaitingTickets = await prisma.ticket.count({
+        where: {
+          queueId: ticket.queueId,
+          status: 'WAITING',
+          createdAt: {
+            lt: ticket.createdAt
+          }
+        }
+      });
+      realPosition = earlierWaitingTickets + 1;
+    } else {
+      realPosition = 0; // S'il n'est plus en attente (CALLED, SERVING, etc.), il n'y a plus d'attente
+    }
+
+    return {
+      ...ticket,
+      initialPosition: ticket.position, // Position at creation
+      position: realPosition,           // Current dynamic position
+      orgName: ticket.queue?.branch?.organization?.name || 'Établissement Inconnu',
+      serviceName: ticket.service?.name || 'Service Inconnu',
+    }
   } catch (error) {
     console.error("Get ticket error:", error)
     return null
