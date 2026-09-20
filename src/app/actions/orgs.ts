@@ -75,6 +75,8 @@ export async function getOrganizations(search?: string, userLat?: number, userLn
         distance: distanceStr,
         waitRange: totalWait > 0 ? `${totalWait}-${totalWait + 10} min` : "0-10 min",
         isOpen: org.isActive,
+        lat: org.lat,
+        lng: org.lng,
         rating: rating,
         reviewCount: reviewCount,
         address: org.address || "Abidjan",
