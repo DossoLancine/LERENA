@@ -80,8 +80,9 @@ export default function ExploreMap({ orgs, userLocation }: { orgs: any[], userLo
         zoomControl={false}
       >
         <TileLayer
-          url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}"
-          attribution='Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; OpenStreetMap contributors'
+          className="map-tiles"
         />
         
         <LocationMarker location={userLocation} />
@@ -115,6 +116,9 @@ export default function ExploreMap({ orgs, userLocation }: { orgs: any[], userLo
       
       {/* Global styles for Leaflet Popup overriding */}
       <style jsx global>{`
+        .map-tiles {
+          filter: grayscale(1) opacity(0.6) contrast(1.2);
+        }
         .leaflet-popup-content-wrapper {
           border-radius: 16px;
           padding: 0;
