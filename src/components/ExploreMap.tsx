@@ -40,6 +40,7 @@ function LocationMarker({ location }: { location: { lat: number, lng: number } |
 
 export default function ExploreMap({ orgs, userLocation }: { orgs: any[], userLocation: { lat: number, lng: number } | null }) {
   const [activeOrg, setActiveOrg] = useState<any | null>(null)
+  const [activeMap, setActiveMap] = useState<any | null>(null)
   const [routeCoords, setRouteCoords] = useState<[number, number][]>([])
   const [routeData, setRouteData] = useState<{distance: string, duration: string} | null>(null)
   const [isRouting, setIsRouting] = useState(false)
@@ -72,6 +73,21 @@ export default function ExploreMap({ orgs, userLocation }: { orgs: any[], userLo
           const distKm = (route.distance / 1000).toFixed(1)
           const durMin = Math.round(route.duration / 60)
           setRouteData({ distance: `${distKm} km`, duration: `${durMin} min` })
+
+          // Animation de caméra fluide (Zoomer pour englober tout le trajet)
+          if (activeMap) {
+            const bounds = L.latLngBounds(
+              [userLocation.lat, userLocation.lng],
+              [activeOrg.lat, activeOrg.lng]
+            )
+            // Padding pour ne pas cacher le marqueur sous la fiche flottante
+            activeMap.flyToBounds(bounds, { 
+              paddingBottomRight: [0, 320], 
+              paddingTopLeft: [40, 40],
+              duration: 1.5,
+              easeLinearity: 0.25
+            })
+          }
         }
       } catch (err) {
         console.error("Erreur de calcul d'itinéraire OSRM :", err)
@@ -81,7 +97,7 @@ export default function ExploreMap({ orgs, userLocation }: { orgs: any[], userLo
     }
 
     fetchRoute()
-  }, [activeOrg, userLocation])
+  }, [activeOrg, userLocation, activeMap])
 
   // Create custom icons for orgs
   const createOrgIcon = (org: any, isActive: boolean) => {
@@ -105,7 +121,7 @@ export default function ExploreMap({ orgs, userLocation }: { orgs: any[], userLo
       colorClass = 'bg-blue-500'
     }
 
-    const scaleClass = isActive ? 'scale-125 ring-4 ring-white shadow-[0_10px_30px_rgba(0,0,0,0.3)] z-[9999]' : 'hover:scale-110 shadow-lg border-2 border-white'
+    const scaleClass = isActive ? 'scale-125 ring-4 ring-white shadow-[0_10px_30px_rgba(249,115,22,0.4)] z-[9999] active-marker-pulse' : 'hover:scale-110 shadow-lg border-2 border-white'
 
     return L.divIcon({
       className: 'bg-transparent',
@@ -136,18 +152,18 @@ export default function ExploreMap({ orgs, userLocation }: { orgs: any[], userLo
         
         <LocationMarker location={userLocation} />
 
-        {/* Ligne d'itinéraire réelle (Style Uber / Google Maps) */}
+        {/* Ligne d'itinéraire réelle (Couleur Orange de l'app avec flux animé) */}
         {routeCoords.length > 0 && (
           <>
             {/* Bordure de la ligne (Ombre) */}
             <Polyline 
               positions={routeCoords} 
-              pathOptions={{ color: '#1e40af', weight: 8, opacity: 0.3, lineCap: 'round', lineJoin: 'round' }} 
+              pathOptions={{ color: '#9a3412', weight: 8, opacity: 0.3, lineCap: 'round', lineJoin: 'round' }} 
             />
-            {/* Trait principal */}
+            {/* Trait principal animé */}
             <Polyline 
               positions={routeCoords} 
-              pathOptions={{ color: '#3b82f6', weight: 5, opacity: 1, lineCap: 'round', lineJoin: 'round' }} 
+              pathOptions={{ color: '#f97316', weight: 5, opacity: 1, lineCap: 'round', lineJoin: 'round', className: 'animated-route' }} 
             />
           </>
         )}
@@ -160,9 +176,7 @@ export default function ExploreMap({ orgs, userLocation }: { orgs: any[], userLo
             eventHandlers={{
               click: (e) => {
                 setActiveOrg(org)
-                const map = e.target._map
-                // Recentrer légèrement plus bas pour que la carte n'écrase pas le marqueur
-                map.setView([org.lat - 0.008, org.lng], 14, { animate: true })
+                setActiveMap(e.target._map)
               }
             }}
           />
@@ -171,10 +185,10 @@ export default function ExploreMap({ orgs, userLocation }: { orgs: any[], userLo
 
       {/* Floating Card UI (Professional Interaction) */}
       {activeOrg && (
-        <div className="absolute bottom-24 left-4 right-4 z-[1000] transition-all duration-300 transform translate-y-0 opacity-100 pb-safe">
-          <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] p-4 border border-gray-100 relative">
+        <div className="absolute bottom-24 left-4 right-4 z-[1000] transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) transform translate-y-0 opacity-100 pb-safe">
+          <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] p-4 border border-gray-100 relative animate-in slide-in-from-bottom-8 fade-in duration-300">
             <button 
-              onClick={() => setActiveOrg(null)}
+              onClick={() => { setActiveOrg(null); setRouteCoords([]); setRouteData(null); }}
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-full p-1 transition-colors"
             >
               <X size={18} />
@@ -203,20 +217,20 @@ export default function ExploreMap({ orgs, userLocation }: { orgs: any[], userLo
                 </span>
                 <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">En file</span>
               </div>
-              <div className="bg-blue-50 rounded-xl p-2 text-center">
-                <span className="block text-blue-600 font-bold flex items-center justify-center gap-1 text-sm">
+              <div className="bg-orange-50 rounded-xl p-2 text-center">
+                <span className="block text-orange-600 font-bold flex items-center justify-center gap-1 text-sm">
                   {isRouting ? (
-                    <div className="w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+                    <div className="w-3 h-3 border-2 border-orange-400 border-t-transparent rounded-full animate-spin"></div>
                   ) : (
                     <><Navigation size={12} className="shrink-0" /> {routeData ? routeData.duration : activeOrg.distance}</>
                   )}
                 </span>
-                <span className="text-[10px] text-blue-500 uppercase font-bold tracking-wider">Trajet</span>
+                <span className="text-[10px] text-orange-500 uppercase font-bold tracking-wider">Trajet</span>
               </div>
             </div>
 
             <Link href={`/org/${activeOrg.id}`} className="block">
-              <button className="w-full bg-gray-900 text-white font-bold py-3.5 rounded-2xl text-sm flex items-center justify-center gap-2 hover:bg-black transition-colors shadow-md">
+              <button className="w-full bg-orange-500 text-white font-bold py-3.5 rounded-2xl text-sm flex items-center justify-center gap-2 hover:bg-orange-600 transition-colors shadow-[0_8px_20px_rgba(249,115,22,0.3)]">
                 Voir l'établissement <ChevronRight size={16} />
               </button>
             </Link>
@@ -228,6 +242,25 @@ export default function ExploreMap({ orgs, userLocation }: { orgs: any[], userLo
       <style jsx global>{`
         .map-tiles {
           filter: saturate(0.4) brightness(1.1) contrast(0.9) sepia(0.1);
+        }
+        
+        /* Animation du flux de la route */
+        .animated-route {
+          stroke-dasharray: 15, 15;
+          animation: flowRoute 1.5s linear infinite;
+        }
+        @keyframes flowRoute {
+          0% { stroke-dashoffset: 30; }
+          100% { stroke-dashoffset: 0; }
+        }
+
+        /* Effet de pulsation douce pour le marqueur actif */
+        .active-marker-pulse {
+          animation: gentlePulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes gentlePulse {
+          0%, 100% { transform: scale(1.25); box-shadow: 0 10px 30px rgba(249,115,22,0.4); }
+          50% { transform: scale(1.3); box-shadow: 0 10px 40px rgba(249,115,22,0.6); }
         }
       `}</style>
     </div>
