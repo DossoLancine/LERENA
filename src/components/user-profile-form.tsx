@@ -14,7 +14,8 @@ export default function UserProfileForm({ theme = 'orange' }: { theme?: 'orange'
     phone: '',
     password: ''
   })
-  const [role, setRole] = useState('')
+  const avatars = ['👨', '👩', '🧑', '👨‍🦱', '👩‍🦱', '👨‍🦳', '👩‍🦳', '🦸‍♂️', '🦸‍♀️', '🥷', '🐶', '🐱', '🐼']
+  const [selectedAvatar, setSelectedAvatar] = useState('')
 
   useEffect(() => {
     async function loadData() {
@@ -26,6 +27,7 @@ export default function UserProfileForm({ theme = 'orange' }: { theme?: 'orange'
           phone: user.phone || '',
           password: ''
         })
+        setSelectedAvatar(user.image || '')
         setRole(user.role)
       }
       setLoading(false)
@@ -42,7 +44,8 @@ export default function UserProfileForm({ theme = 'orange' }: { theme?: 'orange'
       await updateUserProfile({
         name: formData.name,
         phone: formData.phone,
-        password: formData.password
+        password: formData.password,
+        image: selectedAvatar
       })
       setSuccess(true)
       // Reset password field after save
@@ -75,13 +78,28 @@ export default function UserProfileForm({ theme = 'orange' }: { theme?: 'orange'
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       
-      <div className="flex items-center gap-3 mb-6 p-4 bg-gray-50 rounded-xl border border-gray-100">
-        <div className={`w-12 h-12 rounded-xl bg-${theme}-100 flex items-center justify-center text-${theme}-600 font-bold text-xl`}>
-          {formData.name?.[0]?.toUpperCase() || 'U'}
+      <div className="flex flex-col gap-3 mb-6 p-4 bg-gray-50 rounded-xl border border-gray-100 items-center text-center">
+        <div className={`w-16 h-16 rounded-2xl bg-${theme}-100 flex items-center justify-center text-${theme}-600 font-bold text-3xl shadow-sm`}>
+          {selectedAvatar || formData.name?.[0]?.toUpperCase() || 'U'}
         </div>
         <div>
-          <p className="font-bold text-gray-900">{role || 'Utilisateur'}</p>
-          <p className="text-xs text-gray-500">Gérez vos informations personnelles</p>
+          <p className="font-bold text-gray-900">{formData.name || 'Utilisateur'}</p>
+          <p className="text-xs font-semibold text-gray-500 mb-2">{role}</p>
+        </div>
+        <div className="w-full">
+          <label className="block text-xs font-semibold text-gray-700 mb-2">Choisir un avatar</label>
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide justify-center flex-wrap">
+            {avatars.map(a => (
+              <button 
+                key={a}
+                type="button"
+                onClick={() => setSelectedAvatar(a)}
+                className={`text-xl p-1.5 rounded-full transition-all ${selectedAvatar === a ? `bg-${theme}-200 scale-110 shadow-sm` : 'hover:bg-gray-200 grayscale opacity-60 hover:grayscale-0 hover:opacity-100'}`}
+              >
+                {a}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

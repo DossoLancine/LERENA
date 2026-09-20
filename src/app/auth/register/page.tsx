@@ -8,7 +8,7 @@ import { ArrowLeft, Clock } from 'lucide-react'
 export default function RegisterPage() {
   const router = useRouter()
   const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -22,7 +22,7 @@ export default function RegisterPage() {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password })
+        body: JSON.stringify({ name, phone, password })
       })
 
       if (res.ok) {
@@ -51,8 +51,8 @@ export default function RegisterPage() {
       
       <div className="flex-1 px-6 py-8 max-w-md mx-auto w-full flex flex-col justify-center">
         <div className="mb-8">
-          <h1 className="text-2xl font-black text-gray-900 mb-2">Créer un compte</h1>
-          <p className="text-gray-500">Rejoignez des files d&apos;attente en un clic.</p>
+          <h1 className="text-2xl font-black text-gray-900 mb-2">Créez votre compte</h1>
+          <p className="text-gray-500">Rejoignez une file d&apos;attente en un clic.</p>
         </div>
 
         {error && (
@@ -63,36 +63,36 @@ export default function RegisterPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Numéro de téléphone</label>
+            <input 
+              type="tel" 
+              required
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-orange-500 focus:bg-white transition-all text-lg font-medium"
+              placeholder="+33 6 12 34 56 78"
+            />
+          </div>
+          <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Nom complet</label>
             <input 
               type="text" 
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-orange-500 focus:bg-white transition-all"
+              className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-orange-500 focus:bg-white transition-all text-lg font-medium"
               placeholder="Ex: Aminata S."
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Adresse email</label>
-            <input 
-              type="email" 
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-orange-500 focus:bg-white transition-all"
-              placeholder="votre@email.com"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Mot de passe</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Code PIN (6 chiffres)</label>
             <input 
               type="password" 
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-orange-500 focus:bg-white transition-all"
-              placeholder="••••••••"
+              className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-orange-500 focus:bg-white transition-all text-lg tracking-widest"
+              placeholder="••••••"
               minLength={6}
             />
           </div>
@@ -100,17 +100,17 @@ export default function RegisterPage() {
           <button 
             type="submit" 
             disabled={isLoading}
-            className="w-full btn-primary py-3.5 mt-4 flex justify-center items-center"
+            className="w-full bg-black text-white hover:bg-gray-800 rounded-2xl font-bold py-4 mt-4 flex justify-center items-center transition-all"
           >
             {isLoading ? (
               <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-            ) : "Créer mon compte"}
+            ) : "Continuer"}
           </button>
         </form>
 
         <p className="text-center mt-8 text-sm text-gray-500">
           Vous avez déjà un compte ?{' '}
-          <Link href="/auth/login" className="font-semibold text-orange-500">Se connecter</Link>
+          <Link href="/auth/login" className="font-bold text-orange-500">Se connecter</Link>
         </p>
       </div>
     </div>

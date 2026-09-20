@@ -121,24 +121,24 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Adresse email</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Numéro de téléphone ou Email</label>
             <input 
-              type="email" 
+              type="text" 
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-orange-500 focus:bg-white transition-all"
-              placeholder="votre@email.com"
+              className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-orange-500 focus:bg-white transition-all text-lg font-medium"
+              placeholder="+33 6 12 34 56 78"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Mot de passe</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Mot de passe / Code PIN</label>
             <input 
               type="password" 
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-orange-500 focus:bg-white transition-all"
+              className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-orange-500 focus:bg-white transition-all text-lg tracking-widest"
               placeholder="••••••••"
             />
           </div>
@@ -150,17 +150,17 @@ export default function LoginPage() {
           <button 
             type="submit" 
             disabled={isLoading}
-            className="w-full btn-primary py-3.5 mt-2 flex justify-center items-center"
+            className="w-full bg-black text-white hover:bg-gray-800 rounded-2xl font-bold py-4 mt-2 flex justify-center items-center transition-all"
           >
             {isLoading ? (
               <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-            ) : "Se connecter"}
+            ) : "Continuer"}
           </button>
         </form>
 
         <p className="text-center mt-8 text-sm text-gray-500">
-          Pas encore de compte ?{' '}
-          <Link href="/auth/register" className="font-semibold text-orange-500">S&apos;inscrire</Link>
+          Nouveau sur ATTENDS ?{' '}
+          <Link href="/auth/register" className="font-bold text-orange-500">Créer un compte</Link>
         </p>
       </div>
     </div>

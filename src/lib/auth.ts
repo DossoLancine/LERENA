@@ -8,20 +8,20 @@ export const authOptions: NextAuthOptions = {
     CredentialsProvider({
       name: 'Credentials',
       credentials: {
-        email: { label: "Email", type: "email" },
+        identifier: { label: "Téléphone ou Email", type: "text" },
         password: { label: "Mot de passe", type: "password" }
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
+        if (!credentials?.identifier || !credentials?.password) {
           throw new Error('Identifiants manquants')
         }
 
-        const email = credentials.email.trim().toLowerCase()
+        const identifier = credentials.identifier.trim().toLowerCase()
         const user = await prisma.user.findFirst({
           where: {
             OR: [
-              { email: email },
-              { email: credentials.email.trim() }
+              { email: identifier },
+              { phone: credentials.identifier.trim() }
             ]
           }
         })
@@ -40,6 +40,7 @@ export const authOptions: NextAuthOptions = {
           id: (user as any).id,
           name: user.name,
           email: user.email,
+          image: user.image,
           role: (user as any).role
         }
       }
