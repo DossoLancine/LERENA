@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { MapContainer, TileLayer, Marker, useMap, Polyline } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, useMap, Polyline, Tooltip } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { MapPin, PlusSquare, Scissors, Utensils, Building2, ChevronRight, Clock, Users, X, Navigation } from 'lucide-react'
@@ -74,7 +74,28 @@ export default function ExploreMap({ orgs, userLocation }: { orgs: any[], userLo
 
           const distKm = (route.distance / 1000).toFixed(1)
           const durMin = Math.round(route.duration / 60)
-          setRouteData({ distance: `${distKm} km`, duration: `${durMin} min` })
+          
+          // Calcul de la marge (buffer) pour l'intervalle de temps
+          let buffer = 3
+          if (durMin > 10 && durMin <= 30) buffer = 5
+          else if (durMin > 30) buffer = 10
+
+          const endMin = durMin + buffer
+
+          // Formattage intelligent du temps (prise en compte des heures)
+          const formatInterval = (start: number, end: number) => {
+            if (end < 60) return `${start}-${end} min`
+            
+            const formatVal = (m: number) => {
+              if (m < 60) return `${m}m`
+              const h = Math.floor(m / 60)
+              const mins = m % 60
+              return mins > 0 ? `${h}h${mins < 10 ? '0' : ''}${mins}` : `${h}h`
+            }
+            return `${formatVal(start)} - ${formatVal(end)}`
+          }
+
+          setRouteData({ distance: `${distKm} km`, duration: formatInterval(durMin, endMin) })
 
           // Animation de caméra fluide (Zoomer pour englober tout le trajet)
           if (activeMap) {
@@ -162,11 +183,17 @@ export default function ExploreMap({ orgs, userLocation }: { orgs: any[], userLo
               positions={routeCoords} 
               pathOptions={{ color: '#9a3412', weight: 8, opacity: 0.3, lineCap: 'round', lineJoin: 'round' }} 
             />
-            {/* Trait principal animé */}
+            {/* Trait principal animé avec Tooltip pour la distance */}
             <Polyline 
               positions={routeCoords} 
               pathOptions={{ color: '#f97316', weight: 5, opacity: 1, lineCap: 'round', lineJoin: 'round', className: 'animated-route' }} 
-            />
+            >
+              {routeData && (
+                <Tooltip permanent direction="center" className="route-tooltip">
+                  {routeData.distance}
+                </Tooltip>
+              )}
+            </Polyline>
           </>
         )}
 
@@ -207,27 +234,33 @@ export default function ExploreMap({ orgs, userLocation }: { orgs: any[], userLo
             </div>
 
             <div className="grid grid-cols-3 gap-2 mb-4">
-              <div className="bg-gray-50 rounded-xl p-2 text-center">
-                <span className="block text-orange-500 font-bold flex items-center justify-center gap-1 text-sm">
+              <div className="bg-gray-50 rounded-xl p-2 text-center flex flex-col justify-center">
+                <span className="text-orange-500 font-bold flex items-center justify-center gap-1 text-[13px]">
                   <Clock size={14} /> {activeOrg.waitRange.split('-')[0]}m
                 </span>
-                <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Attente</span>
+                <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mt-0.5">Attente</span>
               </div>
-              <div className="bg-gray-50 rounded-xl p-2 text-center">
-                <span className="block text-gray-900 font-bold flex items-center justify-center gap-1 text-sm">
+              <div className="bg-gray-50 rounded-xl p-2 text-center flex flex-col justify-center">
+                <span className="text-gray-900 font-bold flex items-center justify-center gap-1 text-[13px]">
                   <Users size={14} /> {activeOrg.queueCount || 0}
                 </span>
-                <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">En file</span>
+                <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mt-0.5">En file</span>
               </div>
-              <div className="bg-orange-50 rounded-xl p-2 text-center">
-                <span className="block text-orange-600 font-bold flex items-center justify-center gap-1 text-sm">
-                  {isRouting ? (
-                    <div className="w-3 h-3 border-2 border-orange-400 border-t-transparent rounded-full animate-spin"></div>
-                  ) : (
-                    <><Navigation size={12} className="shrink-0" /> {routeData ? routeData.duration : activeOrg.distance}</>
-                  )}
-                </span>
-                <span className="text-[10px] text-orange-500 uppercase font-bold tracking-wider">Trajet</span>
+              <div className="bg-orange-50 rounded-xl p-1.5 text-center flex flex-col justify-center min-h-[50px]">
+                {isRouting ? (
+                  <div className="flex justify-center items-center h-full">
+                    <div className="w-4 h-4 border-2 border-orange-400 border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                ) : (
+                  <>
+                    <span className="text-orange-600 font-bold flex items-center justify-center gap-1 text-[12px] whitespace-nowrap">
+                      <Navigation size={12} className="shrink-0" /> {routeData ? routeData.duration : activeOrg.distance}
+                    </span>
+                    <span className="text-[10px] text-orange-500 font-bold tracking-wider mt-0.5">
+                      {routeData ? routeData.distance : 'Trajet'}
+                    </span>
+                  </>
+                )}
               </div>
             </div>
 
@@ -254,6 +287,21 @@ export default function ExploreMap({ orgs, userLocation }: { orgs: any[], userLo
         @keyframes flowRoute {
           0% { stroke-dashoffset: 30; }
           100% { stroke-dashoffset: 0; }
+        }
+
+        /* Tooltip sur la ligne d'itinéraire */
+        .route-tooltip {
+          background-color: #f97316;
+          color: white;
+          border: none;
+          border-radius: 12px;
+          padding: 2px 8px;
+          font-weight: 700;
+          font-size: 11px;
+          box-shadow: 0 4px 10px rgba(249,115,22,0.4);
+        }
+        .route-tooltip::before {
+          display: none;
         }
 
         /* Effet de pulsation douce pour le marqueur actif */
