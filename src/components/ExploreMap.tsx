@@ -11,12 +11,14 @@ import { renderToString } from 'react-dom/server'
 // Custom component to handle map center based on user location
 function LocationMarker({ location }: { location: { lat: number, lng: number } | null }) {
   const map = useMap()
+  const [hasCentered, setHasCentered] = useState(false)
   
   useEffect(() => {
-    if (location) {
-      map.flyTo([location.lat, location.lng], 13)
+    if (location && !hasCentered) {
+      map.setView([location.lat, location.lng], 13)
+      setHasCentered(true)
     }
-  }, [location, map])
+  }, [location, map, hasCentered])
 
   if (!location) return null
 
@@ -185,7 +187,7 @@ export default function ExploreMap({ orgs, userLocation }: { orgs: any[], userLo
 
       {/* Floating Card UI (Professional Interaction) */}
       {activeOrg && (
-        <div className="absolute bottom-24 left-4 right-4 z-[1000] transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) transform translate-y-0 opacity-100 pb-safe">
+        <div className="fixed bottom-[85px] left-4 right-4 z-[9999] transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) transform translate-y-0 opacity-100 pb-safe">
           <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] p-4 border border-gray-100 relative animate-in slide-in-from-bottom-8 fade-in duration-300">
             <button 
               onClick={() => { setActiveOrg(null); setRouteCoords([]); setRouteData(null); }}
