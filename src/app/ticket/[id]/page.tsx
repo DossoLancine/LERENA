@@ -104,7 +104,12 @@ export default function TicketPage({ params }: { params: { id: string } }) {
 
   const status = STATUSES[ticket.status] || STATUSES.WAITING
   const position = ticket.position || 0
-  const progressPercent = Math.max(5, Math.round((1 - (position / 20)) * 100))
+  const initialPosition = ticket.initialPosition || position || 1
+  
+  let progressPercent = 100
+  if (ticket.status === 'WAITING') {
+    progressPercent = Math.max(5, Math.round(((initialPosition - position) / initialPosition) * 100))
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -144,7 +149,7 @@ export default function TicketPage({ params }: { params: { id: string } }) {
               <div className="text-7xl font-black text-gray-900 tracking-tight leading-none">
                 {ticket.displayNum}
               </div>
-              <p className="text-sm text-gray-500 mt-2">{ticket.queue?.branch?.organization?.name || 'Inconnu'} · {ticket.service?.name || 'Inconnu'}</p>
+              <p className="text-sm text-gray-500 mt-2">{ticket.orgName} · {ticket.serviceName}</p>
             </div>
 
             {/* Position + Wait */}
@@ -326,7 +331,7 @@ export default function TicketPage({ params }: { params: { id: string } }) {
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">Ticket créé à</span>
               <span className="font-medium text-gray-900">
-                {ticket.createdAt.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                {new Date(ticket.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
               </span>
             </div>
           </div>
