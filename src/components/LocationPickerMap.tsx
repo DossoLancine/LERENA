@@ -115,6 +115,11 @@ export default function LocationPickerMap({
           </Marker>
         </MapContainer>
       </div>
+      <style jsx global>{`
+        .map-tiles {
+          filter: saturate(0.4) brightness(1.1) contrast(0.9) sepia(0.1);
+        }
+      `}</style>
     </div>
   )
 }
