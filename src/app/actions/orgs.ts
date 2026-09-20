@@ -20,12 +20,23 @@ export async function getOrganizations(search?: string) {
       }
     })
 
-    // Formatting for the UI mapping
-    return orgs.map(org => {
-      // Calculate total wait time approximation based on queues
+    // Formatting for the UI mapping with real DB stats
+    const formattedOrgs = await Promise.all(orgs.map(async org => {
       const totalWait = org.branches.reduce((acc, branch) => {
         return acc + branch.queues.reduce((qAcc, q) => qAcc + (q.currentNum * 15), 0)
       }, 0)
+
+      // Fetch real NPS rating for this org
+      const stats = await prisma.ticket.aggregate({
+        where: {
+          npsScore: { not: null },
+          service: { branch: { organizationId: org.id } }
+        },
+        _avg: { npsScore: true },
+        _count: { npsScore: true }
+      });
+      const rating = stats._avg.npsScore ? Number(stats._avg.npsScore.toFixed(1)) : 0;
+      const reviewCount = stats._count.npsScore || 0;
 
       let icon = "health"
       let color = "bg-blue-50 text-blue-600"
@@ -42,12 +53,15 @@ export async function getOrganizations(search?: string) {
         distance: "1.2 km",
         waitRange: totalWait > 0 ? `${totalWait}-${totalWait + 10} min` : "0-10 min",
         isOpen: org.isActive,
-        rating: 4.5,
-        address: org.address || "Dakar",
+        rating: rating,
+        reviewCount: reviewCount,
+        address: org.address || "Abidjan",
         icon,
         color
       }
-    })
+    }))
+    
+    return formattedOrgs;
   } catch (error) {
     console.error("Failed to fetch organizations:", error)
     return []
@@ -70,13 +84,25 @@ export async function getOrganizationById(id: string) {
 
     if (!org) return null;
 
-    // Ajouter les métadonnées UI manquantes
+    // Fetch real NPS rating for this org
+    const stats = await prisma.ticket.aggregate({
+      where: {
+        npsScore: { not: null },
+        service: { branch: { organizationId: org.id } }
+      },
+      _avg: { npsScore: true },
+      _count: { npsScore: true }
+    });
+    const rating = stats._avg.npsScore ? Number(stats._avg.npsScore.toFixed(1)) : 0;
+    const reviewCount = stats._count.npsScore || 0;
+
+    // Ajouter les métadonnées UI avec les vrais scores
     return {
       ...org,
-      isOpen: org.isActive, // Mappe 'isActive' à 'isOpen' pour l'UI
-      closeTime: "18:00", // En dur pour l'instant (à lier à BusinessHours plus tard)
-      rating: 4.8,
-      reviewCount: 124,
+      isOpen: org.isActive,
+      closeTime: "18:00",
+      rating: rating,
+      reviewCount: reviewCount,
       distance: "1.2 km",
       address: org.address || "Abidjan, CI"
     }

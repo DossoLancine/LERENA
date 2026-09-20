@@ -58,7 +58,9 @@ export default function ExplorePage() {
                   <p className="font-semibold text-gray-900 text-sm">{org.name}</p>
                   <div className="flex items-center gap-1">
                     <Star size={11} className="text-amber-400 fill-amber-400" />
-                    <span className="text-xs font-medium text-gray-700">{org.rating}</span>
+                    <span className="text-xs font-medium text-gray-700">
+                      {org.rating > 0 ? org.rating : 'Nouveau'}
+                    </span>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 mt-1.5">
