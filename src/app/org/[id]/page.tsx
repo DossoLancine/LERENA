@@ -125,8 +125,12 @@ export default function OrgPage({ params }: { params: { id: string } }) {
             </div>
             <div className="flex items-center gap-1 shrink-0 bg-amber-50 px-2 py-1 rounded-lg">
               <Star size={13} className="text-amber-400 fill-amber-400" />
-              <span className="text-sm font-semibold text-gray-800">{org.rating}</span>
-              <span className="text-xs text-gray-500">({org.reviewCount})</span>
+              <span className="text-sm font-semibold text-gray-800">
+                {org.rating > 0 ? org.rating : 'Nouveau'}
+              </span>
+              {org.reviewCount > 0 && (
+                <span className="text-xs text-gray-500">({org.reviewCount})</span>
+              )}
             </div>
           </div>
 
