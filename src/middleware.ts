@@ -6,6 +6,11 @@ export default withAuth(
     const token = req.nextauth.token
     const path = req.nextUrl.pathname
 
+    const isB2BRoute = path.startsWith('/dashboard') || path.startsWith('/agent')
+    if (isB2BRoute && !token) {
+      return NextResponse.redirect(new URL('/pro/login', req.url))
+    }
+
     if (path.startsWith('/dashboard') && token?.role !== 'MANAGER') {
       return NextResponse.redirect(new URL('/', req.url))
     }

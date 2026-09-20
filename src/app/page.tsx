@@ -42,6 +42,13 @@ export default async function LandingPage() {
           </Link>
         </div>
 
+        <div className="mt-12 text-gray-500 text-sm">
+          Vous êtes un professionnel ?{' '}
+          <Link href="/pro/login" className="text-orange-500 font-semibold hover:underline">
+            Espace Entreprise
+          </Link>
+        </div>
+
       </div>
     </div>
   )

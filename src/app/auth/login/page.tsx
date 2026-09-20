@@ -86,36 +86,20 @@ function LoginForm() {
           <p className="text-gray-500 text-sm">Connectez-vous pour accéder à votre espace.</p>
         </div>
 
-        {/* Comptes Démo Rapides */}
+        {/* Comptes Démo Rapides (Client uniquement) */}
         <div className="mb-5 p-3.5 bg-orange-50/70 border border-orange-100 rounded-2xl">
-          <div className="flex items-center gap-1.5 text-xs font-bold text-orange-800 mb-2 uppercase tracking-wider">
-            <Zap size={14} className="text-orange-500" />
-            <span>Remplissage rapide démo :</span>
-          </div>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-orange-800 uppercase tracking-wider">
+              <Zap size={14} className="text-orange-500" />
+              <span>Accès rapide démo :</span>
+            </div>
             <button
               type="button"
-              onClick={() => fillDemo('manager@attends.com')}
-              className="flex items-center justify-center gap-1.5 px-2.5 py-2 bg-white rounded-xl border border-orange-200 text-xs font-semibold text-gray-800 hover:bg-orange-500 hover:text-white transition-all shadow-sm"
-            >
-              <Briefcase size={14} />
-              <span>Manager</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => fillDemo('agent@attends.com')}
-              className="flex items-center justify-center gap-1.5 px-2.5 py-2 bg-white rounded-xl border border-orange-200 text-xs font-semibold text-gray-800 hover:bg-orange-500 hover:text-white transition-all shadow-sm"
-            >
-              <Headphones size={14} />
-              <span>Agent</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => fillDemo('client@attends.com')}
-              className="flex items-center justify-center gap-1.5 px-2.5 py-2 bg-white rounded-xl border border-orange-200 text-xs font-semibold text-gray-800 hover:bg-orange-500 hover:text-white transition-all shadow-sm"
+              onClick={() => fillDemo('+33600000000')}
+              className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white rounded-xl border border-orange-200 text-xs font-semibold text-gray-800 hover:bg-orange-500 hover:text-white transition-all shadow-sm"
             >
               <User size={14} />
-              <span>Client</span>
+              <span>Remplir Client</span>
             </button>
           </div>
         </div>
@@ -128,36 +112,32 @@ function LoginForm() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Numéro de téléphone ou Email</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Numéro de téléphone</label>
             <input 
-              type="text" 
+              type="tel" 
               required
-              value={email}
+              value={email} // Nous utilisons toujours l'état 'email' par commodité historique, mais c'est un tel
               onChange={(e) => setEmail(e.target.value)}
               className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-orange-500 focus:bg-white transition-all text-lg font-medium"
               placeholder="+33 6 12 34 56 78"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Mot de passe / Code PIN</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Code PIN</label>
             <input 
               type="password" 
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-orange-500 focus:bg-white transition-all text-lg tracking-widest"
-              placeholder="••••••••"
+              placeholder="••••••"
             />
           </div>
           
-          <div className="text-right">
-            <Link href="#" className="text-sm text-orange-500 font-medium">Mot de passe oublié ?</Link>
-          </div>
-
           <button 
             type="submit" 
             disabled={isLoading}
-            className="w-full bg-black text-white hover:bg-gray-800 rounded-2xl font-bold py-4 mt-2 flex justify-center items-center transition-all"
+            className="w-full bg-black text-white hover:bg-gray-800 rounded-2xl font-bold py-4 mt-6 flex justify-center items-center transition-all"
           >
             {isLoading ? (
               <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
@@ -169,6 +149,15 @@ function LoginForm() {
           Nouveau sur ATTENDS ?{' '}
           <Link href="/auth/register" className="font-bold text-orange-500">Créer un compte</Link>
         </p>
+
+        <div className="mt-8 pt-8 border-t border-gray-100 text-center">
+          <p className="text-xs text-gray-500">
+            Vous êtes un établissement partenaire ?<br/>
+            <Link href="/pro/login" className="text-slate-900 font-bold hover:underline mt-1 inline-block">
+              Accéder au portail Pro
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   )
