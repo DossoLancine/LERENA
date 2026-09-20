@@ -5,12 +5,48 @@ import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { revalidatePath } from "next/cache"
 
-export async function joinQueue(serviceId: string, orgId: string, priorityLevel: string = 'STANDARD') {
+// Calcule la distance en km entre deux points GPS
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
+export async function joinQueue(serviceId: string, orgId: string, priority: string = 'STANDARD', userLat?: number, userLng?: number) {
   try {
     const session = await getServerSession(authOptions)
+    if (!session?.user?.id) {
+      throw new Error("UNAUTHORIZED")
+    }
+    const userId = session.user.id
+
+    // VÉRIFICATION DE LA SESSISON EN BASE DE DONNÉES
+    const validUser = await prisma.user.findUnique({
+      where: { id: userId }
+    })
     
-    if (!session?.user) {
-      throw new Error("Vous devez être connecté pour prendre un ticket")
+    if (!validUser) {
+      throw new Error("SESSION_EXPIRED")
+    }
+
+    // GEOFENCING LOGIC
+    const org = await prisma.organization.findUnique({ where: { id: orgId } })
+    if (org?.requireGps) {
+      if (!userLat || !userLng) {
+        throw new Error("GPS_REQUIRED")
+      }
+      if (org.lat && org.lng) {
+        const distance = calculateDistance(userLat, userLng, org.lat, org.lng)
+        if (distance > org.maxRadiusKm) {
+          throw new Error("OUT_OF_BOUNDS")
+        }
+      }
     }
 
     // Find the queue associated with the service (via branch)

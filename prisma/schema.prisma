@@ -43,6 +43,8 @@ model Organization {
   tvMode          String   @default("HYBRID")
   tvQueueDuration Int      @default(30)
   tvVideoDuration Int      @default(30)
+  maxRadiusKm     Float    @default(10.0)
+  requireGps      Boolean  @default(false)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

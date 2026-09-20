@@ -63,19 +63,43 @@ export default function OrgPage({ params }: { params: { id: string } }) {
     setIsJoining(true)
     setError(null)
     
-    const res = await joinQueue(selectedService, params.id, priorityLevel)
-    if (res.success && res.ticketId) {
-      router.push(`/ticket/${res.ticketId}`)
-    } else {
-      if (res.error === "SESSION_EXPIRED") {
-        setError("Votre session est expirée suite à une mise à jour système. Reconnexion en cours...")
-        setTimeout(() => {
-          signOut({ callbackUrl: `/auth/login?callbackUrl=/org/${params.id}` })
-        }, 1500)
-        return
+    const tryJoin = async (lat?: number, lng?: number) => {
+      const res = await joinQueue(selectedService, params.id, priorityLevel, lat, lng)
+      if (res.success && res.ticketId) {
+        router.push(`/ticket/${res.ticketId}`)
+      } else {
+        if (res.error === "SESSION_EXPIRED") {
+          setError("Votre session est expirée suite à une mise à jour système. Reconnexion en cours...")
+          setTimeout(() => {
+            signOut({ callbackUrl: `/auth/login?callbackUrl=/org/${params.id}` })
+          }, 1500)
+          return
+        }
+        if (res.error === "GPS_REQUIRED") {
+          setError("Cet établissement exige votre position GPS pour éviter les abus. Veuillez autoriser la localisation.")
+          setIsJoining(false)
+          return
+        }
+        if (res.error === "OUT_OF_BOUNDS") {
+          setError(`Vous êtes trop loin ! Cet établissement n'autorise la prise de ticket qu'à proximité (max ${org?.maxRadiusKm || 10} km) pour éviter les retards. Rapprochez-vous !`)
+          setIsJoining(false)
+          return
+        }
+        setError(res.error || "Une erreur est survenue")
+        setIsJoining(false)
       }
-      setError(res.error || "Une erreur est survenue")
-      setIsJoining(false)
+    }
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => tryJoin(pos.coords.latitude, pos.coords.longitude),
+        (err) => {
+          console.warn("Erreur GPS lors de la prise de ticket:", err)
+          tryJoin() // Call without GPS, the server will block if requireGps is true
+        }
+      )
+    } else {
+      tryJoin()
     }
   }
 
