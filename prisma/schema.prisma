@@ -21,22 +21,23 @@ model User {
 
   memberships   OrganizationMember[]
   tickets       Ticket[]
+  appointments  Appointment[]
   agentSessions ServiceSession[]     @relation("AgentSessions")
   favorites     Favorite[]
   notifications Notification[]
 }
 
 model Organization {
-  id          String   @id @default(cuid())
-  name        String
-  category    String
-  description String?
-  address     String?
-  city        String?
-  lat         Float?
-  lng         Float?
-  phone       String?
-  email       String?
+  id              String   @id @default(cuid())
+  name            String
+  category        String
+  description     String?
+  address         String?
+  city            String?
+  lat             Float?
+  lng             Float?
+  phone           String?
+  email           String?
   logo            String?
   isActive        Boolean  @default(true)
   tvVideoUrl      String?
@@ -45,21 +46,23 @@ model Organization {
   tvVideoDuration Int      @default(30)
   maxRadiusKm     Float    @default(10.0)
   requireGps      Boolean  @default(false)
+  bookingMode     String   @default("QUEUE_ONLY") // Options: "QUEUE_ONLY", "APPOINTMENT_ONLY", "HYBRID"
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  members    OrganizationMember[]
-  branches   Branch[]
-  favorites  Favorite[]
-  promotions Promotion[]
+  members      OrganizationMember[]
+  branches     Branch[]
+  favorites    Favorite[]
+  promotions   Promotion[]
+  appointments Appointment[]
 }
 
 model OrganizationMember {
-  id             String       @id @default(cuid())
+  id             String   @id @default(cuid())
   userId         String
   organizationId String
-  role           String       @default("AGENT")
-  createdAt      DateTime     @default(now())
+  role           String   @default("AGENT")
+  createdAt      DateTime @default(now())
 
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -76,10 +79,11 @@ model Branch {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  organization  Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization  Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   services      Service[]
   queues        Queue[]
   businessHours BusinessHour[]
+  Appointment   Appointment[]
 }
 
 model Service {
@@ -92,9 +96,10 @@ model Service {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  branch   Branch           @relation(fields: [branchId], references: [id], onDelete: Cascade)
-  tickets  Ticket[]
-  sessions ServiceSession[]
+  branch      Branch           @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  tickets     Ticket[]
+  sessions    ServiceSession[]
+  Appointment Appointment[]
 }
 
 model Queue {
@@ -112,29 +117,29 @@ model Queue {
 }
 
 model Ticket {
-  id          String    @id @default(cuid())
-  queueId     String
-  serviceId   String
-  userId      String?
-  guestName   String?
-  guestPhone  String?
-  number      Int
-  displayNum  String
-  status      String    @default("WAITING")
-  position    Int?
-  priorityScore Int     @default(1)
-  npsScore    Int?      // 1-5 stars, null if not yet rated
+  id                String    @id @default(cuid())
+  queueId           String
+  serviceId         String
+  userId            String?
+  guestName         String?
+  guestPhone        String?
+  number            Int
+  displayNum        String
+  status            String    @default("WAITING")
+  position          Int?
+  priorityScore     Int       @default(1)
+  npsScore          Int? // 1-5 stars, null if not yet rated
   claimedPromoTitle String?
   claimedPromoPrice String?
-  createdAt   DateTime  @default(now())
-  calledAt    DateTime?
-  startedAt   DateTime?
-  completedAt DateTime?
-  updatedAt   DateTime  @updatedAt
+  createdAt         DateTime  @default(now())
+  calledAt          DateTime?
+  startedAt         DateTime?
+  completedAt       DateTime?
+  updatedAt         DateTime  @updatedAt
 
-  queue         Queue          @relation(fields: [queueId], references: [id], onDelete: Cascade)
-  service       Service        @relation(fields: [serviceId], references: [id])
-  user          User?          @relation(fields: [userId], references: [id])
+  queue         Queue           @relation(fields: [queueId], references: [id], onDelete: Cascade)
+  service       Service         @relation(fields: [serviceId], references: [id])
+  user          User?           @relation(fields: [userId], references: [id])
   session       ServiceSession?
   notifications Notification[]
 }
@@ -151,7 +156,7 @@ model Promotion {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 }
 
 model ServiceSession {
@@ -206,4 +211,24 @@ model Notification {
 
   user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   ticket Ticket? @relation(fields: [ticketId], references: [id])
+}
+
+model Appointment {
+  id             String   @id @default(cuid())
+  userId         String?
+  guestName      String?
+  guestPhone     String?
+  organizationId String
+  serviceId      String?
+  branchId       String
+  scheduledDate  DateTime
+  status         String   @default("CONFIRMED")
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user         User?        @relation(fields: [userId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  branch       Branch       @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  service      Service?     @relation(fields: [serviceId], references: [id])
 }

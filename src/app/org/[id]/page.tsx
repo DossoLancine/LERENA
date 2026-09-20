@@ -1,13 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { ArrowLeft, MapPin, Clock, Users, Star, ChevronRight, Heart, Share2, CheckCircle2, PlusSquare, Scissors, Utensils, Building2, Ticket, MousePointer2, AlertTriangle, User as UserIcon } from 'lucide-react'
+import { ArrowLeft, MapPin, Clock, Users, Star, ChevronRight, Heart, Share2, CheckCircle2, PlusSquare, Scissors, Utensils, Building2, Ticket, MousePointer2, AlertTriangle, User as UserIcon, CalendarDays } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { getOrganizationById } from '../../actions/orgs'
 import { joinQueue } from '../../actions/tickets'
 import { toggleFavorite, checkIsFavorite } from '../../actions/favorites'
 import { useSession, signOut } from 'next-auth/react'
+import AppointmentBookingForm from '@/components/AppointmentBookingForm'
 
 export default function OrgPage({ params }: { params: { id: string } }) {
   const { data: session } = useSession()
@@ -19,6 +20,7 @@ export default function OrgPage({ params }: { params: { id: string } }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [priorityLevel, setPriorityLevel] = useState<string>('STANDARD')
+  const [bookingType, setBookingType] = useState<'TICKET' | 'APPOINTMENT'>('TICKET')
 
   useEffect(() => {
     fetchOrg()
@@ -262,77 +264,108 @@ export default function OrgPage({ params }: { params: { id: string } }) {
         </div>
       </div>
 
-      {/* Options de file d'attente (EPIC 4 VIP) */}
-      <div className="max-w-lg mx-auto px-4 pb-32">
-        <div className="bg-white rounded-2xl border border-gray-100 p-4 mb-4">
-          <h2 className="font-semibold text-gray-900 mb-3">Besoin spécifique ?</h2>
-          <select 
-            value={priorityLevel}
-            onChange={(e) => setPriorityLevel(e.target.value)}
-            className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-orange-500 focus:border-orange-500 block p-3"
-          >
-            <option value="STANDARD">Non, attente classique</option>
-            <option value="PRIORITY">PMR / Personne âgée / Enceinte (Prioritaire)</option>
-            <option value="VIP">Client VIP / Urgence</option>
-          </select>
-          <p className="text-xs text-gray-500 mt-2">
-            Les tickets prioritaires passent automatiquement devant les autres.
-          </p>
+      {/* Mode Switcher (Hybrid) */}
+      {(org.bookingMode === 'HYBRID' || org.bookingMode === 'APPOINTMENT_ONLY') && (
+        <div className="max-w-lg mx-auto px-4 mb-4 mt-2">
+          {org.bookingMode === 'HYBRID' && (
+            <div className="flex bg-gray-100 p-1 rounded-xl mb-4">
+              <button 
+                onClick={() => setBookingType('TICKET')}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-bold rounded-lg transition-all ${bookingType === 'TICKET' ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
+              >
+                <Ticket size={16} /> Ticket immédiat
+              </button>
+              <button 
+                onClick={() => setBookingType('APPOINTMENT')}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-bold rounded-lg transition-all ${bookingType === 'APPOINTMENT' ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
+              >
+                <CalendarDays size={16} /> Rendez-vous
+              </button>
+            </div>
+          )}
         </div>
-      </div>
+      )}
 
-      {/* CTA */}
-      {org.isActive && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 safe-bottom z-30">
-          <div className="max-w-lg mx-auto">
-            {selectedService && service ? (
-              <div className="mb-3 p-3 bg-orange-50 rounded-xl flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-gray-500">Service sélectionné</p>
-                  <p className="text-sm font-semibold text-gray-900">{service.name}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-xs text-gray-500">Attente estimée</p>
-                  <p className="text-sm font-bold text-orange-500">~{totalWait > 0 ? totalWait : 10} min</p>
-                </div>
-              </div>
-            ) : null}
-            {error && (
-              <div className="mb-3 p-2 bg-red-50 text-red-600 text-sm text-center rounded-lg border border-red-100">
-                {error}
-              </div>
-            )}
-            <button
-              onClick={handleJoinQueue}
-              disabled={!selectedService || isJoining}
-              className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              {isJoining ? (
-                <>
-                  <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                  Patientez...
-                </>
-              ) : (
-                <>
-                  {selectedService ? (
-                    session?.user ? (
-                      <><Ticket size={20} /> Prendre mon ticket</>
-                    ) : (
-                      <><UserIcon size={20} /> Se connecter pour continuer</>
-                    )
+      {/* Appointment Form */}
+      {(bookingType === 'APPOINTMENT' || org.bookingMode === 'APPOINTMENT_ONLY') ? (
+        <div className="max-w-lg mx-auto px-4 pb-32">
+          <AppointmentBookingForm orgId={org.id} serviceId={selectedService} orgName={org.name} />
+        </div>
+      ) : (
+        <>
+          {/* Options de file d'attente (EPIC 4 VIP) */}
+          <div className="max-w-lg mx-auto px-4 pb-32">
+            <div className="bg-white rounded-2xl border border-gray-100 p-4 mb-4">
+              <h2 className="font-semibold text-gray-900 mb-3">Besoin spécifique ?</h2>
+              <select 
+                value={priorityLevel}
+                onChange={(e) => setPriorityLevel(e.target.value)}
+                className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-orange-500 focus:border-orange-500 block p-3"
+              >
+                <option value="STANDARD">Non, attente classique</option>
+                <option value="PRIORITY">PMR / Personne âgée / Enceinte (Prioritaire)</option>
+                <option value="VIP">Client VIP / Urgence</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-2">
+                Les tickets prioritaires passent automatiquement devant les autres.
+              </p>
+            </div>
+          </div>
+
+          {/* CTA TICKET */}
+          {org.isActive && (
+            <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 safe-bottom z-30">
+              <div className="max-w-lg mx-auto">
+                {selectedService && service ? (
+                  <div className="mb-3 p-3 bg-orange-50 rounded-xl flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-gray-500">Service sélectionné</p>
+                      <p className="text-sm font-semibold text-gray-900">{service.name}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-gray-500">Attente estimée</p>
+                      <p className="text-sm font-bold text-orange-500">~{totalWait > 0 ? totalWait : 10} min</p>
+                    </div>
+                  </div>
+                ) : null}
+                {error && (
+                  <div className="mb-3 p-2 bg-red-50 text-red-600 text-sm text-center rounded-lg border border-red-100">
+                    {error}
+                  </div>
+                )}
+                <button
+                  onClick={handleJoinQueue}
+                  disabled={!selectedService || isJoining}
+                  className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {isJoining ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      Patientez...
+                    </>
                   ) : (
                     <>
-                      <MousePointer2 size={20} /> Sélectionnez un service
+                      {selectedService ? (
+                        session?.user ? (
+                          <><Ticket size={20} /> Prendre mon ticket</>
+                        ) : (
+                          <><UserIcon size={20} /> Se connecter pour continuer</>
+                        )
+                      ) : (
+                        <>
+                          <MousePointer2 size={20} /> Sélectionnez un service
+                        </>
+                      )}
                     </>
                   )}
-                </>
-              )}
-            </button>
-          </div>
-        </div>
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   )
