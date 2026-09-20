@@ -21,10 +21,10 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 export async function joinQueue(serviceId: string, orgId: string, priority: string = 'STANDARD', userLat?: number, userLng?: number) {
   try {
     const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
+    if (!(session?.user as any)?.id) {
       throw new Error("UNAUTHORIZED")
     }
-    const userId = session.user.id
+    const userId = (session.user as any).id
 
     // VÉRIFICATION DE LA SESSISON EN BASE DE DONNÉES
     const validUser = await prisma.user.findUnique({
