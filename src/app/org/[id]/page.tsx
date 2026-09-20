@@ -1,13 +1,15 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { ArrowLeft, MapPin, Clock, Users, Star, ChevronRight, Heart, Share2, CheckCircle2, PlusSquare, Scissors, Utensils, Building2, Ticket, MousePointer2, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, MapPin, Clock, Users, Star, ChevronRight, Heart, Share2, CheckCircle2, PlusSquare, Scissors, Utensils, Building2, Ticket, MousePointer2, AlertTriangle, User as UserIcon } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { getOrganizationById } from '../../actions/orgs'
 import { joinQueue } from '../../actions/tickets'
+import { useSession } from 'next-auth/react'
 
 export default function OrgPage({ params }: { params: { id: string } }) {
+  const { data: session } = useSession()
   const router = useRouter()
   const [selectedService, setSelectedService] = useState<string | null>(null)
   const [isJoining, setIsJoining] = useState(false)
@@ -29,6 +31,12 @@ export default function OrgPage({ params }: { params: { id: string } }) {
 
   const handleJoinQueue = async () => {
     if (!selectedService) return
+    
+    if (!session?.user) {
+      router.push(`/auth/login?callbackUrl=/org/${params.id}`)
+      return
+    }
+
     setIsJoining(true)
     setError(null)
     
@@ -247,14 +255,16 @@ export default function OrgPage({ params }: { params: { id: string } }) {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
-                  Rejoindre la file...
+                  Patientez...
                 </>
               ) : (
                 <>
                   {selectedService ? (
-                    <>
-                      <Ticket size={20} /> Prendre mon ticket
-                    </>
+                    session?.user ? (
+                      <><Ticket size={20} /> Prendre mon ticket</>
+                    ) : (
+                      <><UserIcon size={20} /> Se connecter pour continuer</>
+                    )
                   ) : (
                     <>
                       <MousePointer2 size={20} /> Sélectionnez un service

@@ -14,7 +14,7 @@ export default withAuth(
       return NextResponse.redirect(new URL('/', req.url))
     }
 
-    const isClientRoute = path.startsWith('/explore') || path.startsWith('/org') || path.startsWith('/tickets') || path.startsWith('/favorites')
+    const isClientRoute = path.startsWith('/tickets') || path.startsWith('/favorites') || path.startsWith('/profile')
     if (isClientRoute && !token) {
       return NextResponse.redirect(new URL('/auth/login', req.url))
     }
@@ -30,5 +30,5 @@ export default withAuth(
 )
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/agent/:path*', '/explore/:path*', '/org/:path*', '/tickets/:path*', '/favorites/:path*']
+  matcher: ['/dashboard/:path*', '/agent/:path*', '/tickets/:path*', '/favorites/:path*', '/profile/:path*']
 }
