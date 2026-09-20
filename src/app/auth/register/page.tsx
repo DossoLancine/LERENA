@@ -77,7 +77,7 @@ function RegisterForm() {
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-orange-500 focus:bg-white transition-all text-lg font-medium"
-              placeholder="+33 6 12 34 56 78"
+              placeholder="+225 00 00 00 00 00"
             />
           </div>
           <div>

@@ -95,7 +95,7 @@ function LoginForm() {
             </div>
             <button
               type="button"
-              onClick={() => fillDemo('+33600000000')}
+              onClick={() => fillDemo('+2250000000000')}
               className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white rounded-xl border border-orange-200 text-xs font-semibold text-gray-800 hover:bg-orange-500 hover:text-white transition-all shadow-sm"
             >
               <User size={14} />
@@ -119,7 +119,7 @@ function LoginForm() {
               value={email} // Nous utilisons toujours l'état 'email' par commodité historique, mais c'est un tel
               onChange={(e) => setEmail(e.target.value)}
               className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-orange-500 focus:bg-white transition-all text-lg font-medium"
-              placeholder="+33 6 12 34 56 78"
+              placeholder="+225 00 00 00 00 00"
             />
           </div>
           <div>
