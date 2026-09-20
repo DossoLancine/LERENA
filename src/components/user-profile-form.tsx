@@ -141,7 +141,7 @@ export default function UserProfileForm({ theme = 'orange' }: { theme?: 'orange'
               value={formData.phone}
               onChange={(e) => setFormData({...formData, phone: e.target.value})}
               className={inputClass}
-              placeholder="+33 6 00 00 00 00"
+              placeholder="+225 00 00 00 00 00"
             />
           </div>
         </div>
