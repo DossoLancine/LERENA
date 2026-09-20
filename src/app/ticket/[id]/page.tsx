@@ -270,9 +270,36 @@ export default function TicketPage({ params }: { params: { id: string } }) {
           </div>
         )}
 
+        {/* Badge Offre Réclamée */}
+        {ticket.claimedPromoTitle && (
+          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-center justify-between text-emerald-800 shadow-sm">
+            <div className="flex items-center gap-2.5">
+              <span className="text-2xl">🎁</span>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-emerald-600">Offre active sur ce ticket</p>
+                <p className="text-sm font-black text-gray-900">{ticket.claimedPromoTitle}</p>
+                <p className="text-[11px] text-emerald-700 mt-0.5">À régler au guichet lors de votre passage</p>
+              </div>
+            </div>
+            {ticket.claimedPromoPrice && (
+              <span className="bg-emerald-600 text-white text-xs font-black px-2.5 py-1 rounded-full shadow-sm">
+                {ticket.claimedPromoPrice}
+              </span>
+            )}
+          </div>
+        )}
+
         {/* Promotions (shown while waiting/called) */}
         {['WAITING', 'CALLED', 'SERVING'].includes(ticket.status) && promotions.length > 0 && (
-          <PromoCarousel promotions={promotions} />
+          <PromoCarousel
+            promotions={promotions}
+            ticketId={ticket.id}
+            claimedPromoTitle={ticket.claimedPromoTitle}
+            claimedPromoPrice={ticket.claimedPromoPrice}
+            onPromoClaimed={(title, price) => {
+              setTicket((prev: any) => ({ ...prev, claimedPromoTitle: title, claimedPromoPrice: price }))
+            }}
+          />
         )}
 
         {/* NPS Rating (shown when COMPLETED) */}

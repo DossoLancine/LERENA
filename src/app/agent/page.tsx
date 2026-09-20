@@ -150,6 +150,25 @@ export default function AgentPage() {
               <p className="font-semibold text-gray-900">{current.guestName || current.user?.name || 'Client'}</p>
               <p className="text-sm text-gray-500">{current.service?.name}</p>
             </div>
+
+            {/* Alerte Offre Client Rattachée */}
+            {current.claimedPromoTitle && (
+              <div className="mb-4 p-3.5 bg-amber-50 border-2 border-amber-300 rounded-xl flex items-center justify-between shadow-sm animate-pulse">
+                <div className="flex items-center gap-2.5">
+                  <span className="text-2xl">🎁</span>
+                  <div>
+                    <p className="text-xs font-bold text-amber-800 uppercase tracking-wider">Offre réservée au guichet</p>
+                    <p className="text-sm font-black text-gray-900">{current.claimedPromoTitle}</p>
+                    <p className="text-[11px] text-amber-700 mt-0.5">Veuillez appliquer la remise ou remettre le produit au client</p>
+                  </div>
+                </div>
+                {current.claimedPromoPrice && (
+                  <span className="bg-amber-500 text-white text-xs font-black px-3 py-1 rounded-full shadow-sm shrink-0">
+                    {current.claimedPromoPrice}
+                  </span>
+                )}
+              </div>
+            )}
             <div className="flex gap-3">
               <button
                 onClick={() => markAbsent(current.id)}

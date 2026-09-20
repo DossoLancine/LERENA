@@ -5,28 +5,66 @@ import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { revalidatePath } from "next/cache"
 
-export async function getManagerStats() {
-  try {
-    const session = await getServerSession(authOptions)
-    if (!session || (session.user as any).role !== 'MANAGER') {
-      throw new Error("Unauthorized")
-    }
+// Helper multi-tenant : Récupère l'organisation spécifique du manager connecté
+async function getManagerOrganization() {
+  const session = await getServerSession(authOptions)
+  if (!session || (session.user as any)?.role !== 'MANAGER') {
+    throw new Error("Unauthorized")
+  }
 
-    // In a real app we'd filter by manager's organization ID
-    // For MVP, we get the first org stats.
-    const org = await prisma.organization.findFirst({
-      include: {
-        branches: {
-          include: {
-            queues: {
-              include: { tickets: true }
-            },
-            services: true
+  const userId = (session.user as any).id
+
+  // 1. Chercher l'adhésion du manager
+  const membership = await prisma.organizationMember.findFirst({
+    where: { userId },
+    include: {
+      organization: {
+        include: {
+          branches: {
+            include: {
+              queues: {
+                include: { tickets: true }
+              },
+              services: {
+                include: {
+                  tickets: true,
+                  sessions: true
+                }
+              }
+            }
           }
         }
       }
-    })
+    }
+  })
 
+  if (membership?.organization) {
+    return membership.organization
+  }
+
+  // 2. Fallback premier établissement
+  return await prisma.organization.findFirst({
+    include: {
+      branches: {
+        include: {
+          queues: {
+            include: { tickets: true }
+          },
+          services: {
+            include: {
+              tickets: true,
+              sessions: true
+            }
+          }
+        }
+      }
+    }
+  })
+}
+
+export async function getManagerStats() {
+  try {
+    const org = await getManagerOrganization()
     if (!org) throw new Error("No organization found")
 
     let todayTickets = 0
@@ -81,21 +119,7 @@ export async function toggleOrganizationStatus(orgId: string, isOpen: boolean) {
 
 export async function getLiveQueue() {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session || (session.user as any).role !== 'MANAGER') {
-      throw new Error("Unauthorized")
-    }
-
-    const org = await prisma.organization.findFirst({
-      include: {
-        branches: {
-          include: {
-            queues: true
-          }
-        }
-      }
-    })
-
+    const org = await getManagerOrganization()
     if (!org) return []
 
     const queueIds = org.branches.flatMap(b => b.queues.map(q => q.id))
@@ -131,6 +155,8 @@ export async function getLiveQueue() {
         wait: waitMin,
         agentName: t.session?.agent?.name || null,
         counter: (t as any).guestPhone?.startsWith('G-') ? (t as any).guestPhone.replace('G-', '') : 'Guichet 1',
+        claimedPromoTitle: t.claimedPromoTitle || null,
+        claimedPromoPrice: t.claimedPromoPrice || null,
         createdAt: t.createdAt.toISOString()
       }
     })
@@ -142,26 +168,7 @@ export async function getLiveQueue() {
 
 export async function getOrganizationServices() {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session || (session.user as any).role !== 'MANAGER') {
-      throw new Error("Unauthorized")
-    }
-
-    const org = await prisma.organization.findFirst({
-      include: {
-        branches: {
-          include: {
-            services: {
-              include: {
-                tickets: true,
-                sessions: true
-              }
-            }
-          }
-        }
-      }
-    })
-
+    const org = await getManagerOrganization()
     if (!org) return []
 
     const services = org.branches.flatMap(b => b.services)
@@ -182,6 +189,8 @@ export async function getOrganizationServices() {
       return {
         id: s.id,
         name: s.name,
+        description: s.description || null,
+        isActive: s.isActive !== false,
         count: waitingCount,
         completedToday: completedTickets.length,
         avgMin: realAvg,

@@ -5,6 +5,7 @@ import { Users, Clock, TrendingUp, TrendingDown, CheckCircle2, AlertTriangle, Ba
 import AnalyticsTab from './analytics-tab'
 import PromotionsTab from './promotions-tab'
 import SettingsTab from './settings-tab'
+import ServicesTab from './services-tab'
 
 const statusBadge: Record<string, string> = {
   SERVING: 'badge-serving',
@@ -263,41 +264,7 @@ export default function DashboardPage() {
         )}
 
         {activeTab === 'services' && (
-          <div className="space-y-3">
-            {orgServices.length === 0 ? (
-              <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center text-gray-400">
-                <Settings size={36} className="mx-auto mb-2 text-gray-300" />
-                <p className="font-semibold text-sm text-gray-600">Aucun service configuré</p>
-                <p className="text-xs text-gray-400 mt-1">Configurez vos services dans l&apos;onglet Paramètres.</p>
-              </div>
-            ) : (
-              orgServices.map((svc) => (
-                <div key={svc.id || svc.name} className="bg-white rounded-2xl border border-gray-100 p-5">
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <h3 className="font-semibold text-gray-900">{svc.name}</h3>
-                      <p className="text-xs text-gray-500">{svc.completedToday || 0} tickets traités aujourd&apos;hui</p>
-                    </div>
-                    <ChevronRight size={18} className="text-gray-300" />
-                  </div>
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="text-center">
-                      <p className="text-2xl font-black text-orange-500">{svc.count}</p>
-                      <p className="text-xs text-gray-500">En attente</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-2xl font-black text-blue-500">{svc.avgMin} min</p>
-                      <p className="text-xs text-gray-500">Moy. traitement</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-2xl font-black text-green-500">{svc.completedToday || 0}</p>
-                      <p className="text-xs text-gray-500">Clôturés</p>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
+          <ServicesTab />
         )}
 
         {activeTab === 'analytics' && (
