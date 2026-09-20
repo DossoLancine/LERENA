@@ -117,7 +117,7 @@ export default function ExploreMap({ orgs, userLocation }: { orgs: any[], userLo
       {/* Global styles for Leaflet Popup overriding */}
       <style jsx global>{`
         .map-tiles {
-          filter: grayscale(1) opacity(0.6) contrast(1.2);
+          filter: saturate(0.4) brightness(1.1) contrast(0.9) sepia(0.1);
         }
         .leaflet-popup-content-wrapper {
           border-radius: 16px;
