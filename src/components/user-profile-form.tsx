@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { updateUserProfile, getUserProfile } from '@/app/actions/user'
 import { User as UserIcon, Phone, Mail, Lock, Save, Loader2, CheckCircle2 } from 'lucide-react'
+import PhoneInput from '@/components/phone-input'
 
 export default function UserProfileForm({ theme = 'orange' }: { theme?: 'orange' | 'blue' | 'indigo' }) {
   const [loading, setLoading] = useState(true)
@@ -133,17 +134,15 @@ export default function UserProfileForm({ theme = 'orange' }: { theme?: 'orange'
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-gray-700 mb-1">Numéro de téléphone</label>
-          <div className="relative">
-            <Phone size={16} className="absolute left-3 top-2.5 text-gray-400" />
-            <input 
-              type="tel" 
-              value={formData.phone}
-              onChange={(e) => setFormData({...formData, phone: e.target.value})}
-              className={inputClass}
-              placeholder="+225 00 00 00 00 00"
-            />
-          </div>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-2">
+            <Phone size={16} className="text-gray-400" />
+            Téléphone
+          </label>
+          <PhoneInput 
+            value={formData.phone}
+            onChange={(val) => setFormData({...formData, phone: val})}
+            className="w-full"
+          />
         </div>
 
         <div>
