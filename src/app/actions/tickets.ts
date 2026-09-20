@@ -24,7 +24,7 @@ export async function joinQueue(serviceId: string, orgId: string, priority: stri
     if (!(session?.user as any)?.id) {
       throw new Error("UNAUTHORIZED")
     }
-    const userId = (session.user as any).id
+    const userId = (session!.user as any).id
 
     // VÉRIFICATION DE LA SESSISON EN BASE DE DONNÉES
     const validUser = await prisma.user.findUnique({
@@ -84,12 +84,12 @@ export async function joinQueue(serviceId: string, orgId: string, priority: stri
 
     // Calculate priorityScore
     let priorityScore = 1;
-    if (priorityLevel === 'VIP') priorityScore = 3;
-    else if (priorityLevel === 'PRIORITY') priorityScore = 2;
+    if (priority === 'VIP') priorityScore = 3;
+    else if (priority === 'PRIORITY') priorityScore = 2;
 
     // Vérifier que le user existe bien dans la DB (sécurité contre les vieilles sessions après un reset)
     const dbUser = await prisma.user.findUnique({
-      where: { id: (session.user as any).id }
+      where: { id: userId }
     })
 
     let validUserId = dbUser ? dbUser.id : null;
@@ -98,8 +98,7 @@ export async function joinQueue(serviceId: string, orgId: string, priority: stri
       // Si l'utilisateur n'existe plus en base (suite à un reset), on refuse avec un message clair
       throw new Error("SESSION_EXPIRED");
     }
-
-    const guestName = session.user.name || 'Client'
+    const guestName = session!.user?.name || 'Client'
 
     // Create ticket
     const ticket = await prisma.ticket.create({
