@@ -121,6 +121,8 @@ model Ticket {
   position    Int?
   priorityScore Int     @default(1)
   npsScore    Int?      // 1-5 stars, null if not yet rated
+  claimedPromoTitle String?
+  claimedPromoPrice String?
   createdAt   DateTime  @default(now())
   calledAt    DateTime?
   startedAt   DateTime?
@@ -141,6 +143,7 @@ model Promotion {
   description    String?
   imageUrl       String?
   price          String?
+  claimsCount    Int      @default(0)
   isActive       Boolean  @default(true)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt

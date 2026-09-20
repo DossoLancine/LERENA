@@ -137,6 +137,14 @@ export default function PromotionsTab() {
                 {promo.description && (
                   <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{promo.description}</p>
                 )}
+                <div className="flex items-center gap-3 mt-2">
+                  <span className="flex items-center gap-1 text-emerald-700 font-bold text-xs bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-lg">
+                    🎁 {promo.claimsCount || 0} réclamé{(promo.claimsCount || 0) > 1 ? 's' : ''} au guichet
+                  </span>
+                  <span className="text-[11px] text-gray-400">
+                    Visible sur le ticket client
+                  </span>
+                </div>
               </div>
               <button
                 onClick={() => handleDelete(promo.id)}

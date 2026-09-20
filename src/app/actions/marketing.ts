@@ -5,6 +5,23 @@ import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { revalidatePath } from "next/cache"
 
+// Helper multi-tenant pour le manager
+async function getManagerOrgId() {
+  const session = await getServerSession(authOptions)
+  if (!session || (session.user as any)?.role !== 'MANAGER') return null
+
+  const userId = (session.user as any).id
+  const member = await prisma.organizationMember.findFirst({
+    where: { userId },
+    select: { organizationId: true }
+  })
+
+  if (member?.organizationId) return member.organizationId
+
+  const firstOrg = await prisma.organization.findFirst({ select: { id: true } })
+  return firstOrg?.id || null
+}
+
 // ---- NPS ----
 export async function submitNPS(ticketId: string, score: number) {
   try {
@@ -13,6 +30,7 @@ export async function submitNPS(ticketId: string, score: number) {
       where: { id: ticketId },
       data: { npsScore: score }
     })
+    revalidatePath(`/ticket/${ticketId}`)
     return { success: true }
   } catch (error) {
     console.error("NPS submit error:", error)
@@ -20,7 +38,7 @@ export async function submitNPS(ticketId: string, score: number) {
   }
 }
 
-// ---- Promotions (public: for ticket page) ----
+// ---- Promotions (public: pour la page ticket) ----
 export async function getPromotionsByOrg(orgId: string) {
   try {
     return await prisma.promotion.findMany({
@@ -32,16 +50,74 @@ export async function getPromotionsByOrg(orgId: string) {
   }
 }
 
-// ---- Promotions Management (Manager only) ----
-export async function getManagerPromotions() {
-  const session = await getServerSession(authOptions)
-  if (!session || (session.user as any).role !== 'MANAGER') return []
+// ---- Réclamation d'une offre par le Client (Le "Juste Milieu" Universel) ----
+export async function claimTicketPromotion(ticketId: string, promoId: string) {
+  try {
+    const promo = await prisma.promotion.findUnique({
+      where: { id: promoId }
+    })
 
-  const org = await prisma.organization.findFirst()
-  if (!org) return []
+    if (!promo || !promo.isActive) {
+      return { success: false, error: "Cette offre n'est plus disponible" }
+    }
+
+    // Associer l'offre au ticket
+    const updatedTicket = await prisma.ticket.update({
+      where: { id: ticketId },
+      data: {
+        claimedPromoTitle: promo.title,
+        claimedPromoPrice: promo.price || 'Offre Spéciale'
+      }
+    })
+
+    // Incrémenter le compteur de réclamations pour le ROI Manager
+    await prisma.promotion.update({
+      where: { id: promoId },
+      data: {
+        claimsCount: { increment: 1 }
+      }
+    })
+
+    revalidatePath(`/ticket/${ticketId}`)
+    revalidatePath('/agent')
+    revalidatePath('/dashboard')
+
+    return {
+      success: true,
+      claimedPromoTitle: updatedTicket.claimedPromoTitle,
+      claimedPromoPrice: updatedTicket.claimedPromoPrice
+    }
+  } catch (error: any) {
+    console.error("Claim promotion error:", error)
+    return { success: false, error: error.message || "Erreur lors de l'activation de l'offre" }
+  }
+}
+
+// Annuler la réclamation
+export async function cancelTicketPromotion(ticketId: string) {
+  try {
+    await prisma.ticket.update({
+      where: { id: ticketId },
+      data: {
+        claimedPromoTitle: null,
+        claimedPromoPrice: null
+      }
+    })
+    revalidatePath(`/ticket/${ticketId}`)
+    revalidatePath('/agent')
+    return { success: true }
+  } catch (error: any) {
+    return { success: false, error: error.message }
+  }
+}
+
+// ---- Promotions Management (Manager SaaS Multi-Tenant) ----
+export async function getManagerPromotions() {
+  const orgId = await getManagerOrgId()
+  if (!orgId) return []
 
   return prisma.promotion.findMany({
-    where: { organizationId: org.id },
+    where: { organizationId: orgId },
     orderBy: { createdAt: 'desc' }
   })
 }
@@ -52,14 +128,11 @@ export async function createPromotion(data: {
   imageUrl?: string
   price?: string
 }) {
-  const session = await getServerSession(authOptions)
-  if (!session || (session.user as any).role !== 'MANAGER') return { success: false }
-
-  const org = await prisma.organization.findFirst()
-  if (!org) return { success: false }
+  const orgId = await getManagerOrgId()
+  if (!orgId) return { success: false, error: "Non autorisé" }
 
   await prisma.promotion.create({
-    data: { ...data, organizationId: org.id }
+    data: { ...data, organizationId: orgId }
   })
 
   revalidatePath('/dashboard')
@@ -67,20 +140,37 @@ export async function createPromotion(data: {
 }
 
 export async function deletePromotion(id: string) {
-  const session = await getServerSession(authOptions)
-  if (!session || (session.user as any).role !== 'MANAGER') return { success: false }
+  const orgId = await getManagerOrgId()
+  if (!orgId) return { success: false, error: "Non autorisé" }
 
-  await prisma.promotion.delete({ where: { id } })
+  // Sécurité multi-tenant : vérifier que la promo appartient à l'organisation du manager
+  await prisma.promotion.deleteMany({
+    where: { id, organizationId: orgId }
+  })
+
   revalidatePath('/dashboard')
   return { success: true }
 }
 
 export async function getAvgNPS() {
-  const session = await getServerSession(authOptions)
-  if (!session || (session.user as any).role !== 'MANAGER') return null
+  const orgId = await getManagerOrgId()
+  if (!orgId) return null
 
-  const org = await prisma.organization.findFirst({
-    include: { branches: { include: { queues: { include: { tickets: { where: { npsScore: { not: null } } } } } } } }
+  const org = await prisma.organization.findUnique({
+    where: { id: orgId },
+    include: {
+      branches: {
+        include: {
+          queues: {
+            include: {
+              tickets: {
+                where: { npsScore: { not: null } }
+              }
+            }
+          }
+        }
+      }
+    }
   })
   if (!org) return null
 
