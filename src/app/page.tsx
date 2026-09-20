@@ -8,7 +8,7 @@ export default async function LandingPage() {
   const session = await getServerSession(authOptions)
 
   if (session) {
-    redirect('/explore')
+    redirect('/home')
   }
 
   return (

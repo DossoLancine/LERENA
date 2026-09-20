@@ -85,7 +85,7 @@ export default function TicketsPage() {
 
 function BottomNav({ active }: { active: string }) {
   const items = [
-    { id: 'home',      label: 'Accueil',   href: '/',         icon: <Home size={20} /> },
+    { id: 'home',      label: 'Accueil',   href: '/home',     icon: <Home size={20} /> },
     { id: 'explore',   label: 'Explorer',  href: '/explore',  icon: <Compass size={20} /> },
     { id: 'tickets',   label: 'Tickets',   href: '/tickets',  icon: <Ticket size={20} /> },
     { id: 'favorites', label: 'Favoris',   href: '/favorites',icon: <Heart size={20} /> },
