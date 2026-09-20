@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { getOrganizationById } from '../../actions/orgs'
 import { joinQueue } from '../../actions/tickets'
-import { useSession } from 'next-auth/react'
+import { useSession, signOut } from 'next-auth/react'
 
 export default function OrgPage({ params }: { params: { id: string } }) {
   const { data: session } = useSession()
@@ -44,6 +44,13 @@ export default function OrgPage({ params }: { params: { id: string } }) {
     if (res.success && res.ticketId) {
       router.push(`/ticket/${res.ticketId}`)
     } else {
+      if (res.error === "SESSION_EXPIRED") {
+        setError("Votre session est expirée suite à une mise à jour système. Reconnexion en cours...")
+        setTimeout(() => {
+          signOut({ callbackUrl: `/auth/login?callbackUrl=/org/${params.id}` })
+        }, 1500)
+        return
+      }
       setError(res.error || "Une erreur est survenue")
       setIsJoining(false)
     }
