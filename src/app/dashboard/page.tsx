@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Users, Clock, TrendingUp, TrendingDown, CheckCircle2, AlertTriangle, BarChart3, Settings, ChevronRight, Activity } from 'lucide-react'
+import { Users, Clock, TrendingUp, TrendingDown, CheckCircle2, AlertTriangle, BarChart3, Settings, ChevronRight, Activity, User as UserIcon, X } from 'lucide-react'
 import AnalyticsTab from './analytics-tab'
 import PromotionsTab from './promotions-tab'
 import SettingsTab from './settings-tab'
 import ServicesTab from './services-tab'
+import UserProfileForm from '@/components/user-profile-form'
 
 const statusBadge: Record<string, string> = {
   SERVING: 'badge-serving',
@@ -32,6 +33,7 @@ export default function DashboardPage() {
   const [liveQueue, setLiveQueue] = useState<any[]>([])
   const [orgServices, setOrgServices] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [showEditProfile, setShowEditProfile] = useState(false)
 
   const fetchStats = async () => {
     try {
@@ -98,6 +100,13 @@ export default function DashboardPage() {
             >
               <Settings size={18} />
             </button>
+            <button 
+              onClick={() => setShowEditProfile(true)}
+              className="w-9 h-9 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center hover:bg-orange-100 transition-colors"
+              title="Mon Profil (Manager)"
+            >
+              <UserIcon size={18} />
+            </button>
           </div>
         </div>
 
@@ -116,6 +125,20 @@ export default function DashboardPage() {
           ))}
         </div>
       </div>
+
+      {showEditProfile && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white rounded-2xl w-full max-w-md p-5 max-h-[90vh] overflow-y-auto shadow-xl">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-bold text-lg">Mon Profil (Manager)</h3>
+              <button onClick={() => setShowEditProfile(false)} className="p-1 rounded-full bg-gray-100 hover:bg-gray-200">
+                <X size={18} />
+              </button>
+            </div>
+            <UserProfileForm theme="orange" />
+          </div>
+        </div>
+      )}
 
       <div className="max-w-4xl mx-auto px-4 py-4 space-y-4 pb-8">
         {activeTab === 'overview' && (

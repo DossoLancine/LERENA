@@ -1,13 +1,15 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Users, Clock, CheckCircle2, SkipForward, UserX, Play, Square, ChevronDown, Megaphone, PartyPopper } from 'lucide-react'
+import { Users, Clock, CheckCircle2, SkipForward, UserX, Play, Square, ChevronDown, Megaphone, PartyPopper, User as UserIcon, X } from 'lucide-react'
 
 import { getAgentQueue, updateTicketStatus, getAgentStats } from '../actions/agent'
 import { useSession } from 'next-auth/react'
+import UserProfileForm from '@/components/user-profile-form'
 
 export default function AgentPage() {
   const { data: session } = useSession()
+  const [showEditProfile, setShowEditProfile] = useState(false)
   const [queue, setQueue] = useState<any[]>([])
   const [servedToday, setServedToday] = useState(0)
   const [avgMin, setAvgMin] = useState(15)
@@ -85,6 +87,13 @@ export default function AgentPage() {
           </div>
           
           <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setShowEditProfile(true)}
+              className="w-9 h-9 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-100 transition-colors"
+              title="Mon Profil"
+            >
+              <UserIcon size={18} />
+            </button>
             {/* Sélecteur de Guichet */}
             <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-xl px-2.5 py-1.5">
               <span className="text-xs font-semibold text-gray-500">Poste :</span>
@@ -109,6 +118,20 @@ export default function AgentPage() {
           </div>
         </div>
       </div>
+
+      {showEditProfile && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white rounded-2xl w-full max-w-md p-5 max-h-[90vh] overflow-y-auto shadow-xl">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-bold text-lg">Mon Profil (Agent)</h3>
+              <button onClick={() => setShowEditProfile(false)} className="p-1 rounded-full bg-gray-100 hover:bg-gray-200">
+                <X size={18} />
+              </button>
+            </div>
+            <UserProfileForm theme="blue" />
+          </div>
+        </div>
+      )}
 
       <div className="max-w-2xl mx-auto px-4 py-4 space-y-4">
         {/* Stats */}
