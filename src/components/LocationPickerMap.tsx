@@ -98,8 +98,8 @@ export default function LocationPickerMap({
           className="w-full h-full"
         >
           <TileLayer
-            url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+            url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}"
+            attribution='Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ'
           />
           <MapController center={position} />
           
