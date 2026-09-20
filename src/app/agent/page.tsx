@@ -1,10 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Users, Clock, CheckCircle2, SkipForward, UserX, Play, Square, ChevronDown, Megaphone, PartyPopper, User as UserIcon, X } from 'lucide-react'
+import { Users, Clock, CheckCircle2, SkipForward, UserX, Play, Square, ChevronDown, Megaphone, PartyPopper, User as UserIcon, X, LogOut } from 'lucide-react'
 
 import { getAgentQueue, updateTicketStatus, getAgentStats } from '../actions/agent'
-import { useSession } from 'next-auth/react'
+import { useSession, signOut } from 'next-auth/react'
 import UserProfileForm from '@/components/user-profile-form'
 
 export default function AgentPage() {
@@ -121,14 +121,21 @@ export default function AgentPage() {
 
       {showEditProfile && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-white rounded-2xl w-full max-w-md p-5 max-h-[90vh] overflow-y-auto shadow-xl">
-            <div className="flex justify-between items-center mb-4">
+          <div className="bg-white rounded-2xl w-full max-w-md p-5 max-h-[90vh] overflow-y-auto shadow-xl flex flex-col gap-4">
+            <div className="flex justify-between items-center">
               <h3 className="font-bold text-lg">Mon Profil (Agent)</h3>
               <button onClick={() => setShowEditProfile(false)} className="p-1 rounded-full bg-gray-100 hover:bg-gray-200">
                 <X size={18} />
               </button>
             </div>
             <UserProfileForm theme="blue" />
+            <button 
+              onClick={() => signOut()}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-red-100 text-red-500 font-medium text-sm hover:bg-red-50 transition-all mt-2"
+            >
+              <LogOut size={16} />
+              Se déconnecter
+            </button>
           </div>
         </div>
       )}
