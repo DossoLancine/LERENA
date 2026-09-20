@@ -1,10 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { MapContainer, TileLayer, Marker, useMap, Popup } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, useMap, Polyline } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { MapPin, PlusSquare, Scissors, Utensils, Building2, ChevronRight, Clock, Users, X } from 'lucide-react'
+import { MapPin, PlusSquare, Scissors, Utensils, Building2, ChevronRight, Clock, Users, X, Navigation } from 'lucide-react'
 import Link from 'next/link'
 import { renderToString } from 'react-dom/server'
 
@@ -20,15 +20,22 @@ function LocationMarker({ location }: { location: { lat: number, lng: number } |
 
   if (!location) return null
 
-  // User location icon (blue dot)
+  // Icône Premium pour le visiteur (Style Radar/GPS moderne)
   const userIcon = L.divIcon({
     className: 'bg-transparent',
-    html: `<div class="w-4 h-4 bg-blue-500 border-2 border-white rounded-full shadow-[0_0_15px_rgba(59,130,246,0.5)] animate-pulse"></div>`,
-    iconSize: [16, 16],
-    iconAnchor: [8, 8],
+    html: `
+      <div class="relative flex items-center justify-center w-16 h-16">
+        <div class="absolute w-12 h-12 bg-blue-500/30 rounded-full animate-ping"></div>
+        <div class="absolute w-5 h-5 bg-blue-600 border-4 border-white rounded-full shadow-[0_4px_10px_rgba(0,0,0,0.3)] z-10 flex items-center justify-center">
+          <div class="w-1.5 h-1.5 bg-white rounded-full"></div>
+        </div>
+      </div>
+    `,
+    iconSize: [64, 64],
+    iconAnchor: [32, 32],
   })
 
-  return <Marker position={[location.lat, location.lng]} icon={userIcon} />
+  return <Marker position={[location.lat, location.lng]} icon={userIcon} zIndexOffset={1000} />
 }
 
 export default function ExploreMap({ orgs, userLocation }: { orgs: any[], userLocation: { lat: number, lng: number } | null }) {
@@ -59,7 +66,7 @@ export default function ExploreMap({ orgs, userLocation }: { orgs: any[], userLo
       colorClass = 'bg-blue-500'
     }
 
-    const scaleClass = isActive ? 'scale-125 ring-4 ring-white shadow-2xl z-50' : 'hover:scale-110 shadow-lg border-2 border-white'
+    const scaleClass = isActive ? 'scale-125 ring-4 ring-white shadow-[0_10px_30px_rgba(0,0,0,0.3)] z-[9999]' : 'hover:scale-110 shadow-lg border-2 border-white'
 
     return L.divIcon({
       className: 'bg-transparent',
@@ -90,6 +97,24 @@ export default function ExploreMap({ orgs, userLocation }: { orgs: any[], userLo
         
         <LocationMarker location={userLocation} />
 
+        {/* Ligne d'itinéraire Premium entre le visiteur et l'établissement */}
+        {activeOrg && userLocation && (
+          <Polyline 
+            positions={[
+              [userLocation.lat, userLocation.lng], 
+              [activeOrg.lat, activeOrg.lng]
+            ]} 
+            pathOptions={{ 
+              color: '#f97316', 
+              dashArray: '8, 8', 
+              weight: 3, 
+              opacity: 0.8,
+              lineCap: 'round',
+              lineJoin: 'round'
+            }} 
+          />
+        )}
+
         {orgs.filter(o => o.lat && o.lng).map((org) => (
           <Marker 
             key={org.id} 
@@ -109,8 +134,8 @@ export default function ExploreMap({ orgs, userLocation }: { orgs: any[], userLo
 
       {/* Floating Card UI (Professional Interaction) */}
       {activeOrg && (
-        <div className="absolute bottom-6 left-4 right-4 z-[1000] transition-all duration-300 transform translate-y-0 opacity-100">
-          <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] p-4 border border-gray-100">
+        <div className="absolute bottom-24 left-4 right-4 z-[1000] transition-all duration-300 transform translate-y-0 opacity-100 pb-safe">
+          <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] p-4 border border-gray-100 relative">
             <button 
               onClick={() => setActiveOrg(null)}
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-full p-1 transition-colors"
