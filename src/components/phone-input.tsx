@@ -1,7 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { ChevronDown } from 'lucide-react'
 
+// Liste détaillée des pays avec leurs noms complets
 const COUNTRIES = [
   { code: '+225', flag: '🇨🇮', name: "Côte d'Ivoire" },
   { code: '+33', flag: '🇫🇷', name: 'France' },
@@ -9,12 +11,15 @@ const COUNTRIES = [
   { code: '+223', flag: '🇲🇱', name: 'Mali' },
   { code: '+226', flag: '🇧🇫', name: 'Burkina Faso' },
   { code: '+228', flag: '🇹🇬', name: 'Togo' },
+  { code: '+229', flag: '🇧🇯', name: 'Bénin' },
   { code: '+237', flag: '🇨🇲', name: 'Cameroun' },
   { code: '+241', flag: '🇬🇦', name: 'Gabon' },
-  { code: '+242', flag: '🇨🇬', name: 'Congo' },
-  { code: '+243', flag: '🇨🇩', name: 'RDC' },
-  { code: '+1', flag: '🇺🇸', name: 'USA/Canada' },
-  { code: '+44', flag: '🇬🇧', name: 'UK' },
+  { code: '+242', flag: '🇨🇬', name: 'Congo-Brazzaville' },
+  { code: '+243', flag: '🇨🇩', name: 'République Démocratique du Congo' },
+  { code: '+1', flag: '🇺🇸', name: 'États-Unis' },
+  { code: '+1', flag: '🇨🇦', name: 'Canada' },
+  { code: '+44', flag: '🇬🇧', name: 'Royaume-Uni' },
+  { code: '+49', flag: '🇩🇪', name: 'Allemagne' },
 ]
 
 export default function PhoneInput({ 
@@ -28,11 +33,17 @@ export default function PhoneInput({
 }) {
   const [prefix, setPrefix] = useState('+225')
   const [localNum, setLocalNum] = useState('')
+  const [isOpen, setIsOpen] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
 
-  // Sync state if value is passed from parent initially
+  // Synchronisation initiale si une valeur est passée (ex: profil utilisateur)
   useEffect(() => {
     if (value && localNum === '') {
-      const matchedCountry = COUNTRIES.find(c => value.startsWith(c.code))
+      // Trouve le préfixe correspondant en triant par longueur (pour éviter les conflits +1 vs +12)
+      const matchedCountry = [...COUNTRIES]
+        .sort((a, b) => b.code.length - a.code.length)
+        .find(c => value.startsWith(c.code))
+        
       if (matchedCountry) {
         setPrefix(matchedCountry.code)
         setLocalNum(value.slice(matchedCountry.code.length).trim())
@@ -42,43 +53,85 @@ export default function PhoneInput({
     }
   }, [value, localNum]) 
 
+  // Fermer le menu déroulant si on clique en dehors
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
   const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newNum = e.target.value
+    // Nettoyer l'entrée (optionnel) pour ne garder que les chiffres et espaces
+    const newNum = e.target.value.replace(/[^\d\s]/g, '')
     setLocalNum(newNum)
-    // Only send the prefix if they actually typed a number
     onChange(newNum ? `${prefix}${newNum}` : '')
   }
 
-  const handlePrefixChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newPrefix = e.target.value
-    setPrefix(newPrefix)
-    onChange(localNum ? `${newPrefix}${localNum}` : '')
+  const selectCountry = (code: string) => {
+    setPrefix(code)
+    setIsOpen(false)
+    onChange(localNum ? `${code}${localNum}` : '')
   }
 
+  // Trouver le pays actif pour afficher son drapeau
+  const activeCountry = COUNTRIES.find(c => c.code === prefix) || COUNTRIES[0]
+
   return (
-    <div className={`flex items-stretch bg-gray-50 border border-gray-200 rounded-xl focus-within:border-orange-500 focus-within:ring-1 focus-within:ring-orange-500 transition-all overflow-hidden ${className}`}>
-      <div className="relative flex items-center bg-gray-100 border-r border-gray-200 hover:bg-gray-200 transition-colors">
-        <select 
-          value={prefix}
-          onChange={handlePrefixChange}
-          className="appearance-none bg-transparent outline-none pl-3 pr-8 py-3 text-gray-700 font-medium cursor-pointer w-full h-full relative z-10"
-        >
-          {COUNTRIES.map(c => (
-            <option key={c.code} value={c.code}>{c.flag} {c.code}</option>
-          ))}
-        </select>
-        {/* Dropdown arrow icon positioned absolutely behind the select text */}
-        <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="6 9 12 15 18 9"></polyline>
-          </svg>
+    <div 
+      ref={containerRef} 
+      className={`relative flex items-stretch bg-gray-50 border border-gray-200 rounded-xl focus-within:border-orange-500 focus-within:ring-1 focus-within:ring-orange-500 transition-all ${className}`}
+    >
+      
+      {/* Bouton du sélecteur personnalisé */}
+      <button 
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 border-r border-gray-200 px-3 py-3 transition-colors rounded-l-xl focus:outline-none"
+      >
+        <span className="text-xl leading-none">{activeCountry.flag}</span>
+        <span className="font-medium text-gray-700">{activeCountry.code}</span>
+        <ChevronDown size={16} className={`text-gray-500 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      {/* Menu déroulant personnalisé */}
+      {isOpen && (
+        <div className="absolute top-[calc(100%+8px)] left-0 w-[320px] bg-white border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-xl z-50 overflow-hidden flex flex-col transform opacity-100 scale-100 transition-all origin-top-left">
+          <div className="max-h-[300px] overflow-y-auto py-2 scrollbar-thin scrollbar-thumb-gray-200">
+            {COUNTRIES.map((c, idx) => (
+              <button
+                key={`${c.name}-${idx}`}
+                type="button"
+                onClick={() => selectCountry(c.code)}
+                className={`w-full flex items-center justify-between px-4 py-3 transition-colors text-left
+                  ${prefix === c.code ? 'bg-orange-50' : 'hover:bg-gray-50'}
+                `}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl leading-none shadow-sm rounded-sm">{c.flag}</span>
+                  <span className={`font-medium ${prefix === c.code ? 'text-orange-600 font-bold' : 'text-gray-700'}`}>
+                    {c.name}
+                  </span>
+                </div>
+                {/* On garde l'indicatif à droite de façon discrète pour le professionnalisme */}
+                <span className={`text-sm ${prefix === c.code ? 'text-orange-500' : 'text-gray-400'}`}>
+                  {c.code}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Champ de saisie du numéro local */}
       <input 
         type="tel"
         value={localNum}
         onChange={handleNumberChange}
-        className="flex-1 bg-transparent px-4 py-3 outline-none text-lg font-medium text-gray-900 w-full min-w-0"
+        className="flex-1 bg-transparent px-4 py-3 outline-none text-lg font-medium text-gray-900 w-full min-w-0 rounded-r-xl placeholder:text-gray-400"
         placeholder="01 23 45 67 89"
       />
     </div>
