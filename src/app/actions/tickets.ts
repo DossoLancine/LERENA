@@ -51,6 +51,18 @@ export async function joinQueue(serviceId: string, orgId: string, priorityLevel:
     if (priorityLevel === 'VIP') priorityScore = 3;
     else if (priorityLevel === 'PRIORITY') priorityScore = 2;
 
+    // Vérifier que le user existe bien dans la DB (sécurité contre les vieilles sessions après un reset)
+    const dbUser = await prisma.user.findUnique({
+      where: { id: (session.user as any).id }
+    })
+
+    let validUserId = dbUser ? dbUser.id : null;
+
+    if (!validUserId) {
+      // Si l'utilisateur n'existe plus en base (suite à un reset), on refuse avec un message clair
+      throw new Error("SESSION_EXPIRED");
+    }
+
     const guestName = session.user.name || 'Client'
 
     // Create ticket
@@ -58,7 +70,7 @@ export async function joinQueue(serviceId: string, orgId: string, priorityLevel:
       data: {
         queueId: queue.id,
         serviceId: service.id,
-        userId: (session.user as any).id,
+        userId: validUserId,
         guestName,
         number: newNumber,
         displayNum,
