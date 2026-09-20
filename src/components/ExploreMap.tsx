@@ -40,9 +40,48 @@ function LocationMarker({ location }: { location: { lat: number, lng: number } |
 
 export default function ExploreMap({ orgs, userLocation }: { orgs: any[], userLocation: { lat: number, lng: number } | null }) {
   const [activeOrg, setActiveOrg] = useState<any | null>(null)
+  const [routeCoords, setRouteCoords] = useState<[number, number][]>([])
+  const [routeData, setRouteData] = useState<{distance: string, duration: string} | null>(null)
+  const [isRouting, setIsRouting] = useState(false)
   
   // Default center (Abidjan if no location)
   const defaultCenter: [number, number] = [5.320357, -4.016107]
+
+  // Fetch real route from OSRM when activeOrg changes
+  useEffect(() => {
+    if (!activeOrg || !userLocation) {
+      setRouteCoords([])
+      setRouteData(null)
+      return
+    }
+
+    const fetchRoute = async () => {
+      setIsRouting(true)
+      try {
+        // OSRM Public API (lon,lat format)
+        const url = `https://router.project-osrm.org/route/v1/driving/${userLocation.lng},${userLocation.lat};${activeOrg.lng},${activeOrg.lat}?overview=full&geometries=geojson`
+        const res = await fetch(url)
+        const data = await res.json()
+        
+        if (data.routes && data.routes.length > 0) {
+          const route = data.routes[0]
+          // GeoJSON returns [lon, lat], Leaflet needs [lat, lon]
+          const coords = route.geometry.coordinates.map((c: any) => [c[1], c[0]])
+          setRouteCoords(coords)
+
+          const distKm = (route.distance / 1000).toFixed(1)
+          const durMin = Math.round(route.duration / 60)
+          setRouteData({ distance: `${distKm} km`, duration: `${durMin} min` })
+        }
+      } catch (err) {
+        console.error("Erreur de calcul d'itinéraire OSRM :", err)
+      } finally {
+        setIsRouting(false)
+      }
+    }
+
+    fetchRoute()
+  }, [activeOrg, userLocation])
 
   // Create custom icons for orgs
   const createOrgIcon = (org: any, isActive: boolean) => {
@@ -97,22 +136,20 @@ export default function ExploreMap({ orgs, userLocation }: { orgs: any[], userLo
         
         <LocationMarker location={userLocation} />
 
-        {/* Ligne d'itinéraire Premium entre le visiteur et l'établissement */}
-        {activeOrg && userLocation && (
-          <Polyline 
-            positions={[
-              [userLocation.lat, userLocation.lng], 
-              [activeOrg.lat, activeOrg.lng]
-            ]} 
-            pathOptions={{ 
-              color: '#f97316', 
-              dashArray: '8, 8', 
-              weight: 3, 
-              opacity: 0.8,
-              lineCap: 'round',
-              lineJoin: 'round'
-            }} 
-          />
+        {/* Ligne d'itinéraire réelle (Style Uber / Google Maps) */}
+        {routeCoords.length > 0 && (
+          <>
+            {/* Bordure de la ligne (Ombre) */}
+            <Polyline 
+              positions={routeCoords} 
+              pathOptions={{ color: '#1e40af', weight: 8, opacity: 0.3, lineCap: 'round', lineJoin: 'round' }} 
+            />
+            {/* Trait principal */}
+            <Polyline 
+              positions={routeCoords} 
+              pathOptions={{ color: '#3b82f6', weight: 5, opacity: 1, lineCap: 'round', lineJoin: 'round' }} 
+            />
+          </>
         )}
 
         {orgs.filter(o => o.lat && o.lng).map((org) => (
@@ -125,7 +162,7 @@ export default function ExploreMap({ orgs, userLocation }: { orgs: any[], userLo
                 setActiveOrg(org)
                 const map = e.target._map
                 // Recentrer légèrement plus bas pour que la carte n'écrase pas le marqueur
-                map.setView([org.lat - 0.005, org.lng], 15, { animate: true })
+                map.setView([org.lat - 0.008, org.lng], 14, { animate: true })
               }
             }}
           />
@@ -166,11 +203,15 @@ export default function ExploreMap({ orgs, userLocation }: { orgs: any[], userLo
                 </span>
                 <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">En file</span>
               </div>
-              <div className="bg-gray-50 rounded-xl p-2 text-center">
-                <span className="block text-gray-900 font-bold flex items-center justify-center gap-1 text-sm">
-                  <MapPin size={14} /> {activeOrg.distance}
+              <div className="bg-blue-50 rounded-xl p-2 text-center">
+                <span className="block text-blue-600 font-bold flex items-center justify-center gap-1 text-sm">
+                  {isRouting ? (
+                    <div className="w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                    <><Navigation size={12} className="shrink-0" /> {routeData ? routeData.duration : activeOrg.distance}</>
+                  )}
                 </span>
-                <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Distance</span>
+                <span className="text-[10px] text-blue-500 uppercase font-bold tracking-wider">Trajet</span>
               </div>
             </div>
 

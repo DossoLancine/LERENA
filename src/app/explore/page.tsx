@@ -18,9 +18,15 @@ const ExploreMap = dynamic(() => import('@/components/ExploreMap'), {
 export default function ExplorePage() {
   const [search, setSearch] = useState('')
   const [onlyOpen, setOnlyOpen] = useState(false)
+  const [selectedCat, setSelectedCat] = useState('Tout')
+  const [maxDist, setMaxDist] = useState<number | null>(null)
+  
   const [dbOrgs, setDbOrgs] = useState<any[]>([])
   const [location, setLocation] = useState<{lat: number, lng: number} | null>(null)
   const [isMapView, setIsMapView] = useState(false)
+
+  const categories = ['Tout', 'Santé', 'Pharmacie', 'Beauté', 'Restauration', 'Banque']
+  const distances = [{label: 'Toutes distances', val: null}, {label: '< 5 km', val: 5}, {label: '< 10 km', val: 10}]
 
   useEffect(() => {
     // 1. Demander la localisation
@@ -48,9 +54,11 @@ export default function ExplorePage() {
   }
 
   const filtered = dbOrgs.filter((o) => {
-    const matchSearch = search === '' || o.name.toLowerCase().includes(search.toLowerCase()) || o.category.toLowerCase().includes(search.toLowerCase())
+    const matchSearch = search === '' || o.name.toLowerCase().includes(search.toLowerCase())
     const matchOpen = !onlyOpen || o.isOpen
-    return matchSearch && matchOpen
+    const matchCat = selectedCat === 'Tout' || o.category === selectedCat
+    const matchDist = maxDist === null || (o.distanceNum && o.distanceNum <= maxDist)
+    return matchSearch && matchOpen && matchCat && matchDist
   })
 
   return (
@@ -71,12 +79,31 @@ export default function ExplorePage() {
             <input type="text" placeholder="Rechercher un établissement..." value={search} onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-10 pr-4 py-3 bg-gray-100 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all" />
           </div>
-          <div className="flex gap-2">
-            <button onClick={() => setOnlyOpen(!onlyOpen)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all ${onlyOpen ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-600'}`}>
-              <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
-              Ouvert maintenant
-            </button>
+          
+          {/* Scrollable Filters */}
+          <div className="flex flex-col gap-2 mb-1">
+            <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar">
+              <button onClick={() => setOnlyOpen(!onlyOpen)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all shrink-0 ${onlyOpen ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
+                Ouvert
+              </button>
+              {categories.map(cat => (
+                <button key={cat} onClick={() => setSelectedCat(cat)} 
+                  className={`px-4 py-1.5 rounded-full whitespace-nowrap text-sm font-semibold transition-colors shrink-0 ${selectedCat === cat ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                  {cat}
+                </button>
+              ))}
+            </div>
+            
+            <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar">
+              {distances.map(d => (
+                <button key={d.label} onClick={() => setMaxDist(d.val)} 
+                  className={`px-3 py-1.5 rounded-full whitespace-nowrap text-xs font-semibold transition-colors shrink-0 ${maxDist === d.val ? 'bg-orange-100 text-orange-600 border border-orange-200' : 'bg-white border border-gray-200 text-gray-500 hover:bg-gray-50'}`}>
+                  {d.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
