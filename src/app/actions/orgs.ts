@@ -2,13 +2,26 @@
 
 import { prisma } from "@/lib/prisma"
 
-export async function getOrganizations(search?: string) {
+// Calcule la distance en km entre deux points GPS
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371; // Rayon de la terre en km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
+export async function getOrganizations(search?: string, userLat?: number, userLng?: number) {
   try {
     const orgs = await prisma.organization.findMany({
       where: search ? {
         OR: [
-          { name: { contains: search } },
-          { category: { contains: search } }
+          { name: { contains: search, mode: 'insensitive' } },
+          { category: { contains: search, mode: 'insensitive' } }
         ]
       } : undefined,
       include: {
@@ -46,11 +59,20 @@ export async function getOrganizations(search?: string) {
       else if (org.category === 'Restauration') { icon = "food"; color = "bg-orange-50 text-orange-600" }
       else if (org.category === 'Banque') { icon = "bank"; color = "bg-gray-50 text-gray-600" }
 
+      // Calcul de la distance
+      let distanceNum = Infinity;
+      let distanceStr = "";
+      if (userLat && userLng && org.lat && org.lng) {
+        distanceNum = calculateDistance(userLat, userLng, org.lat, org.lng);
+        distanceStr = distanceNum < 1 ? `${Math.round(distanceNum * 1000)} m` : `${distanceNum.toFixed(1)} km`;
+      }
+
       return {
         id: org.id,
         name: org.name,
         category: org.category,
-        distance: "1.2 km",
+        distanceNum,
+        distance: distanceStr,
         waitRange: totalWait > 0 ? `${totalWait}-${totalWait + 10} min` : "0-10 min",
         isOpen: org.isActive,
         rating: rating,
@@ -61,6 +83,11 @@ export async function getOrganizations(search?: string) {
       }
     }))
     
+    // Sort by distance if GPS is active
+    if (userLat && userLng) {
+      formattedOrgs.sort((a, b) => a.distanceNum - b.distanceNum);
+    }
+
     return formattedOrgs;
   } catch (error) {
     console.error("Failed to fetch organizations:", error)
@@ -68,7 +95,7 @@ export async function getOrganizations(search?: string) {
   }
 }
 
-export async function getOrganizationById(id: string) {
+export async function getOrganizationById(id: string, userLat?: number, userLng?: number) {
   try {
     const org = await prisma.organization.findUnique({
       where: { id },
@@ -96,6 +123,13 @@ export async function getOrganizationById(id: string) {
     const rating = stats._avg.npsScore ? Number(stats._avg.npsScore.toFixed(1)) : 0;
     const reviewCount = stats._count.npsScore || 0;
 
+    let distanceStr = "À proximité";
+    let distanceNum = Infinity;
+    if (userLat && userLng && org.lat && org.lng) {
+      distanceNum = calculateDistance(userLat, userLng, org.lat, org.lng);
+      distanceStr = distanceNum < 1 ? `${Math.round(distanceNum * 1000)} m` : `${distanceNum.toFixed(1)} km`;
+    }
+
     // Ajouter les métadonnées UI avec les vrais scores
     return {
       ...org,
@@ -103,7 +137,8 @@ export async function getOrganizationById(id: string) {
       closeTime: "18:00",
       rating: rating,
       reviewCount: reviewCount,
-      distance: "1.2 km",
+      distanceNum,
+      distance: distanceStr,
       address: org.address || "Abidjan, CI"
     }
   } catch (error) {

@@ -15,17 +15,7 @@ export default function HomePage() {
   const [popularOrgs, setPopularOrgs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/auth/login')
-      return
-    }
-    if (status === 'authenticated') {
-      fetchDashboardData()
-    }
-  }, [status, router])
-
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = async (lat?: number, lng?: number) => {
     try {
       // Fetch active tickets
       const tickets = await getUserTickets()
@@ -33,7 +23,7 @@ export default function HomePage() {
       setActiveTicket(active || null)
 
       // Fetch popular orgs
-      const orgs = await getOrganizations()
+      const orgs = await getOrganizations(undefined, lat, lng)
       setPopularOrgs(orgs.slice(0, 3)) // Show top 3
 
       setLoading(false)
@@ -42,6 +32,28 @@ export default function HomePage() {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/auth/login')
+      return
+    }
+    if (status === 'authenticated') {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            fetchDashboardData(position.coords.latitude, position.coords.longitude)
+          },
+          (error) => {
+            console.error("Erreur GPS:", error)
+            fetchDashboardData() // Fallback
+          }
+        )
+      } else {
+        fetchDashboardData()
+      }
+    }
+  }, [status, router])
 
   if (loading || status === 'loading') {
     return (

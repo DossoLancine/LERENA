@@ -8,12 +8,32 @@ export default function ExplorePage() {
   const [search, setSearch] = useState('')
   const [onlyOpen, setOnlyOpen] = useState(false)
   const [dbOrgs, setDbOrgs] = useState<any[]>([])
+  const [location, setLocation] = useState<{lat: number, lng: number} | null>(null)
 
   useEffect(() => {
-    getOrganizations().then(data => {
+    // 1. Demander la localisation
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const coords = { lat: position.coords.latitude, lng: position.coords.longitude }
+          setLocation(coords)
+          fetchOrgs(coords.lat, coords.lng)
+        },
+        (error) => {
+          console.error("Erreur GPS:", error)
+          fetchOrgs() // Fallback sans GPS
+        }
+      )
+    } else {
+      fetchOrgs()
+    }
+  }, [])
+
+  const fetchOrgs = (lat?: number, lng?: number) => {
+    getOrganizations(undefined, lat, lng).then(data => {
       setDbOrgs(data)
     })
-  }, [])
+  }
 
   const filtered = dbOrgs.filter((o) => {
     const matchSearch = search === '' || o.name.toLowerCase().includes(search.toLowerCase()) || o.category.toLowerCase().includes(search.toLowerCase())
