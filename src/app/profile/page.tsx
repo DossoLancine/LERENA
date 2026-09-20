@@ -1,10 +1,13 @@
 'use client'
 import Link from 'next/link'
-import { ChevronRight, Bell, Shield, HelpCircle, LogOut, Clock, Star, User as UserIcon, BarChart3, Home, Compass, Ticket, Heart } from 'lucide-react'
+import { ChevronRight, Bell, Shield, HelpCircle, LogOut, Clock, Star, User as UserIcon, BarChart3, Home, Compass, Ticket, Heart, X } from 'lucide-react'
 import { useSession, signOut } from 'next-auth/react'
+import { useState } from 'react'
+import UserProfileForm from '@/components/user-profile-form'
 
 export default function ProfilePage() {
   const { data: session, status } = useSession()
+  const [showEditProfile, setShowEditProfile] = useState(false)
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -31,11 +34,31 @@ export default function ProfilePage() {
                 </span>
               </div>
             </div>
+            <button 
+              onClick={() => setShowEditProfile(true)}
+              className="px-3 py-1.5 text-xs font-semibold text-orange-600 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors"
+            >
+              Éditer
+            </button>
           </div>
         ) : (
           <div className="bg-white rounded-2xl border border-orange-100 bg-orange-50/50 p-5 text-center">
             <p className="text-gray-600 text-sm mb-3">Connectez-vous pour retrouver votre historique</p>
             <Link href="/auth/login" className="btn-primary py-2 px-6 inline-block">Se connecter</Link>
+          </div>
+        )}
+
+        {showEditProfile && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+            <div className="bg-white rounded-2xl w-full max-w-md p-5 max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="font-bold text-lg">Modifier mon profil</h3>
+                <button onClick={() => setShowEditProfile(false)} className="p-1 rounded-full bg-gray-100 hover:bg-gray-200">
+                  <X size={18} />
+                </button>
+              </div>
+              <UserProfileForm theme="orange" />
+            </div>
           </div>
         )}
 
