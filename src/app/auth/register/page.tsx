@@ -1,12 +1,15 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Clock } from 'lucide-react'
 
-export default function RegisterPage() {
+function RegisterForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const callbackUrl = searchParams.get('callbackUrl')
+  
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
@@ -26,7 +29,11 @@ export default function RegisterPage() {
       })
 
       if (res.ok) {
-        router.push('/auth/login?registered=true')
+        let redirectUrl = '/auth/login?registered=true'
+        if (callbackUrl) {
+          redirectUrl += `&callbackUrl=${encodeURIComponent(callbackUrl)}`
+        }
+        router.push(redirectUrl)
       } else {
         const data = await res.json()
         setError(data.message || 'Une erreur est survenue')
@@ -114,5 +121,13 @@ export default function RegisterPage() {
         </p>
       </div>
     </div>
+  )
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Chargement...</div>}>
+      <RegisterForm />
+    </Suspense>
   )
 }

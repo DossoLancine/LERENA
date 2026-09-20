@@ -1,13 +1,16 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { signIn } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Clock, Zap, Briefcase, Headphones, User } from 'lucide-react'
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const callbackUrl = searchParams.get('callbackUrl')
+  
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -21,28 +24,32 @@ export default function LoginPage() {
     try {
       const res = await signIn('credentials', {
         redirect: false,
-        email: email.trim(),
+        identifier: email.trim(),
         password
       })
 
       if (res?.error) {
-        setError(res.error === 'CredentialsSignin' ? 'Email ou mot de passe incorrect' : res.error)
+        setError(res.error === 'CredentialsSignin' ? 'Identifiants incorrects' : res.error)
         setIsLoading(false)
         return
       }
 
       if (res?.ok) {
-        // Fetch session to determine correct destination
-        const sessionRes = await fetch('/api/auth/session')
-        const session = await sessionRes.json()
-        const role = (session?.user as any)?.role
-
-        if (role === 'MANAGER') {
-          router.push('/dashboard')
-        } else if (role === 'AGENT') {
-          router.push('/agent')
+        if (callbackUrl) {
+          router.push(callbackUrl)
         } else {
-          router.push('/explore')
+          // Fetch session to determine correct destination
+          const sessionRes = await fetch('/api/auth/session')
+          const session = await sessionRes.json()
+          const role = (session?.user as any)?.role
+
+          if (role === 'MANAGER') {
+            router.push('/dashboard')
+          } else if (role === 'AGENT') {
+            router.push('/agent')
+          } else {
+            router.push('/explore')
+          }
         }
         router.refresh()
       } else {
@@ -164,5 +171,13 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Chargement...</div>}>
+      <LoginForm />
+    </Suspense>
   )
 }
