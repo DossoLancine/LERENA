@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Users, Clock, CheckCircle2, SkipForward, UserX, Play, Square, ChevronDown, Megaphone, PartyPopper, User as UserIcon, X, LogOut } from 'lucide-react'
+import { Users, Clock, CheckCircle2, SkipForward, UserX, Play, Square, ChevronDown, Megaphone, PartyPopper, User as UserIcon, X, LogOut, Monitor, Edit2 } from 'lucide-react'
 
 import { getAgentQueue, updateTicketStatus, getAgentStats } from '../actions/agent'
 import { useSession, signOut } from 'next-auth/react'
@@ -13,9 +13,12 @@ export default function AgentPage() {
   const [queue, setQueue] = useState<any[]>([])
   const [servedToday, setServedToday] = useState(0)
   const [avgMin, setAvgMin] = useState(15)
-  const [counter, setCounter] = useState('Guichet 1')
+  const [counter, setCounter] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [lastAction, setLastAction] = useState<string | null>(null)
+  
+  const [isDeskConfigured, setIsDeskConfigured] = useState(true) // True par défaut pour éviter le flash
+  const [deskInput, setDeskInput] = useState('')
 
   const fetchQueue = async () => {
     const data = await getAgentQueue()
@@ -29,16 +32,38 @@ export default function AgentPage() {
   }
 
   useEffect(() => {
+    // Vérification du poste physique dans le navigateur
+    const savedDesk = localStorage.getItem('attends_desk_name')
+    if (savedDesk) {
+      setCounter(savedDesk)
+      setIsDeskConfigured(true)
+    } else {
+      setIsDeskConfigured(false)
+      setIsLoading(false)
+    }
+
     fetchQueue()
     const interval = setInterval(fetchQueue, 5000)
     return () => clearInterval(interval)
   }, [])
 
+  const saveDeskName = () => {
+    if (!deskInput.trim()) return
+    localStorage.setItem('attends_desk_name', deskInput.trim())
+    setCounter(deskInput.trim())
+    setIsDeskConfigured(true)
+  }
+
+  const resetDeskName = () => {
+    setDeskInput(counter)
+    setIsDeskConfigured(false)
+  }
+
   const current = queue.find((t) => t.status === 'SERVING' || t.status === 'CALLED')
   const waiting = queue.filter((t) => t.status === 'WAITING')
 
   const callNext = async () => {
-    if (current || waiting.length === 0) return
+    if (current || waiting.length === 0 || !counter) return
     setIsLoading(true)
     const nextTicket = waiting[0]
     await updateTicketStatus(nextTicket.id, 'CALLED', counter)
@@ -47,6 +72,7 @@ export default function AgentPage() {
   }
 
   const startService = async (ticketId: string) => {
+    if (!counter) return
     setIsLoading(true)
     await updateTicketStatus(ticketId, 'SERVING', counter)
     setLastAction('Service commencé')
@@ -54,6 +80,7 @@ export default function AgentPage() {
   }
 
   const completeService = async (ticketId: string) => {
+    if (!counter) return
     setIsLoading(true)
     await updateTicketStatus(ticketId, 'COMPLETED', counter)
     setServedToday((n) => n + 1)
@@ -62,6 +89,7 @@ export default function AgentPage() {
   }
 
   const markAbsent = async (ticketId: string) => {
+    if (!counter) return
     setIsLoading(true)
     await updateTicketStatus(ticketId, 'ABSENT', counter)
     setLastAction('Client marqué absent')
@@ -74,11 +102,46 @@ export default function AgentPage() {
     WAITING: 'badge-waiting',
   }
 
+  // Écran de configuration initiale de l'ordinateur
+  if (!isDeskConfigured) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 max-w-md w-full text-center">
+          <div className="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-5">
+            <Monitor size={32} />
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Configurer cet ordinateur</h2>
+          <p className="text-sm text-gray-500 mb-6">
+            Pour faciliter le travail de vos agents, associez cet ordinateur à un poste physique. Les agents n&apos;auront plus à le choisir.
+          </p>
+          <div className="text-left mb-6">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Nom du poste physique</label>
+            <input 
+              type="text" 
+              value={deskInput}
+              onChange={(e) => setDeskInput(e.target.value)}
+              placeholder="Ex: Guichet 1, Salle 4..." 
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-blue-500 focus:bg-white outline-none transition-all font-medium"
+              autoFocus
+            />
+          </div>
+          <button 
+            onClick={saveDeskName}
+            disabled={!deskInput.trim()}
+            className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+          >
+            Enregistrer cet ordinateur
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-100">
-        <div className="max-w-2xl mx-auto px-4 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="bg-white border-b border-gray-100 sticky top-0 z-20">
+        <div className="max-w-2xl mx-auto px-4 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-lg font-bold text-gray-900">Interface Guichetier</h1>
             <p className="text-sm text-gray-500">
@@ -94,21 +157,20 @@ export default function AgentPage() {
             >
               <UserIcon size={18} />
             </button>
-            {/* Sélecteur de Guichet */}
-            <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-xl px-2.5 py-1.5">
-              <span className="text-xs font-semibold text-gray-500">Poste :</span>
-              <select
-                value={counter}
-                onChange={(e) => setCounter(e.target.value)}
-                className="bg-transparent text-xs font-bold text-gray-900 focus:outline-none cursor-pointer"
+            {/* Affichage du Poste Configuré */}
+            <div className="flex items-center gap-2.5 bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 shadow-sm">
+              <div className="flex items-center gap-1.5">
+                <Monitor size={14} className="text-gray-400" />
+                <span className="text-sm font-bold text-gray-900">{counter}</span>
+              </div>
+              <div className="w-px h-4 bg-gray-200 mx-1"></div>
+              <button 
+                onClick={resetDeskName}
+                className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 px-1"
               >
-                <option value="Guichet 1">Guichet 1</option>
-                <option value="Guichet 2">Guichet 2</option>
-                <option value="Guichet 3">Guichet 3</option>
-                <option value="Guichet 4">Guichet 4</option>
-                <option value="Caisse">Caisse</option>
-                <option value="Accueil">Accueil</option>
-              </select>
+                <Edit2 size={12} />
+                Changer
+              </button>
             </div>
 
             <div className="flex items-center gap-1.5 bg-green-50 text-green-700 border border-green-200 px-2.5 py-1.5 rounded-xl">
