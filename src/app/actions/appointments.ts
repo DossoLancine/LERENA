@@ -7,7 +7,9 @@ import { revalidatePath } from 'next/cache'
 
 export async function createAppointment(orgId: string, serviceId: string, scheduledDate: Date) {
   const session = await getServerSession(authOptions)
-  if (!session?.user?.id) return { success: false, error: 'Unauthorized' }
+  const userId = (session?.user as any)?.id
+
+  if (!userId) return { success: false, error: 'Unauthorized' }
 
   const org = await prisma.organization.findUnique({
     where: { id: orgId },
@@ -24,7 +26,7 @@ export async function createAppointment(orgId: string, serviceId: string, schedu
         organizationId: orgId,
         serviceId: serviceId,
         branchId: org.branches[0].id,
-        userId: session.user.id,
+        userId: userId,
         scheduledDate: new Date(scheduledDate),
         status: 'CONFIRMED'
       }

@@ -10,7 +10,7 @@ export default function AgendaTab({ orgId }: { orgId: string }) {
 
   const fetchAppointments = async () => {
     const res = await getAppointments(orgId)
-    if (res.success) {
+    if (res.success && res.appointments) {
       setAppointments(res.appointments)
     }
     setLoading(false)
