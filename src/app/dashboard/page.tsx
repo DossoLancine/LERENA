@@ -7,6 +7,7 @@ import AnalyticsTab from './analytics-tab'
 import PromotionsTab from './promotions-tab'
 import SettingsTab from './settings-tab'
 import ServicesTab from './services-tab'
+import AgendaTab from './agenda-tab'
 import UserProfileForm from '@/components/user-profile-form'
 
 const statusBadge: Record<string, string> = {
@@ -29,7 +30,7 @@ const statusLabel: Record<string, string> = {
 import { getManagerStats, toggleOrganizationStatus, getLiveQueue, getOrganizationServices } from '../actions/manager'
 
 export default function DashboardPage() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'queue' | 'services' | 'analytics' | 'marketing' | 'settings'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'queue' | 'agenda' | 'services' | 'analytics' | 'marketing' | 'settings'>('overview')
   const [stats, setStats] = useState<any>(null)
   const [liveQueue, setLiveQueue] = useState<any[]>([])
   const [orgServices, setOrgServices] = useState<any[]>([])
@@ -113,7 +114,7 @@ export default function DashboardPage() {
 
         {/* Tabs */}
         <div className="max-w-4xl mx-auto px-4 flex gap-1 overflow-x-auto pb-3">
-          {(['overview', 'queue', 'services', 'analytics', 'marketing', 'settings'] as const).map((tab) => (
+          {(['overview', 'queue', 'agenda', 'services', 'analytics', 'marketing', 'settings'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -121,7 +122,7 @@ export default function DashboardPage() {
                 activeTab === tab ? 'bg-orange-500 text-white' : 'text-gray-500 hover:bg-gray-100'
               }`}
             >
-              {{ overview: 'Vue d\'ensemble', queue: 'File', services: 'Services', analytics: 'Analytiques', marketing: 'Promotions', settings: 'Paramètres' }[tab]}
+              {{ overview: 'Vue d\'ensemble', queue: 'File', agenda: 'Agenda', services: 'Services', analytics: 'Analytiques', marketing: 'Promotions', settings: 'Paramètres' }[tab]}
             </button>
           ))}
         </div>
@@ -292,6 +293,10 @@ export default function DashboardPage() {
               </div>
             )}
           </div>
+        )}
+
+        {activeTab === 'agenda' && stats?.orgId && (
+          <AgendaTab orgId={stats.orgId} />
         )}
 
         {activeTab === 'services' && (
