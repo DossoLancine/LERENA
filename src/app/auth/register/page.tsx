@@ -4,6 +4,7 @@ import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Clock } from 'lucide-react'
+import PhoneInput from '@/components/phone-input'
 
 function RegisterForm() {
   const router = useRouter()
@@ -71,13 +72,9 @@ function RegisterForm() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Numéro de téléphone</label>
-            <input 
-              type="tel" 
-              required
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-orange-500 focus:bg-white transition-all text-lg font-medium"
-              placeholder="+225 00 00 00 00 00"
+            <PhoneInput 
+              value={phone} 
+              onChange={setPhone}
             />
           </div>
           <div>
