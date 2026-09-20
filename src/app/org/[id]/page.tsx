@@ -91,7 +91,7 @@ export default function OrgPage({ params }: { params: { id: string } }) {
       {/* Hero */}
       <div className="relative bg-white">
         <div className="h-48 bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
-          {org.emoji}
+          {emoji}
         </div>
 
         {/* Back button */}
