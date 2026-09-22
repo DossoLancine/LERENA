@@ -5,13 +5,23 @@ import { Users, Clock, TrendingUp, TrendingDown, CheckCircle2, AlertTriangle, Ba
 import { signOut } from 'next-auth/react'
 import dynamic from 'next/dynamic'
 
-// Chargement paresseux (lazy) de chaque onglet lourd
-// Chaque onglet ne charge son JS que quand l'utilisateur clique dessus
-const AnalyticsTab = dynamic(() => import('./analytics-tab'), { ssr: false })
-const PromotionsTab = dynamic(() => import('./promotions-tab'), { ssr: false })
-const SettingsTab = dynamic(() => import('./settings-tab'), { ssr: false })
-const ServicesTab = dynamic(() => import('./services-tab'), { ssr: false })
-const AgendaTab = dynamic(() => import('./agenda-tab'), { ssr: false })
+// Skeleton réutilisable affiché pendant qu'un onglet charge son JS
+const TabSkeleton = () => (
+  <div className="space-y-4 animate-pulse">
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+      {[1,2,3].map(i => <div key={i} className="h-24 bg-gray-100 rounded-2xl" />)}
+    </div>
+    <div className="h-48 bg-gray-100 rounded-2xl" />
+    <div className="h-32 bg-gray-100 rounded-2xl" />
+  </div>
+)
+
+// Chargement paresseux (lazy) de chaque onglet lourd — skeleton affiché pendant le chargement
+const AnalyticsTab = dynamic(() => import('./analytics-tab'), { ssr: false, loading: () => <TabSkeleton /> })
+const PromotionsTab = dynamic(() => import('./promotions-tab'), { ssr: false, loading: () => <TabSkeleton /> })
+const SettingsTab = dynamic(() => import('./settings-tab'), { ssr: false, loading: () => <TabSkeleton /> })
+const ServicesTab = dynamic(() => import('./services-tab'), { ssr: false, loading: () => <TabSkeleton /> })
+const AgendaTab = dynamic(() => import('./agenda-tab'), { ssr: false, loading: () => <TabSkeleton /> })
 import UserProfileForm from '@/components/user-profile-form'
 
 const statusBadge: Record<string, string> = {
