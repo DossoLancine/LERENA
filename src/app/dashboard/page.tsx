@@ -3,11 +3,15 @@
 import { useState, useEffect } from 'react'
 import { Users, Clock, TrendingUp, TrendingDown, CheckCircle2, AlertTriangle, BarChart3, Settings, ChevronRight, Activity, User as UserIcon, X, LogOut } from 'lucide-react'
 import { signOut } from 'next-auth/react'
-import AnalyticsTab from './analytics-tab'
-import PromotionsTab from './promotions-tab'
-import SettingsTab from './settings-tab'
-import ServicesTab from './services-tab'
-import AgendaTab from './agenda-tab'
+import dynamic from 'next/dynamic'
+
+// Chargement paresseux (lazy) de chaque onglet lourd
+// Chaque onglet ne charge son JS que quand l'utilisateur clique dessus
+const AnalyticsTab = dynamic(() => import('./analytics-tab'), { ssr: false })
+const PromotionsTab = dynamic(() => import('./promotions-tab'), { ssr: false })
+const SettingsTab = dynamic(() => import('./settings-tab'), { ssr: false })
+const ServicesTab = dynamic(() => import('./services-tab'), { ssr: false })
+const AgendaTab = dynamic(() => import('./agenda-tab'), { ssr: false })
 import UserProfileForm from '@/components/user-profile-form'
 
 const statusBadge: Record<string, string> = {
