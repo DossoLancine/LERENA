@@ -62,6 +62,7 @@ export async function updateOrganizationProfile(orgId: string, data: {
   phone?: string
   email?: string
   isActive?: boolean
+  bookingMode?: string
   tvVideoUrl?: string | null
   tvMode?: string
   tvQueueDuration?: number
@@ -84,6 +85,7 @@ export async function updateOrganizationProfile(orgId: string, data: {
         phone: data.phone || null,
         email: data.email || null,
         ...(typeof data.isActive === 'boolean' ? { isActive: data.isActive } : {}),
+        ...(data.bookingMode ? { bookingMode: data.bookingMode } : {}),
         ...(typeof data.tvVideoUrl !== 'undefined' ? { tvVideoUrl: data.tvVideoUrl } : {}),
         ...(data.tvMode ? { tvMode: data.tvMode } : {}),
         ...(data.tvQueueDuration !== undefined ? { tvQueueDuration: Number(data.tvQueueDuration) || 30 } : {}),

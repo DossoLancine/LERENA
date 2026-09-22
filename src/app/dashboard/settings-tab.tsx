@@ -58,6 +58,7 @@ export default function SettingsTab() {
     phone: '',
     email: '',
     isActive: true,
+    bookingMode: 'QUEUE_ONLY',
     tvVideoUrl: '',
     tvMode: 'HYBRID',
     tvQueueDuration: 30,
@@ -107,6 +108,7 @@ export default function SettingsTab() {
         phone: res.data.phone || '',
         email: res.data.email || '',
         isActive: res.data.isActive ?? true,
+        bookingMode: res.data.bookingMode || 'QUEUE_ONLY',
         tvVideoUrl: res.data.tvVideoUrl || '',
         tvMode: res.data.tvMode || 'HYBRID',
         tvQueueDuration: res.data.tvQueueDuration || 30,
@@ -397,6 +399,41 @@ export default function SettingsTab() {
                   {formData.isActive ? 'Établissement Ouvert' : 'Établissement Fermé'}
                 </span>
               </label>
+            </div>
+          </div>
+
+          {/* Mode de réservation (Ticket / RDV / Hybride) */}
+          <div className="p-5 bg-blue-50/60 rounded-2xl border border-blue-100 space-y-3">
+            <div>
+              <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                🗓️ Mode de réservation des clients
+              </h3>
+              <p className="text-xs text-gray-500 mt-0.5">Choisissez comment vos clients peuvent rejoindre votre file sur l'application.</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {[
+                { value: 'QUEUE_ONLY', label: '🎟️ Ticket immédiat', desc: 'Les clients prennent uniquement un numéro de file. Idéal pour les fast-foods, pharmacies.' },
+                { value: 'HYBRID', label: '🔀 Hybride', desc: 'Les clients choisissent entre un ticket immédiat ou un rendez-vous planifié.' },
+                { value: 'APPOINTMENT_ONLY', label: '📅 Sur rendez-vous', desc: 'Uniquement des créneaux réservés à l\'avance. Idéal pour médecins, salons de coiffure.' },
+              ].map(opt => (
+                <label
+                  key={opt.value}
+                  className={`p-3 rounded-xl border-2 cursor-pointer transition-all ${formData.bookingMode === opt.value ? 'border-orange-500 bg-orange-50 text-orange-950' : 'border-gray-200 hover:border-gray-300 bg-white'}`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-bold text-sm">{opt.label}</span>
+                    <input
+                      type="radio"
+                      name="bookingMode"
+                      value={opt.value}
+                      checked={formData.bookingMode === opt.value}
+                      onChange={e => setFormData(f => ({ ...f, bookingMode: e.target.value }))}
+                      className="w-4 h-4 text-orange-500"
+                    />
+                  </div>
+                  <p className="text-[11px] text-gray-500 leading-relaxed">{opt.desc}</p>
+                </label>
+              ))}
             </div>
           </div>
 
