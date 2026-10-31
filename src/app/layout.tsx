@@ -21,16 +21,22 @@ export const viewport: Viewport = {
   themeColor: '#F97316',
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
+  // Pas de maximumScale : le zoom à deux doigts doit rester possible (malvoyants)
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr">
+    <html lang="fr" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+        {/* Préférences d'affichage (taille du texte, contraste) appliquées avant le premier affichage */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var p=JSON.parse(localStorage.getItem('attends_prefs')||'{}');var s={large:'18px',xlarge:'20px'}[p.textSize];if(s)document.documentElement.style.fontSize=s;if(p.highContrast)document.documentElement.classList.add('high-contrast')}catch(e){}`
+          }}
+        />
       </head>
       <body className="min-h-screen bg-gray-50 antialiased">
         <NextAuthProvider>

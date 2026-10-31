@@ -19,7 +19,8 @@ export default withAuth(
       return NextResponse.redirect(new URL('/', req.url))
     }
 
-    const isClientRoute = path.startsWith('/tickets') || path.startsWith('/favorites') || path.startsWith('/profile')
+    // Mes tickets et Profil restent ouverts aux visiteurs (tickets sans compte, préférences d'affichage)
+    const isClientRoute = path.startsWith('/favorites')
     if (isClientRoute && !token) {
       return NextResponse.redirect(new URL('/auth/login', req.url))
     }
@@ -35,5 +36,5 @@ export default withAuth(
 )
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/agent/:path*', '/tickets/:path*', '/favorites/:path*', '/profile/:path*']
+  matcher: ['/dashboard/:path*', '/agent/:path*', '/favorites/:path*']
 }

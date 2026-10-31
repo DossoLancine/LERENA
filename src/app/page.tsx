@@ -1,55 +1,104 @@
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
-import { redirect } from "next/navigation"
-import Link from "next/link"
-import { Clock, ArrowRight } from "lucide-react"
+import Link from 'next/link'
+import { redirect } from 'next/navigation'
+import { QrCode, Search, Ticket, BellRing, MapPin, Clock, Users, ChevronRight, Building2 } from 'lucide-react'
+import { getSessionUser } from '@/lib/session'
+import { getOrganizations } from '@/server/actions/orgs'
+import { t } from '@/lib/i18n'
 
+// Accueil public : comprendre ATTENDS en quelques secondes et prendre un ticket sans compte
 export default async function LandingPage() {
-  const session = await getServerSession(authOptions)
+  const user = await getSessionUser()
+  if (user) redirect(user.role === 'CLIENT' ? '/home' : user.role === 'AGENT' ? '/agent' : '/dashboard')
 
-  if (session) {
-    redirect('/home')
-  }
+  const orgs = (await getOrganizations()).filter(o => o.isOpen).slice(0, 4)
+
+  const steps = [
+    { icon: <Search size={20} />, title: t('landing.step1Title'), text: t('landing.step1Text') },
+    { icon: <Ticket size={20} />, title: t('landing.step2Title'), text: t('landing.step2Text') },
+    { icon: <BellRing size={20} />, title: t('landing.step3Title'), text: t('landing.step3Text') },
+  ]
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col relative overflow-hidden">
-      {/* Background abstract shape */}
-      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-orange-500/20 rounded-full blur-[100px] translate-x-1/2 -translate-y-1/2" />
-      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[100px] -translate-x-1/2 translate-y-1/2" />
+    <main className="min-h-screen bg-surface-sunken">
+      {/* En-tête */}
+      <section className="relative overflow-hidden bg-gradient-to-b from-brand to-brand-600 px-5 pb-16 pt-10 text-white">
+        <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-white/10 blur-2xl" aria-hidden="true" />
+        <div className="relative mx-auto max-w-lg">
+          <div className="mb-8 flex items-center justify-between">
+            <span className="flex items-center gap-2 text-lg font-black tracking-tight">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-brand"><Ticket size={20} /></span>
+              ATTENDS
+            </span>
+            <Link href="/auth/login" className="rounded-full bg-white/15 px-4 py-2 text-sm font-semibold backdrop-blur hover:bg-white/25">
+              {t('landing.login')}
+            </Link>
+          </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center p-6 text-center z-10 max-w-md mx-auto w-full">
-        
-        {/* Logo */}
-        <div className="w-20 h-20 bg-orange-500 rounded-3xl flex items-center justify-center mb-8 shadow-2xl shadow-orange-500/30">
-          <Clock size={40} className="text-white" />
+          <h1 className="text-4xl font-black leading-tight tracking-tight">{t('landing.title')}</h1>
+          <p className="mt-3 text-lg text-white/85">{t('landing.subtitle')}</p>
+
+          <div className="mt-8 grid gap-3">
+            <Link href="/scan" className="pressable flex min-h-touch items-center justify-center gap-2 rounded-2xl bg-white py-4 text-base font-bold text-brand-600 shadow-raised">
+              <QrCode size={20} /> {t('landing.scan')}
+            </Link>
+            <Link href="/explore" className="pressable flex min-h-touch items-center justify-center gap-2 rounded-2xl bg-white/15 py-4 text-base font-bold backdrop-blur hover:bg-white/25">
+              <Search size={20} /> {t('landing.find')}
+            </Link>
+          </div>
+          <p className="mt-3 text-center text-sm text-white/75">{t('landing.noAccount')}</p>
         </div>
+      </section>
 
-        <h1 className="text-5xl font-black mb-6 tracking-tight leading-tight">
-          Votre temps<br />
-          est <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-orange-600">précieux.</span>
-        </h1>
-        
-        <p className="text-gray-400 text-lg mb-12 leading-relaxed">
-          Rejoignez les files d'attente à distance. Arrivez exactement quand c'est votre tour.
-        </p>
+      <div className="mx-auto -mt-8 max-w-lg space-y-6 px-5 pb-12">
+        {/* Établissements ouverts avec leur attente en direct */}
+        {orgs.length > 0 && (
+          <section className="rounded-card bg-white p-4 shadow-card">
+            <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink-muted">{t('landing.openNow')}</h2>
+            <ul className="divide-y divide-surface-line">
+              {orgs.map(org => (
+                <li key={org.id}>
+                  <Link href={`/org/${org.id}`} className="flex items-center gap-3 py-3">
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600"><Building2 size={20} /></span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-semibold text-ink">{org.name}</span>
+                      <span className="mt-0.5 flex items-center gap-3 text-xs text-ink-muted">
+                        <span className="flex items-center gap-1"><Clock size={11} />{t('common.minutes', { count: org.waitMin })}</span>
+                        <span className="flex items-center gap-1"><Users size={11} />{org.waitingCount}</span>
+                        <span className="flex items-center gap-1 truncate"><MapPin size={11} />{org.address}</span>
+                      </span>
+                    </span>
+                    <ChevronRight size={18} className="text-ink-subtle" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
-        <div className="w-full space-y-4">
-          <Link href="/auth/register" className="w-full flex items-center justify-center gap-2 bg-white text-black font-bold py-4 rounded-2xl text-lg hover:bg-gray-100 transition-all shadow-[0_0_40px_rgba(255,255,255,0.1)]">
-            Créer un compte <ArrowRight size={20} />
+        {/* Comment ça marche */}
+        <section>
+          <h2 className="mb-3 text-lg font-bold text-ink">{t('landing.howTitle')}</h2>
+          <ol className="space-y-3">
+            {steps.map((step, i) => (
+              <li key={step.title} className="flex items-start gap-4 rounded-card bg-white p-4 shadow-card">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand-600">{step.icon}</span>
+                <div>
+                  <p className="font-semibold text-ink">{i + 1}. {step.title}</p>
+                  <p className="mt-0.5 text-sm text-ink-muted">{step.text}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </section>
+
+        <section className="rounded-card border border-surface-line bg-white p-5 text-center">
+          <p className="font-semibold text-ink">{t('landing.proTitle')}</p>
+          <p className="mt-1 text-sm text-ink-muted">{t('landing.proText')}</p>
+          <Link href="/pro/login" className="mt-4 inline-flex items-center gap-1 text-sm font-bold text-brand">
+            {t('landing.proCta')} <ChevronRight size={16} />
           </Link>
-          <Link href="/auth/login" className="w-full flex items-center justify-center gap-2 bg-white/10 text-white font-bold py-4 rounded-2xl text-lg hover:bg-white/20 transition-all border border-white/10">
-            Se connecter
-          </Link>
-        </div>
-
-        <div className="mt-12 text-gray-500 text-sm">
-          Vous êtes un professionnel ?{' '}
-          <Link href="/pro/login" className="text-orange-500 font-semibold hover:underline">
-            Espace Entreprise
-          </Link>
-        </div>
-
+        </section>
       </div>
-    </div>
+    </main>
   )
 }

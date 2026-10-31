@@ -124,3 +124,16 @@ body {
   .animate-page-in, .animate-pop-in, .animate-rise-in, .animate-ripple { animation: none; }
   .pressable:active { transform: none; }
 }
+
+/* ---------- Contraste élevé (préférence de l'usager) ---------- */
+.high-contrast body { background: #ffffff; color: #000000; }
+.high-contrast .text-gray-400,
+.high-contrast .text-gray-500,
+.high-contrast .text-ink-subtle,
+.high-contrast .text-ink-muted { color: #1f2937 !important; }
+.high-contrast .border-gray-100,
+.high-contrast .border-surface-line { border-color: #4b5563 !important; }
+.high-contrast .bg-gray-50,
+.high-contrast .bg-surface-sunken { background-color: #ffffff !important; }
+.high-contrast a:focus-visible,
+.high-contrast button:focus-visible { outline: 3px solid #000000; outline-offset: 2px; }

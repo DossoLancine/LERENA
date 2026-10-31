@@ -1,143 +1,191 @@
 'use client'
+
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { ChevronRight, Bell, Shield, HelpCircle, LogOut, Clock, Star, User as UserIcon, BarChart3, Home, Compass, Ticket, Heart, X } from 'lucide-react'
 import { useSession, signOut } from 'next-auth/react'
-import { useState } from 'react'
+import { LogOut, Type, Contrast, Languages, Bell, Trash2, BarChart3, Headset, Pencil } from 'lucide-react'
 import UserProfileForm from '@/components/profile/user-profile-form'
 import { ClientNav } from '@/components/navigation/client-nav'
+import { Button, Card, Dialog, BottomSheet, useToast } from '@/components/ui'
+import { getMySummary, deleteMyAccount } from '@/server/actions/me'
+import { readPreferences, savePreferences, type Preferences, type TextSize } from '@/lib/preferences'
+import { cn } from '@/lib/cn'
+import { haptics } from '@/lib/haptics'
+import { t, type MessageKey } from '@/lib/i18n'
+
+type Summary = Awaited<ReturnType<typeof getMySummary>>
+
+const SIZES: { value: TextSize; label: MessageKey; sample: string }[] = [
+  { value: 'normal', label: 'profile.sizeNormal', sample: 'text-sm' },
+  { value: 'large', label: 'profile.sizeLarge', sample: 'text-base' },
+  { value: 'xlarge', label: 'profile.sizeXLarge', sample: 'text-lg' },
+]
 
 export default function ProfilePage() {
   const { data: session, status } = useSession()
-  const [showEditProfile, setShowEditProfile] = useState(false)
+  const toast = useToast()
+  const [summary, setSummary] = useState<Summary>(null)
+  const [prefs, setPrefs] = useState<Preferences>({ textSize: 'normal', highContrast: false })
+  const [editing, setEditing] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+
+  const role = (session?.user as { role?: string } | undefined)?.role
+
+  useEffect(() => { setPrefs(readPreferences()) }, [])
+  useEffect(() => { if (status === 'authenticated') getMySummary().then(setSummary) }, [status])
+
+  const updatePrefs = (next: Preferences) => {
+    haptics.tap()
+    setPrefs(next)
+    savePreferences(next)
+  }
+
+  const handleDelete = async () => {
+    setDeleting(true)
+    const res = await deleteMyAccount()
+    if (res.success) {
+      await signOut({ callbackUrl: '/' })
+      return
+    }
+    setDeleting(false)
+    setConfirmDelete(false)
+    toast(res.error ?? t('errors.generic.title'), 'error')
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b border-gray-100">
-        <div className="max-w-lg mx-auto px-4 py-5">
-          <h1 className="text-2xl font-bold text-gray-900">Profil</h1>
+    <div className="min-h-screen bg-surface-sunken pb-24">
+      <header className="border-b border-surface-line bg-white">
+        <div className="mx-auto max-w-lg px-4 py-5">
+          <h1 className="text-2xl font-bold text-ink">{t('profile.title')}</h1>
         </div>
-      </div>
-      <div className="max-w-lg mx-auto px-4 py-6 space-y-4 pb-24">
-        {/* User card */}
+      </header>
+
+      <main className="mx-auto max-w-lg space-y-4 px-4 py-6">
+        {/* Identité */}
         {status === 'loading' ? (
-          <div className="animate-pulse bg-white rounded-2xl border border-gray-100 p-5 h-28"></div>
+          <div className="h-28 animate-pulse rounded-card bg-gray-200/80" />
         ) : session?.user ? (
-          <div className="bg-white rounded-2xl border border-gray-100 p-5 flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-orange-500 flex items-center justify-center text-white text-3xl font-bold">
-              {session.user.image || session.user.name?.[0]?.toUpperCase() || 'U'}
+          <Card className="flex items-center gap-4 p-5">
+            <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-brand text-3xl font-bold text-white">
+              {session.user.name?.[0]?.toUpperCase() || 'U'}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-lg font-bold text-ink">{session.user.name || t('profile.user')}</p>
+              {session.user.email && <p className="truncate text-sm text-ink-muted">{session.user.email}</p>}
             </div>
-            <div className="flex-1">
-              <p className="font-bold text-gray-900 text-lg">{session.user.name || 'Utilisateur'}</p>
-              <p className="text-sm text-gray-500">{session.user.email}</p>
-              <div className="flex items-center gap-3 mt-2">
-                <span className="text-xs bg-orange-50 text-orange-600 px-2 py-0.5 rounded-full font-medium">
-                  {(session.user as any).role || 'CLIENT'}
-                </span>
-              </div>
-            </div>
-            <button 
-              onClick={() => setShowEditProfile(true)}
-              className="px-3 py-1.5 text-xs font-semibold text-orange-600 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors"
-            >
-              Éditer
-            </button>
-          </div>
+            <Button variant="secondary" size="sm" icon={<Pencil size={14} />} onClick={() => setEditing(true)}>{t('profile.edit')}</Button>
+          </Card>
         ) : (
-          <div className="bg-white rounded-2xl border border-orange-100 bg-orange-50/50 p-5 text-center">
-            <p className="text-gray-600 text-sm mb-3">Connectez-vous pour retrouver votre historique</p>
-            <Link href="/auth/login" className="btn-primary py-2 px-6 inline-block">Se connecter</Link>
+          <Card className="p-5 text-center">
+            <p className="text-sm text-ink-muted">{t('profile.loginPrompt')}</p>
+            <div className="mt-4 flex justify-center gap-3">
+              <Link href="/auth/login" className="btn-primary text-sm">{t('landing.login')}</Link>
+              <Link href="/auth/register" className="btn-secondary text-sm">{t('tickets.createAccount')}</Link>
+            </div>
+          </Card>
+        )}
+
+        {/* Chiffres réels */}
+        {summary && (
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { value: summary.tickets, label: t('profile.statTickets'), tone: 'text-brand' },
+              { value: summary.favorites, label: t('profile.statFavorites'), tone: 'text-info' },
+              { value: `${summary.savedHours} h`, label: t('profile.statSaved'), tone: 'text-success' },
+            ].map(s => (
+              <Card key={s.label} className="p-3 text-center">
+                <p className={cn('text-2xl font-black tabular-nums', s.tone)}>{s.value}</p>
+                <p className="mt-1 text-xs text-ink-muted">{s.label}</p>
+              </Card>
+            ))}
           </div>
         )}
 
-        {showEditProfile && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-            <div className="bg-white rounded-2xl w-full max-w-md p-5 max-h-[90vh] overflow-y-auto">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="font-bold text-lg">Modifier mon profil</h3>
-                <button onClick={() => setShowEditProfile(false)} className="p-1 rounded-full bg-gray-100 hover:bg-gray-200">
-                  <X size={18} />
+        {/* Affichage et accessibilité */}
+        <Card className="divide-y divide-surface-line">
+          <div className="p-4">
+            <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-ink"><Type size={18} className="text-ink-muted" />{t('profile.textSize')}</p>
+            <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label={t('profile.textSize')}>
+              {SIZES.map(size => (
+                <button
+                  key={size.value}
+                  role="radio"
+                  aria-checked={prefs.textSize === size.value}
+                  onClick={() => updatePrefs({ ...prefs, textSize: size.value })}
+                  className={cn('min-h-touch rounded-xl border-2 font-semibold transition-all active:scale-95', size.sample,
+                    prefs.textSize === size.value ? 'border-brand bg-brand-50 text-brand-700' : 'border-surface-line text-ink-muted')}
+                >
+                  {t(size.label)}
                 </button>
-              </div>
-              <UserProfileForm theme="orange" />
+              ))}
             </div>
           </div>
-        )}
 
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-3">
-          <div className="bg-white rounded-xl border border-gray-100 p-3 text-center">
-            <p className="text-2xl font-black text-orange-500">12</p>
-            <p className="text-xs text-gray-500 mt-1">Tickets</p>
-          </div>
-          <div className="bg-white rounded-xl border border-gray-100 p-3 text-center">
-            <p className="text-2xl font-black text-blue-500">3</p>
-            <p className="text-xs text-gray-500 mt-1">Favoris</p>
-          </div>
-          <div className="bg-white rounded-xl border border-gray-100 p-3 text-center">
-            <p className="text-2xl font-black text-green-500">4.8h</p>
-            <p className="text-xs text-gray-500 mt-1">Écon.</p>
-          </div>
-        </div>
+          <label className="flex min-h-touch cursor-pointer items-center justify-between gap-3 p-4">
+            <span className="flex items-center gap-2 text-sm font-semibold text-ink"><Contrast size={18} className="text-ink-muted" />{t('profile.highContrast')}</span>
+            <input type="checkbox" role="switch" className="h-6 w-11 cursor-pointer accent-brand" checked={prefs.highContrast}
+              onChange={e => updatePrefs({ ...prefs, highContrast: e.target.checked })} />
+          </label>
 
-        {/* Menu */}
-        {[
-          { icon: Bell,     label: 'Notifications',         href: '#', badge: '3' },
-          { icon: Shield,   label: 'Confidentialité',        href: '#' },
-          { icon: HelpCircle, label: 'Aide & Support',      href: '#' },
-        ].map((item) => (
-          <div key={item.label} className="bg-white rounded-xl border border-gray-100">
-            <Link href={item.href}>
-              <div className="flex items-center justify-between p-4">
-                <div className="flex items-center gap-3">
-                  <item.icon size={18} className="text-gray-500" />
-                  <span className="font-medium text-gray-900 text-sm">{item.label}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  {item.badge && (
-                    <span className="w-5 h-5 rounded-full bg-orange-500 text-white text-xs flex items-center justify-center font-bold">{item.badge}</span>
-                  )}
-                  <ChevronRight size={16} className="text-gray-300" />
-                </div>
-              </div>
+          <div className="flex min-h-touch items-center justify-between gap-3 p-4">
+            <span className="flex items-center gap-2 text-sm font-semibold text-ink"><Languages size={18} className="text-ink-muted" />{t('profile.language')}</span>
+            <span className="text-sm text-ink-muted">Français · <span className="text-ink-subtle">{t('profile.moreLanguages')}</span></span>
+          </div>
+
+          <div className="flex items-start gap-2 p-4 text-sm">
+            <Bell size={18} className="mt-0.5 shrink-0 text-ink-muted" />
+            <div>
+              <p className="font-semibold text-ink">{t('profile.notifications')}</p>
+              <p className="mt-0.5 text-ink-muted">{t('profile.notificationsText')}</p>
+            </div>
+          </div>
+        </Card>
+
+        {/* Accès professionnels */}
+        {(role === 'AGENT' || role === 'MANAGER') && (
+          <Card className="grid grid-cols-2 gap-2 p-3">
+            <Link href="/agent" className="flex flex-col items-center gap-2 rounded-xl bg-info-soft p-3 text-info-ink active:scale-95">
+              <Headset size={26} /><span className="text-xs font-semibold">{t('profile.agentSpace')}</span>
             </Link>
-          </div>
-        ))}
-
-        {/* Roles */}
-        {session?.user && ((session.user as any).role === 'AGENT' || (session.user as any).role === 'MANAGER') && (
-          <div className="bg-white rounded-2xl border border-gray-100 p-4">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Accès rapide</p>
-            <div className="grid grid-cols-2 gap-2">
-              <Link href="/agent">
-                <div className="bg-blue-50 rounded-xl p-3 text-center hover:bg-blue-100 transition-all">
-                  <UserIcon size={32} className="mx-auto text-blue-500 mb-2" />
-                  <p className="text-xs font-semibold text-blue-700">Interface Agent</p>
-                </div>
+            {role === 'MANAGER' && (
+              <Link href="/dashboard" className="flex flex-col items-center gap-2 rounded-xl bg-brand-50 p-3 text-brand-700 active:scale-95">
+                <BarChart3 size={26} /><span className="text-xs font-semibold">{t('dashboard.eyebrow')}</span>
               </Link>
-              {(session.user as any).role === 'MANAGER' && (
-                <Link href="/dashboard">
-                  <div className="bg-orange-50 rounded-xl p-3 text-center hover:bg-orange-100 transition-all">
-                    <BarChart3 size={32} className="mx-auto text-orange-500 mb-2" />
-                    <p className="text-xs font-semibold text-orange-700">Dashboard</p>
-                  </div>
-                </Link>
-              )}
-            </div>
-          </div>
+            )}
+          </Card>
         )}
 
         {session?.user && (
-          <button 
-            onClick={() => signOut()}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border border-red-100 text-red-500 font-medium text-sm hover:bg-red-50 transition-all"
-          >
-            <LogOut size={16} />
-            Se déconnecter
-          </button>
+          <div className="space-y-3">
+            <Button variant="secondary" fullWidth icon={<LogOut size={16} />} onClick={() => signOut({ callbackUrl: '/' })}>{t('common.logout')}</Button>
+            {role === 'CLIENT' && (
+              <button onClick={() => setConfirmDelete(true)} className="flex w-full items-center justify-center gap-2 py-3 text-sm font-medium text-danger">
+                <Trash2 size={15} /> {t('profile.deleteAccount')}
+              </button>
+            )}
+          </div>
         )}
 
-        <p className="text-center text-xs text-gray-400">ATTENDS v1.0 · Ne perdez plus votre temps</p>
-      </div>
+        <p className="text-center text-xs text-ink-subtle">ATTENDS · {t('landing.title')}</p>
+      </main>
+
+      <Dialog open={editing} onClose={() => setEditing(false)} title={t('profile.edit')}>
+        <UserProfileForm theme="orange" />
+      </Dialog>
+
+      <BottomSheet open={confirmDelete} onClose={() => !deleting && setConfirmDelete(false)}>
+        <div className="text-center">
+          <span className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-danger-soft text-danger"><Trash2 size={26} /></span>
+          <h2 className="text-lg font-bold text-ink">{t('profile.deleteTitle')}</h2>
+          <p className="mt-2 text-sm text-ink-muted">{t('profile.deleteText')}</p>
+          <div className="mt-6 flex gap-3">
+            <Button variant="secondary" fullWidth onClick={() => setConfirmDelete(false)} disabled={deleting}>{t('common.cancel')}</Button>
+            <Button variant="danger" fullWidth loading={deleting} onClick={handleDelete}>{t('profile.deleteConfirm')}</Button>
+          </div>
+        </div>
+      </BottomSheet>
+
       <ClientNav />
     </div>
   )
