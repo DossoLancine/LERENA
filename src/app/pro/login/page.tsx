@@ -5,6 +5,7 @@ import { signIn } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Building2, ArrowRight, ShieldCheck } from 'lucide-react'
 import Link from 'next/link'
+import { homeForRole } from '@/lib/constants'
 
 function ProLoginForm() {
   const router = useRouter()
@@ -43,14 +44,8 @@ function ProLoginForm() {
           const session = await sessionRes.json()
           const role = (session?.user as any)?.role
 
-          if (role === 'MANAGER') {
-            router.push('/dashboard')
-          } else if (role === 'AGENT') {
-            router.push('/agent')
-          } else {
-            // Si un client arrive ici par erreur
-            router.push('/explore')
-          }
+          // Chaque rôle arrive sur son écran (un client arrivé ici par erreur va à l'accueil usager)
+          router.push(homeForRole(role))
         }
         router.refresh()
       } else {

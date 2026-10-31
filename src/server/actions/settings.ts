@@ -122,7 +122,7 @@ export async function addMemberToOrganization(orgId: string, data: {
   email: string
   password?: string
   phone?: string
-  role?: 'AGENT' | 'MANAGER'
+  role?: 'RECEPTION' | 'AGENT' | 'MANAGER'
 }) {
   try {
     const ctx = await requireOwnOrg(orgId)

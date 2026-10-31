@@ -46,7 +46,7 @@ export default function TeamSettingsPage() {
                       ? 'bg-purple-100 text-purple-700 border border-purple-200'
                       : 'bg-blue-50 text-blue-700 border border-blue-100'
                   }`}>
-                    {member.role === 'MANAGER' ? 'DIRECTEUR' : 'GUICHETIER / AGENT'}
+                    {member.role === 'MANAGER' ? 'DIRECTEUR' : member.role === 'RECEPTION' ? 'ACCUEIL' : 'GUICHETIER / AGENT'}
                   </span>
                 </div>
                 <p className="text-xs text-gray-500 mt-0.5">
@@ -138,6 +138,7 @@ export default function TeamSettingsPage() {
                   onChange={e => setNewMember(m => ({ ...m, role: e.target.value as any }))}
                   className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500"
                 >
+                  <option value="RECEPTION">Agent d'accueil (Accès /reception)</option>
                   <option value="AGENT">Guichetier / Agent (Accès /agent)</option>
                   <option value="MANAGER">Manager / Administrateur (Accès complet /dashboard)</option>
                 </select>

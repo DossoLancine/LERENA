@@ -53,7 +53,7 @@ function useSettingsState() {
     email: '',
     phone: '',
     password: 'password123',
-    role: 'AGENT' as 'AGENT' | 'MANAGER'
+    role: 'AGENT' as 'RECEPTION' | 'AGENT' | 'MANAGER'
   })
   const [addingMember, setAddingMember] = useState(false)
 

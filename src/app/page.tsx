@@ -4,11 +4,12 @@ import { QrCode, Search, Ticket, BellRing, MapPin, Clock, Users, ChevronRight, B
 import { getSessionUser } from '@/lib/session'
 import { getOrganizations } from '@/server/actions/orgs'
 import { t } from '@/lib/i18n'
+import { homeForRole } from '@/lib/constants'
 
 // Accueil public : comprendre ATTENDS en quelques secondes et prendre un ticket sans compte
 export default async function LandingPage() {
   const user = await getSessionUser()
-  if (user) redirect(user.role === 'CLIENT' ? '/home' : user.role === 'AGENT' ? '/agent' : '/dashboard')
+  if (user) redirect(homeForRole(user.role))
 
   const orgs = (await getOrganizations()).filter(o => o.isOpen).slice(0, 4)
 
