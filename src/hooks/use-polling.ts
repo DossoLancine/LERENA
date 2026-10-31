@@ -12,6 +12,9 @@ import { useEffect, useRef } from 'react'
 export function usePolling(fn: () => Promise<unknown> | void, intervalMs: number, enabled = true) {
   const fnRef = useRef(fn)
   fnRef.current = fn
+  // Heure du dernier chargement : un changement d'intervalle (connexion temps réel
+  // qui s'établit ou se coupe) ne relance pas un chargement trop tôt
+  const lastRunRef = useRef(0)
 
   useEffect(() => {
     if (!enabled) return
@@ -24,6 +27,7 @@ export function usePolling(fn: () => Promise<unknown> | void, intervalMs: number
       if (cancelled || running) return
       if (typeof document !== 'undefined' && document.hidden) return
       running = true
+      lastRunRef.current = Date.now()
       try {
         await fnRef.current()
       } catch (e) {
@@ -41,7 +45,9 @@ export function usePolling(fn: () => Promise<unknown> | void, intervalMs: number
       }
     }
 
-    tick()
+    const elapsed = Date.now() - lastRunRef.current
+    if (elapsed >= intervalMs) tick()
+    else timer = setTimeout(tick, intervalMs - elapsed)
     document.addEventListener('visibilitychange', onVisibility)
     return () => {
       cancelled = true
