@@ -9,7 +9,7 @@ import UserProfileForm from '@/components/profile/user-profile-form'
 import { usePolling } from '@/hooks/use-polling'
 import { useOrgRealtime } from '@/hooks/use-org-realtime'
 import { haptics } from '@/lib/haptics'
-import { decodeCounter, encodeCounter, type TicketStatus } from '@/lib/constants'
+import { counterLabel, type TicketStatus } from '@/lib/constants'
 
 export default function AgentPage() {
   const { data: session } = useSession()
@@ -66,7 +66,7 @@ export default function AgentPage() {
   }
 
   // Client en cours à CE guichet (plusieurs agents peuvent servir en même temps)
-  const current = queue.find((t) => (t.status === 'SERVING' || t.status === 'CALLED') && decodeCounter(t.guestPhone) === counter)
+  const current = queue.find((t) => (t.status === 'SERVING' || t.status === 'CALLED') && counterLabel(t.counterName) === counter)
   const waiting = queue.filter((t) => t.status === 'WAITING')
 
   // Action instantanée : l'écran change dès l'appui, le serveur confirme ensuite
@@ -76,7 +76,7 @@ export default function AgentPage() {
     setQueue((q) =>
       status === 'COMPLETED' || status === 'ABSENT'
         ? q.filter((t) => t.id !== ticketId)
-        : q.map((t) => (t.id === ticketId ? { ...t, status, guestPhone: status === 'CALLED' ? encodeCounter(counter) : t.guestPhone } : t))
+        : q.map((t) => (t.id === ticketId ? { ...t, status, counterName: status === 'CALLED' ? counter : t.counterName } : t))
     )
     setLastAction(label)
     const res = await updateTicketStatus(ticketId, status, counter)

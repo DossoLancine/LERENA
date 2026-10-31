@@ -20,16 +20,9 @@ export function priorityLabel(score: number) {
 
 export const APPOINTMENT_STATUSES = ['CONFIRMED', 'COMPLETED', 'CANCELLED', 'NO_SHOW'] as const
 
-// Le guichet appelant est stocké dans guestPhone sous la forme « G-<guichet> »
-// en attendant une table Counter dédiée.
-const COUNTER_PREFIX = 'G-'
-
-export function encodeCounter(counterName: string) {
-  return `${COUNTER_PREFIX}${counterName}`
-}
-
-export function decodeCounter(guestPhone: string | null | undefined) {
-  return guestPhone?.startsWith(COUNTER_PREFIX) ? guestPhone.slice(COUNTER_PREFIX.length) : 'Guichet 1'
+// Nom du guichet à afficher (Ticket.counterName), en attendant une table Counter dédiée
+export function counterLabel(counterName: string | null | undefined) {
+  return counterName || 'Guichet 1'
 }
 
 // Début de la journée en cours (heure du serveur)

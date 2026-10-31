@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { getStaffContext, getOrgQueueIds } from "@/lib/session"
-import { ACTIVE_TICKET_STATUSES, encodeCounter, startOfToday, type TicketStatus } from "@/lib/constants"
+import { ACTIVE_TICKET_STATUSES, startOfToday, type TicketStatus } from "@/lib/constants"
 import { notifyOrg } from "@/lib/realtime"
 import { sendPushToTicket } from "@/lib/push"
 
@@ -54,7 +54,7 @@ export async function updateTicketStatus(
     if (status === 'CALLED') {
       updateData.calledAt = now
       // Guichet assigné, affiché sur la TV et chez le client
-      if (counterName) updateData.guestPhone = encodeCounter(counterName)
+      if (counterName) updateData.counterName = counterName
     } else if (status === 'SERVING') {
       updateData.startedAt = currentTicket.startedAt || now
     } else if (status === 'COMPLETED') {

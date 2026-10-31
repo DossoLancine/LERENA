@@ -31,7 +31,7 @@ import { YourTurnOverlay } from '@/components/ticket/your-turn-overlay'
 import { BottomSheet } from '@/components/ui/bottom-sheet'
 import { useWakeLock } from '@/hooks/use-wake-lock'
 import { haptics, playChime, unlockAudio } from '@/lib/haptics'
-import { decodeCounter } from '@/lib/constants'
+import { counterLabel } from '@/lib/constants'
 import { PushOptIn } from '@/components/ticket/push-opt-in'
 import { NPSWidget, PromoCarousel } from '@/components/marketing/marketing-widgets'
 import { usePolling } from '@/hooks/use-polling'
@@ -125,7 +125,7 @@ export default function TicketPage({ params }: { params: { id: string } }) {
   const position = ticket.position || 0
   const initialPosition = ticket.initialPosition || position || 1
   
-  const counterName = decodeCounter(ticket.guestPhone)
+  const counterName = counterLabel(ticket.counterName)
   const waitMin = Math.max(0, position * (ticket.service?.avgDurationMin || 15))
   const waitLabel = position === 0 ? 'Maintenant' : `${waitMin}–${waitMin + 10} min`
 
@@ -257,9 +257,7 @@ export default function TicketPage({ params }: { params: { id: string } }) {
             <div>
               <p className="text-xs uppercase tracking-wider font-bold opacity-90">Appel en cours</p>
               <p className="text-xl font-black">
-                {ticket.guestPhone?.startsWith('G-')
-                  ? `Présentez-vous au ${ticket.guestPhone.replace('G-', '')}`
-                  : "C'est à votre tour au guichet !"}
+                {`Présentez-vous au ${counterName}`}
               </p>
               <p className="text-xs opacity-90 mt-0.5">Votre numéro vient d&apos;être appelé.</p>
             </div>
@@ -273,9 +271,7 @@ export default function TicketPage({ params }: { params: { id: string } }) {
             <div>
               <p className="font-bold text-sm">Prise en charge en cours</p>
               <p className="text-xs opacity-90">
-                {ticket.guestPhone?.startsWith('G-')
-                  ? `Au ${ticket.guestPhone.replace('G-', '')}`
-                  : "Vous êtes actuellement au guichet."}
+                {`Au ${counterName}`}
               </p>
             </div>
           </div>

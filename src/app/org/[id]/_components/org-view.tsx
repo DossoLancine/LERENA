@@ -10,6 +10,7 @@ import { toggleFavorite } from '@/server/actions/favorites'
 import { useSession, signOut } from 'next-auth/react'
 import AppointmentBookingForm from '@/components/booking/appointment-booking-form'
 import { BottomSheet } from '@/components/ui/bottom-sheet'
+import { GuestTicketSheet } from '@/components/booking/guest-ticket-sheet'
 import { haptics } from '@/lib/haptics'
 
 type OrgDetails = NonNullable<Awaited<ReturnType<typeof getOrganizationById>>>
@@ -31,6 +32,7 @@ export default function OrgView({ params, initialOrg, initialIsFavorite }: {
   const [bookingType, setBookingType] = useState<'TICKET' | 'APPOINTMENT'>('TICKET')
   // Position GPS demandée dès le choix du service, pour que la prise de ticket soit immédiate
   const coordsRef = useRef<{ lat: number; lng: number } | null>(null)
+  const [showGuest, setShowGuest] = useState(false)
 
   const getPosition = (timeout: number) => new Promise<{ lat: number; lng: number } | null>((resolve) => {
     if (coordsRef.current) return resolve(coordsRef.current)
@@ -71,7 +73,8 @@ export default function OrgView({ params, initialOrg, initialIsFavorite }: {
     if (!selectedService) return
     
     if (!session?.user) {
-      router.push(`/auth/login?callbackUrl=/org/${params.id}`)
+      haptics.tap()
+      setShowGuest(true)
       return
     }
 
@@ -347,7 +350,7 @@ export default function OrgView({ params, initialOrg, initialIsFavorite }: {
                         session?.user ? (
                           <><Ticket size={20} /> Prendre mon ticket</>
                         ) : (
-                          <><UserIcon size={20} /> Se connecter pour continuer</>
+                          <><Ticket size={20} /> Prendre mon ticket</>
                         )
                       ) : (
                         <>
@@ -361,6 +364,17 @@ export default function OrgView({ params, initialOrg, initialIsFavorite }: {
             </div>
           )}
         </>
+      )}
+      {selectedService && (
+        <GuestTicketSheet
+          open={showGuest}
+          onClose={() => setShowGuest(false)}
+          orgId={params.id}
+          serviceId={selectedService}
+          serviceName={service?.name}
+          priority={priorityLevel}
+          getPosition={() => (org?.requireGps ? getPosition(6000) : Promise.resolve(coordsRef.current))}
+        />
       )}
       <BottomSheet open={isJoining} onClose={() => {}} dismissible={false}>
         <div className="flex flex-col items-center py-6 text-center">

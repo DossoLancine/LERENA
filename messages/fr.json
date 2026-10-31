@@ -78,5 +78,24 @@
       "team": "Équipe & agents",
       "data": "Opérations & données"
     }
+  },
+  "guest": {
+    "title": "Prendre un ticket",
+    "firstName": "Prénom",
+    "phone": "Téléphone",
+    "phoneHint": "Pour vous prévenir quand votre tour approche.",
+    "submit": "Obtenir mon ticket",
+    "haveAccount": "Vous avez un compte ?",
+    "login": "Se connecter",
+    "nameRequired": "Indiquez votre prénom.",
+    "codeTitle": "Code de vérification",
+    "codeSent": "Code envoyé par SMS au {phone}",
+    "code": "Code à 4 chiffres",
+    "confirm": "Valider",
+    "changeNumber": "Changer de numéro",
+    "codeInvalid": "Code incorrect ou expiré. Vérifiez le SMS et réessayez.",
+    "gpsRequired": "Cet établissement exige votre position. Autorisez la localisation puis réessayez.",
+    "tooFar": "Vous êtes trop loin de l'établissement pour prendre un ticket.",
+    "noAccountCta": "Prendre un ticket sans compte"
   }
 }

@@ -124,6 +124,7 @@ model Ticket {
   userId            String?
   guestName         String?
   guestPhone        String?
+  counterName       String? // guichet qui a appelé le ticket
   number            Int
   displayNum        String
   status            String    @default("WAITING")
@@ -249,4 +250,17 @@ model Appointment {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   branch       Branch       @relation(fields: [branchId], references: [id], onDelete: Cascade)
   service      Service?     @relation(fields: [serviceId], references: [id])
+}
+
+// Code de vérification envoyé par SMS (ticket invité, PIN oublié)
+model PhoneVerification {
+  id        String   @id @default(cuid())
+  phone     String
+  codeHash  String
+  purpose   String // GUEST_TICKET | RESET_PIN
+  attempts  Int      @default(0)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([phone, purpose])
 }

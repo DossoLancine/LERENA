@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { getManagerContext, getOrgQueueIds } from "@/lib/session"
-import { decodeCounter, startOfToday } from "@/lib/constants"
+import { counterLabel, startOfToday } from "@/lib/constants"
 import { notifyOrg } from "@/lib/realtime"
 
 export async function getManagerStats() {
@@ -85,7 +85,7 @@ export async function getLiveQueue() {
       status: t.status,
       wait: Math.max(0, Math.round((Date.now() - t.createdAt.getTime()) / 60000)),
       agentName: t.session?.agent?.name || null,
-      counter: decodeCounter(t.guestPhone),
+      counter: counterLabel(t.counterName),
       claimedPromoTitle: t.claimedPromoTitle || null,
       claimedPromoPrice: t.claimedPromoPrice || null,
       createdAt: t.createdAt.toISOString()

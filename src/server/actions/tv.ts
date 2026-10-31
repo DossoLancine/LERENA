@@ -1,7 +1,7 @@
 'use server'
 
 import { prisma } from "@/lib/prisma"
-import { ACTIVE_TICKET_STATUSES, decodeCounter } from "@/lib/constants"
+import { ACTIVE_TICKET_STATUSES, counterLabel } from "@/lib/constants"
 
 export async function getTVQueue(orgId: string) {
   try {
@@ -42,7 +42,7 @@ export async function getTVQueue(orgId: string) {
 
     const mapTicket = (t: any) => ({
       ...t,
-      counter: decodeCounter(t.guestPhone)
+      counter: counterLabel(t.counterName)
     })
 
     // Sort: CALLED and SERVING first, then WAITING
