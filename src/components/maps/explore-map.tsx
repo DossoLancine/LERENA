@@ -242,7 +242,7 @@ export default function ExploreMap({ orgs, userLocation }: { orgs: any[], userLo
               </div>
               <div className="bg-gray-50 rounded-xl p-2 text-center flex flex-col justify-center">
                 <span className="text-gray-900 font-bold flex items-center justify-center gap-1 text-[13px]">
-                  <Users size={14} /> {activeOrg.queueCount || 0}
+                  <Users size={14} /> {activeOrg.waitingCount || 0}
                 </span>
                 <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mt-0.5">En file</span>
               </div>

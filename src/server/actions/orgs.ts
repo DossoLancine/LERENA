@@ -113,7 +113,7 @@ export async function getOrganizations(search?: string, userLat?: number, userLn
 
 export async function getOrganizationById(id: string, userLat?: number, userLng?: number) {
   try {
-    const [org, stats] = await Promise.all([
+    const [org, stats, waitingByService] = await Promise.all([
       prisma.organization.findUnique({
         where: { id },
         include: {
@@ -128,10 +128,28 @@ export async function getOrganizationById(id: string, userLat?: number, userLng?
         },
         _avg: { npsScore: true },
         _count: { npsScore: true }
+      }),
+      // Personnes réellement en attente, par service
+      prisma.ticket.groupBy({
+        by: ['serviceId'],
+        where: { status: 'WAITING', service: { branch: { organizationId: id } } },
+        _count: { _all: true }
       })
     ])
 
     if (!org) return null;
+
+    const waitingMap = new Map(waitingByService.map(w => [w.serviceId, w._count._all]))
+    const branches = org.branches.map(b => ({
+      ...b,
+      services: b.services.map(svc => {
+        const waitingCount = waitingMap.get(svc.id) ?? 0
+        return { ...svc, waitingCount, waitMin: waitingCount * svc.avgDurationMin }
+      })
+    }))
+    const allServices = branches.flatMap(b => b.services)
+    const waitingCount = allServices.reduce((acc, svc) => acc + svc.waitingCount, 0)
+    const waitMin = allServices.reduce((acc, svc) => acc + svc.waitMin, 0)
 
     const rating = stats._avg.npsScore ? Number(stats._avg.npsScore.toFixed(1)) : 0;
     const reviewCount = stats._count.npsScore || 0;
@@ -145,6 +163,9 @@ export async function getOrganizationById(id: string, userLat?: number, userLng?
 
     return {
       ...org,
+      branches,
+      waitingCount,
+      waitMin,
       isOpen: org.isActive,
       closeTime: "18:00",
       rating,
