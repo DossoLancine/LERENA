@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { ListPageSkeleton } from '@/components/ui/skeletons'
 import Link from 'next/link'
 import { Heart, ChevronRight, Clock, Users, PlusSquare, Scissors, Home, Compass, Ticket, User, Utensils, Building2, AlertTriangle } from 'lucide-react'
 import { getMyFavorites, toggleFavorite } from '@/server/actions/favorites'
@@ -44,9 +45,7 @@ export default function FavoritesPage() {
 
   if (loading || status === 'loading') {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center pb-24">
-        <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
-      </div>
+      <ListPageSkeleton />
     )
   }
 

@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { getManagerContext, getSessionUser } from "@/lib/session"
+import { notifyOrg } from "@/lib/realtime"
 
 // Ticket du client connecté (les tickets sans compte restent modifiables via leur lien)
 async function getOwnTicket(ticketId: string) {
@@ -77,6 +78,7 @@ export async function claimTicketPromotion(ticketId: string, promoId: string) {
       })
     ])
 
+    await notifyOrg(ticket.orgId)
     revalidatePath(`/ticket/${ticketId}`)
     revalidatePath('/agent')
     revalidatePath('/dashboard')
@@ -105,6 +107,7 @@ export async function cancelTicketPromotion(ticketId: string) {
         claimedPromoPrice: null
       }
     })
+    await notifyOrg(ticket.orgId)
     revalidatePath(`/ticket/${ticketId}`)
     revalidatePath('/agent')
     return { success: true }
@@ -144,6 +147,7 @@ export async function createPromotion(data: {
     }
   })
 
+  await notifyOrg(ctx.orgId)
   revalidatePath('/dashboard')
   return { success: true }
 }
@@ -156,6 +160,7 @@ export async function deletePromotion(id: string) {
     where: { id, organizationId: ctx.orgId }
   })
 
+  await notifyOrg(ctx.orgId)
   revalidatePath('/dashboard')
   return { success: true }
 }

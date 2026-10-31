@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { getManagerContext, getOrgQueueIds } from "@/lib/session"
 import { decodeCounter, startOfToday } from "@/lib/constants"
+import { notifyOrg } from "@/lib/realtime"
 
 export async function getManagerStats() {
   try {
@@ -44,6 +45,7 @@ export async function toggleOrganizationStatus(_orgId: string, isOpen: boolean) 
       where: { id: ctx.orgId },
       data: { isActive: isOpen }
     })
+    await notifyOrg(ctx.orgId)
 
     revalidatePath('/dashboard')
     revalidatePath('/')

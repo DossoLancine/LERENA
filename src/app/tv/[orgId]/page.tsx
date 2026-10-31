@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, useMemo, useCallback } from 'react'
 import { getTVQueue } from '@/server/actions/tv'
 import { usePolling } from '@/hooks/use-polling'
+import { useOrgRealtime } from '@/hooks/use-org-realtime'
 import {
   Volume2,
   Tv,
@@ -165,7 +166,8 @@ export default function TVPage({ params }: { params: { orgId: string } }) {
     }
   }, [params.orgId])
 
-  usePolling(fetchData, 3000)
+  const live = useOrgRealtime(params.orgId, fetchData)
+  usePolling(fetchData, live ? 30000 : 3000)
 
   // Moteur d'horloge absolue et de rotation multi-vidéos
   useEffect(() => {

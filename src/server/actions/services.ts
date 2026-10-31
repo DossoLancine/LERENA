@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma"
 import { getManagerContext } from "@/lib/session"
+import { notifyOrg } from "@/lib/realtime"
 import { revalidatePath } from "next/cache"
 
 // 1. Organisation du manager connecté (isolation stricte, sans repli)
@@ -77,6 +78,7 @@ export async function createOrganizationService(data: {
       })
     }
 
+    await notifyOrg(org.id)
     revalidatePath('/dashboard')
     revalidatePath(`/org/${org.id}`)
     revalidatePath(`/tv/${org.id}`)
@@ -123,6 +125,7 @@ export async function updateOrganizationService(
       }
     })
 
+    await notifyOrg(org.id)
     revalidatePath('/dashboard')
     revalidatePath(`/org/${org.id}`)
     return { success: true, service: updated }
@@ -152,6 +155,7 @@ export async function toggleServiceStatus(serviceId: string) {
       data: { isActive: !service.isActive }
     })
 
+    await notifyOrg(org.id)
     revalidatePath('/dashboard')
     revalidatePath(`/org/${org.id}`)
     return { success: true, isActive: updated.isActive }
@@ -184,7 +188,8 @@ export async function deleteOrganizationService(serviceId: string) {
         where: { id: serviceId },
         data: { isActive: false }
       })
-      revalidatePath('/dashboard')
+      await notifyOrg(org.id)
+    revalidatePath('/dashboard')
       return { success: true, message: "Service désactivé pour conserver l'historique des tickets" }
     }
 
@@ -193,6 +198,7 @@ export async function deleteOrganizationService(serviceId: string) {
       where: { id: serviceId }
     })
 
+    await notifyOrg(org.id)
     revalidatePath('/dashboard')
     revalidatePath(`/org/${org.id}`)
     return { success: true }

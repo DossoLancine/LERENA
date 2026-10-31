@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { ListPageSkeleton } from '@/components/ui/skeletons'
 import Link from 'next/link'
 import { Search, Compass, Ticket, Heart, User as UserIcon, Home as HomeIcon, MapPin, Clock, Users, PlusSquare, Scissors, Utensils, Building2, ChevronRight } from 'lucide-react'
 import { useSession } from 'next-auth/react'
@@ -57,9 +58,7 @@ export default function HomePage() {
 
   if (loading || status === 'loading') {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center pb-24">
-        <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
-      </div>
+      <ListPageSkeleton />
     )
   }
 

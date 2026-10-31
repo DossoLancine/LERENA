@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache"
 import bcrypt from "bcryptjs"
 import { getManagerContext, getOrgQueueIds } from "@/lib/session"
 import { ACTIVE_TICKET_STATUSES, priorityLabel } from "@/lib/constants"
+import { notifyOrg } from "@/lib/realtime"
 
 // Toutes les actions de ce fichier agissent uniquement sur l'organisation du manager connecté.
 // Le paramètre orgId reçu de l'interface est vérifié, jamais utilisé tel quel.
@@ -101,6 +102,7 @@ export async function updateOrganizationProfile(orgId: string, data: {
       }
     })
 
+    await notifyOrg(ctx.orgId)
     revalidatePath('/dashboard')
     revalidatePath(`/org/${ctx.orgId}`)
     revalidatePath(`/tv/${ctx.orgId}`)
@@ -228,6 +230,7 @@ export async function updateQueueConfig(queueId: string, data: {
       }
     })
 
+    await notifyOrg(ctx.orgId)
     revalidatePath('/dashboard')
     return { success: true, data: updated }
   } catch (error: any) {
@@ -255,6 +258,7 @@ export async function resetDailyQueue(orgId: string) {
       }
     })
 
+    await notifyOrg(ctx.orgId)
     revalidatePath('/dashboard')
     revalidatePath('/agent')
     revalidatePath(`/tv/${ctx.orgId}`)

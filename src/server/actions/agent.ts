@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { getStaffContext, getOrgQueueIds } from "@/lib/session"
 import { ACTIVE_TICKET_STATUSES, encodeCounter, startOfToday, type TicketStatus } from "@/lib/constants"
+import { notifyOrg } from "@/lib/realtime"
 
 export async function getAgentQueue() {
   try {
@@ -86,6 +87,7 @@ export async function updateTicketStatus(
 
     await prisma.ticket.update({ where: { id: ticketId }, data: updateData })
 
+    await notifyOrg(ctx.orgId)
     revalidatePath('/agent')
     revalidatePath('/dashboard')
     revalidatePath(`/ticket/${ticketId}`)
@@ -99,7 +101,7 @@ export async function updateTicketStatus(
 }
 
 export async function getAgentStats() {
-  const fallback = { servedToday: 0, avgMin: 15 }
+  const fallback = { servedToday: 0, avgMin: 15, orgId: null as string | null }
   try {
     const ctx = await getStaffContext()
     if (!ctx) return fallback
@@ -119,6 +121,7 @@ export async function getAgentStats() {
 
     const avgSec = avg._avg.durationSeconds
     return {
+      orgId: ctx.orgId,
       servedToday,
       avgMin: avgSec ? Math.max(1, Math.round(avgSec / 60)) : 12
     }

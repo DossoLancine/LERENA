@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { DashboardSkeleton } from '@/components/ui/skeletons'
 import { Users, Clock, TrendingUp, TrendingDown, CheckCircle2, AlertTriangle, BarChart3, Settings, ChevronRight, Activity, User as UserIcon, X, LogOut } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 import AnalyticsTab from './_components/analytics-tab'
@@ -10,6 +11,7 @@ import ServicesTab from './_components/services-tab'
 import AgendaTab from './_components/agenda-tab'
 import UserProfileForm from '@/components/profile/user-profile-form'
 import { usePolling } from '@/hooks/use-polling'
+import { useOrgRealtime } from '@/hooks/use-org-realtime'
 
 const statusBadge: Record<string, string> = {
   SERVING: 'badge-serving',
@@ -56,12 +58,12 @@ export default function DashboardPage() {
   }
 
   // Rafraîchissement uniquement sur les onglets qui affichent la file en direct
-  usePolling(fetchStats, 5000, activeTab === 'overview' || activeTab === 'queue')
+  const showsLiveQueue = activeTab === 'overview' || activeTab === 'queue'
+  const live = useOrgRealtime(showsLiveQueue ? stats?.orgId : null, fetchStats)
+  usePolling(fetchStats, live ? 30000 : 5000, showsLiveQueue)
 
   if (loading) {
-    return <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
-    </div>
+    return <DashboardSkeleton />
   }
 
   const handleToggleOpen = async () => {

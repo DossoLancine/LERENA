@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { TicketSkeleton } from '@/components/ui/skeletons'
 import { ArrowLeft, Clock, Users, CheckCircle2, XCircle, AlertCircle, Share2, Phone, Megaphone, Settings, AlertTriangle } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -23,11 +24,12 @@ const TIMELINE_STEPS = [
   { key: 'done',        label: 'Terminé',               activeFor: ['COMPLETED'] },
 ]
 
-import { getTicketById } from '@/server/actions/tickets'
+import { getTicketById, leaveQueue } from '@/server/actions/tickets'
 import { getPromotionsByOrg } from '@/server/actions/marketing'
 import { PushNotification } from '@/components/ui/push-notification'
 import { NPSWidget, PromoCarousel } from '@/components/marketing/marketing-widgets'
 import { usePolling } from '@/hooks/use-polling'
+import { useOrgRealtime } from '@/hooks/use-org-realtime'
 import { useRef } from 'react'
 
 export default function TicketPage({ params }: { params: { id: string } }) {
@@ -69,7 +71,9 @@ export default function TicketPage({ params }: { params: { id: string } }) {
   }, [params.id, ticket])
 
   // Initial fetch and Real-time polling
-  usePolling(fetchTicket, 5000)
+  // La position change dès qu'un autre ticket de l'établissement bouge
+  const live = useOrgRealtime(ticket?.queue?.branch?.organizationId, fetchTicket)
+  usePolling(fetchTicket, live ? 30000 : 5000)
 
   useEffect(() => {
     const timeInterval = setInterval(() => {
@@ -80,9 +84,7 @@ export default function TicketPage({ params }: { params: { id: string } }) {
   }, [])
 
   if (loading) {
-    return <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
-    </div>
+    return <TicketSkeleton />
   }
 
   if (!ticket) {
@@ -367,7 +369,11 @@ export default function TicketPage({ params }: { params: { id: string } }) {
                 Rester
               </button>
               <button
-                onClick={() => { setShowLeaveDialog(false); router.push('/') }}
+                onClick={async () => {
+                  setShowLeaveDialog(false)
+                  await leaveQueue(ticket.id)
+                  router.push('/')
+                }}
                 className="flex-1 py-3 rounded-2xl bg-red-500 text-white font-semibold hover:bg-red-600 transition-all"
               >
                 Quitter

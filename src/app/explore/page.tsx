@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { getOrganizations } from '@/server/actions/orgs'
 import dynamic from 'next/dynamic'
 
+const ORGS_CACHE_KEY = 'attends_orgs_v1'
+
 // Dynamic import for Leaflet (SSR disabled)
 const ExploreMap = dynamic(() => import('@/components/maps/explore-map'), {
   ssr: false,
@@ -24,12 +26,23 @@ export default function ExplorePage() {
   const [dbOrgs, setDbOrgs] = useState<any[]>([])
   const [location, setLocation] = useState<{lat: number, lng: number} | null>(null)
   const [isMapView, setIsMapView] = useState(false)
+  const [loaded, setLoaded] = useState(false)
 
   const categories = ['Tout', 'Santé', 'Pharmacie', 'Beauté', 'Restauration', 'Banque']
   const distances = [{label: 'Toutes distances', val: null}, {label: '< 5 km', val: 5}, {label: '< 10 km', val: 10}]
 
   useEffect(() => {
-    // 1. Demander la localisation
+    // 1. Affichage immédiat de la dernière liste connue, rafraîchie juste après
+    try {
+      const cached = sessionStorage.getItem(ORGS_CACHE_KEY)
+      if (cached) {
+        setDbOrgs(JSON.parse(cached))
+        setLoaded(true)
+      }
+    } catch {}
+
+    // 2. Chargement sans attendre le GPS, puis tri par distance dès que la position arrive
+    fetchOrgs()
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -37,19 +50,17 @@ export default function ExplorePage() {
           setLocation(coords)
           fetchOrgs(coords.lat, coords.lng)
         },
-        (error) => {
-          console.error("Erreur GPS:", error)
-          fetchOrgs() // Fallback sans GPS
-        }
+        (error) => console.error("Erreur GPS:", error),
+        { maximumAge: 5 * 60 * 1000, timeout: 8000 }
       )
-    } else {
-      fetchOrgs()
     }
   }, [])
 
   const fetchOrgs = (lat?: number, lng?: number) => {
     getOrganizations(undefined, lat, lng).then(data => {
       setDbOrgs(data)
+      setLoaded(true)
+      try { sessionStorage.setItem(ORGS_CACHE_KEY, JSON.stringify(data)) } catch {}
     })
   }
 
@@ -113,7 +124,16 @@ export default function ExplorePage() {
           <ExploreMap orgs={filtered} userLocation={location} />
         ) : (
           <div className="max-w-lg mx-auto px-4 py-4 space-y-3 pb-24">
-        <p className="text-sm text-gray-500">{filtered.length} établissement{filtered.length > 1 ? 's' : ''}</p>
+        {!loaded && Array.from({ length: 5 }, (_, i) => (
+          <div key={i} className="flex items-center gap-3 rounded-2xl bg-white p-4 shadow-sm animate-pulse">
+            <div className="h-12 w-12 shrink-0 rounded-xl bg-gray-200" />
+            <div className="flex-1 space-y-2">
+              <div className="h-4 w-2/3 rounded bg-gray-200" />
+              <div className="h-3 w-1/3 rounded bg-gray-200" />
+            </div>
+          </div>
+        ))}
+        {loaded && <p className="text-sm text-gray-500">{filtered.length} établissement{filtered.length > 1 ? 's' : ''}</p>}
         {filtered.map((org) => (
           <Link key={org.id} href={`/org/${org.id}`}>
             <div className="bg-white rounded-2xl border border-gray-100 p-4 hover:shadow-md transition-all flex items-center gap-3">

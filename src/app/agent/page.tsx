@@ -7,6 +7,7 @@ import { getAgentQueue, updateTicketStatus, getAgentStats } from '@/server/actio
 import { useSession, signOut } from 'next-auth/react'
 import UserProfileForm from '@/components/profile/user-profile-form'
 import { usePolling } from '@/hooks/use-polling'
+import { useOrgRealtime } from '@/hooks/use-org-realtime'
 
 export default function AgentPage() {
   const { data: session } = useSession()
@@ -20,12 +21,13 @@ export default function AgentPage() {
   
   const [isDeskConfigured, setIsDeskConfigured] = useState(true) // True par défaut pour éviter le flash
   const [deskInput, setDeskInput] = useState('')
+  const [orgId, setOrgId] = useState<string | null>(null)
 
   const fetchQueue = async () => {
-    const data = await getAgentQueue()
+    const [data, stats] = await Promise.all([getAgentQueue(), getAgentStats()])
     setQueue(data)
-    const stats = await getAgentStats()
     if (stats) {
+      setOrgId(stats.orgId)
       setServedToday(stats.servedToday)
       setAvgMin(stats.avgMin)
     }
@@ -45,7 +47,9 @@ export default function AgentPage() {
 
   }, [])
 
-  usePolling(fetchQueue, 5000)
+  // Temps réel : rechargement immédiat à chaque changement ; sinon secours toutes les 5 s
+  const live = useOrgRealtime(orgId, fetchQueue)
+  usePolling(fetchQueue, live ? 30000 : 5000)
 
   const saveDeskName = () => {
     if (!deskInput.trim()) return

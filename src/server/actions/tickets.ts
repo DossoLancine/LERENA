@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { getSessionUser } from "@/lib/session"
 import { distanceKm } from "@/lib/geo"
 import { PRIORITY_SCORES, type Priority } from "@/lib/constants"
+import { notifyOrg } from "@/lib/realtime"
 import { revalidatePath } from "next/cache"
 
 export async function joinQueue(serviceId: string, orgId: string, priority: string = 'STANDARD', userLat?: number, userLng?: number) {
@@ -83,6 +84,7 @@ export async function joinQueue(serviceId: string, orgId: string, priority: stri
       })
     })
 
+    await notifyOrg(orgId)
     revalidatePath(`/org/${orgId}`)
     revalidatePath(`/tv/${orgId}`)
     revalidatePath('/dashboard')
@@ -156,5 +158,33 @@ export async function getTicketById(id: string) {
   } catch (error) {
     console.error("Get ticket error:", error)
     return null
+  }
+}
+
+// Le client quitte la file : son ticket est annulé et libère sa place
+export async function leaveQueue(ticketId: string) {
+  try {
+    const user = await getSessionUser()
+    const ticket = await prisma.ticket.findUnique({
+      where: { id: ticketId },
+      select: { id: true, userId: true, status: true, queue: { select: { branch: { select: { organizationId: true } } } } }
+    })
+    if (!ticket || (ticket.userId && ticket.userId !== user?.id)) {
+      return { success: false, error: "Ticket introuvable" }
+    }
+    if (ticket.status !== 'WAITING' && ticket.status !== 'CALLED') {
+      return { success: false, error: "Ce ticket n'est plus dans la file" }
+    }
+
+    await prisma.ticket.update({ where: { id: ticket.id }, data: { status: 'CANCELLED' } })
+
+    const orgId = ticket.queue.branch.organizationId
+    await notifyOrg(orgId)
+    revalidatePath(`/ticket/${ticketId}`)
+    revalidatePath('/tickets')
+    return { success: true }
+  } catch (error: any) {
+    console.error("Leave queue error:", error)
+    return { success: false, error: error.message }
   }
 }
