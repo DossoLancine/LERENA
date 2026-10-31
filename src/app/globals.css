@@ -137,3 +137,9 @@ body {
 .high-contrast .bg-surface-sunken { background-color: #ffffff !important; }
 .high-contrast a:focus-visible,
 .high-contrast button:focus-visible { outline: 3px solid #000000; outline-offset: 2px; }
+
+/* ---------- Impression du ticket à l'accueil (imprimante thermique 80 mm) ---------- */
+@media print {
+  @page { size: 80mm auto; margin: 4mm; }
+  body { background: #ffffff !important; }
+}

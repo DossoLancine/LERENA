@@ -59,7 +59,7 @@ function ProLoginForm() {
     }
   }
 
-  const fillDemo = (role: 'manager' | 'agent') => {
+  const fillDemo = (role: 'manager' | 'agent' | 'accueil') => {
     setEmail(`${role}@attends.com`)
     setPassword('password123')
   }
@@ -155,12 +155,15 @@ function ProLoginForm() {
           {/* Boutons démo */}
           <div className="mt-8 pt-8 border-t border-gray-100">
             <p className="text-xs text-gray-400 mb-3 text-center uppercase tracking-wider font-semibold">Accès Démo Rapide</p>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-2">
               <button onClick={() => fillDemo('manager')} type="button" className="text-xs py-2 px-3 bg-gray-50 text-gray-600 rounded-md border border-gray-200 hover:bg-gray-100 transition-all font-medium">
                 Remplir Manager
               </button>
               <button onClick={() => fillDemo('agent')} type="button" className="text-xs py-2 px-3 bg-gray-50 text-gray-600 rounded-md border border-gray-200 hover:bg-gray-100 transition-all font-medium">
                 Remplir Agent
+              </button>
+              <button onClick={() => fillDemo('accueil')} type="button" className="text-xs py-2 px-3 bg-gray-50 text-gray-600 rounded-md border border-gray-200 hover:bg-gray-100 transition-all font-medium">
+                Remplir Accueil
               </button>
             </div>
           </div>

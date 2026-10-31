@@ -242,5 +242,25 @@
     "priority": "Prioritaire",
     "vip": "VIP",
     "notes": "Notes"
+  },
+  "reception": {
+    "title": "Accueil",
+    "live": "En direct",
+    "offline": "Mise à jour toutes les 5 s",
+    "priority": "Priorité",
+    "prioStandard": "Standard",
+    "prioPriority": "Prioritaire",
+    "prioUrgent": "Urgence",
+    "addContact": "Ajouter un prénom ou un téléphone (facultatif)",
+    "service": "Service : un appui émet le ticket",
+    "quietest": "Le plus rapide",
+    "ahead": "{count} personne(s) devant · environ {minutes} min",
+    "aheadPrint": "{count} personne(s) devant vous",
+    "scanToFollow": "Scannez pour suivre votre tour sur votre téléphone",
+    "print": "Imprimer",
+    "next": "Ticket suivant",
+    "recent": "Tickets d'aujourd'hui",
+    "noRecent": "Aucun ticket aujourd'hui.",
+    "priorityChanged": "Priorité modifiée"
   }
 }

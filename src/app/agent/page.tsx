@@ -90,11 +90,13 @@ export default function AgentPage() {
   const live = useOrgRealtime(stats.orgId, fetchAll)
   usePolling(fetchAll, live ? 30000 : 5000)
 
+  // Guichet réel correspondant (un nom saisi avec l'ancien système est relié au guichet du même nom)
+  const realCounter = useMemo(
+    () => counters.find(x => x.id === counter?.id) ?? counters.find(x => x.name === counter?.name) ?? null,
+    [counters, counter]
+  )
   // Services traités par ce guichet (aucun choisi = tous)
-  const myServiceIds = useMemo(() => {
-    const c = counters.find(x => x.id === counter?.id)
-    return c && c.serviceIds.length > 0 ? new Set(c.serviceIds) : null
-  }, [counters, counter])
+  const myServiceIds = realCounter && realCounter.serviceIds.length > 0 ? new Set(realCounter.serviceIds) : null
 
   const name = counter?.name ?? ''
   const mine = (tk: QueueTicket) => counterLabel(tk.counterName) === name
@@ -112,7 +114,7 @@ export default function AgentPage() {
         : q.map(tk => (tk.id === ticketId ? { ...tk, status, counterName: status === 'CALLED' ? counter.name : tk.counterName } : tk))
     )
     setLastAction(label)
-    const res = await updateTicketStatus(ticketId, status, counter.name, counter.id ?? undefined)
+    const res = await updateTicketStatus(ticketId, status, counter.name, realCounter?.id ?? counter.id ?? undefined)
     if (res.success) {
       if (status === 'COMPLETED') {
         haptics.success()
@@ -122,7 +124,7 @@ export default function AgentPage() {
       toast(t('agent.actionFailed'), 'error')
     }
     fetchAll()
-  }, [counter, fetchAll, toast])
+  }, [counter, realCounter, fetchAll, toast])
 
   const callNext = useCallback(() => {
     if (current || waiting.length === 0) return

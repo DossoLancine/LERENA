@@ -102,6 +102,7 @@ export default function TVPage({ params }: { params: { orgId: string } }) {
   const [videoPlayTime, setVideoPlayTime] = useState<number>(0)
 
   const prevActiveRef = useRef<string[]>([])
+  const prevRecallsRef = useRef<Record<string, string>>({})
   const dataRef = useRef<any>(null)
   dataRef.current = data
 
@@ -131,11 +132,17 @@ export default function TVPage({ params }: { params: { orgId: string } }) {
     if (res) {
       setData(res)
 
-      // Détection de nouvel appel de ticket
+      // Détection d'un nouvel appel, ou d'un rappel par l'agent (recalledAt a changé)
       const currentActiveIds = res.active.map((t: any) => t.id)
+      const recalls: Record<string, string> = {}
+      res.active.forEach((t: any) => { if (t.recalledAt) recalls[t.id] = String(t.recalledAt) })
       const newCalledTicket = res.active.find(
-        (t: any) => t.status === 'CALLED' && !prevActiveRef.current.includes(t.id)
+        (t: any) => t.status === 'CALLED' && (
+          !prevActiveRef.current.includes(t.id) ||
+          (recalls[t.id] && recalls[t.id] !== prevRecallsRef.current[t.id])
+        )
       )
+      prevRecallsRef.current = recalls
 
       if (newCalledTicket) {
         // INTERRUPT IMMÉDIAT : Afficher l'appel en plein écran futuriste
