@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Search, Compass, Ticket, Heart, User as UserIcon, Home as HomeIcon, MapPin, Clock, Users, PlusSquare, Scissors, Utensils, Building2, ChevronRight } from 'lucide-react'
 import { getOrganizations } from '@/server/actions/orgs'
+import { ClientNav } from '@/components/navigation/client-nav'
 
 type Org = Awaited<ReturnType<typeof getOrganizations>>[number]
 
@@ -146,32 +147,7 @@ export default function HomeView({ userName, activeTicket, initialOrgs }: {
 
       </div>
       
-      <BottomNav active="home" />
+      <ClientNav />
     </div>
-  )
-}
-
-function BottomNav({ active }: { active: string }) {
-  const items = [
-    { id: 'home', label: 'Accueil', href: '/home', icon: <HomeIcon size={20} /> },
-    { id: 'explore', label: 'Explorer', href: '/explore', icon: <Compass size={20} /> },
-    { id: 'tickets', label: 'Tickets', href: '/tickets', icon: <Ticket size={20} /> },
-    { id: 'favorites', label: 'Favoris', href: '/favorites', icon: <Heart size={20} /> },
-    { id: 'profile', label: 'Profil', href: '/profile', icon: <UserIcon size={20} /> },
-  ]
-  return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-30 safe-bottom">
-      <div className="max-w-lg mx-auto flex items-center justify-around px-2 py-2">
-        {items.map((item) => (
-          <Link key={item.id} href={item.href}>
-            <div className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl ${active === item.id ? 'text-orange-500' : 'text-gray-400'}`}>
-              <span className="text-lg leading-none">{item.icon}</span>
-              <span className="text-[10px] font-medium">{item.label}</span>
-              {active === item.id && <span className="w-1 h-1 rounded-full bg-orange-500 mt-0.5"></span>}
-            </div>
-          </Link>
-        ))}
-      </div>
-    </nav>
   )
 }

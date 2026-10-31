@@ -15,7 +15,7 @@ export async function getManagerStats() {
     const ticketScope = { queue: { branch: { organizationId: ctx.orgId } }, createdAt: { gte: today } }
 
     const [org, byStatus] = await Promise.all([
-      prisma.organization.findUnique({ where: { id: ctx.orgId }, select: { id: true, isActive: true } }),
+      prisma.organization.findUnique({ where: { id: ctx.orgId }, select: { id: true, name: true, isActive: true } }),
       prisma.ticket.groupBy({ by: ['status'], where: ticketScope, _count: { _all: true } })
     ])
     if (!org) return null
@@ -27,7 +27,8 @@ export async function getManagerStats() {
       currentWaiting: count('WAITING'),
       completedTickets: count('COMPLETED'),
       isOpen: org.isActive,
-      orgId: org.id
+      orgId: org.id,
+      orgName: org.name
     }
   } catch (error) {
     console.error("Manager stats error:", error)

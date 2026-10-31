@@ -1,0 +1,82 @@
+{
+  "common": {
+    "retry": "Réessayer",
+    "backHome": "Retour à l'accueil",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "close": "Fermer",
+    "seeAll": "Tout voir",
+    "details": "Détails",
+    "logout": "Se déconnecter",
+    "minutes": "{count} min",
+    "open": "Ouvert",
+    "closed": "Fermé"
+  },
+  "errors": {
+    "notFound": {
+      "title": "Page introuvable",
+      "description": "Cette page n'existe pas ou a été déplacée. Votre ticket, lui, est toujours dans la file.",
+      "explore": "Trouver un établissement"
+    },
+    "generic": {
+      "title": "Un problème est survenu",
+      "description": "Votre ticket n'est pas perdu. Réessayez dans un instant."
+    },
+    "offline": {
+      "title": "Pas de connexion",
+      "description": "Vérifiez votre réseau mobile ou le Wi-Fi, puis réessayez."
+    }
+  },
+  "nav": {
+    "home": "Accueil",
+    "explore": "Explorer",
+    "tickets": "Tickets",
+    "favorites": "Favoris",
+    "profile": "Profil"
+  },
+  "dashboard": {
+    "eyebrow": "Tableau de bord",
+    "tabs": {
+      "overview": "Vue d'ensemble",
+      "queue": "File",
+      "agenda": "Agenda",
+      "services": "Services",
+      "analytics": "Statistiques",
+      "promotions": "Promotions",
+      "settings": "Paramètres"
+    },
+    "toggleOpen": "Ouvrir ou fermer l'établissement",
+    "settingsShortcut": "Paramètres de l'établissement",
+    "myProfile": "Mon profil",
+    "kpi": {
+      "waiting": "En file",
+      "longestWait": "Attente la plus longue",
+      "completed": "Terminés aujourd'hui",
+      "total": "Tickets aujourd'hui"
+    },
+    "alert": {
+      "title": "Temps d'attente élevé",
+      "body": "{service} : environ {minutes} min d'attente. Envisagez d'ouvrir un guichet supplémentaire."
+    },
+    "liveQueue": "File en direct",
+    "fullQueue": "File complète en direct",
+    "ticketsCount": "{count} tickets",
+    "noActiveTicket": "Aucun ticket actif pour le moment.",
+    "emptyQueueTitle": "Aucun ticket dans la file",
+    "emptyQueueBody": "Les tickets pris par les clients apparaîtront ici en temps réel.",
+    "servicesConfigured": "Services configurés ({count})",
+    "noService": "Aucun service configuré.",
+    "servedToday": "{count} servis auj.",
+    "waitingCount": "{count} en attente"
+  },
+  "settings": {
+    "title": "Paramètres",
+    "sections": {
+      "site": "Établissement",
+      "poster": "Affiche & QR code",
+      "tv": "Écran TV & publicités",
+      "team": "Équipe & agents",
+      "data": "Opérations & données"
+    }
+  }
+}

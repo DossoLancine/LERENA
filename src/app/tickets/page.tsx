@@ -5,6 +5,7 @@ import { Clock, Home, Compass, Ticket, Heart, User } from 'lucide-react'
 
 import { useEffect, useState } from 'react'
 import { getUserTickets } from '@/server/actions/tickets'
+import { ClientNav } from '@/components/navigation/client-nav'
 
 export default function TicketsPage() {
   const [tickets, setTickets] = useState<any[]>([])
@@ -78,32 +79,7 @@ export default function TicketsPage() {
         </div>
       </div>
 
-      <BottomNav active="tickets" />
+      <ClientNav />
     </div>
-  )
-}
-
-function BottomNav({ active }: { active: string }) {
-  const items = [
-    { id: 'home',      label: 'Accueil',   href: '/home',     icon: <Home size={20} /> },
-    { id: 'explore',   label: 'Explorer',  href: '/explore',  icon: <Compass size={20} /> },
-    { id: 'tickets',   label: 'Tickets',   href: '/tickets',  icon: <Ticket size={20} /> },
-    { id: 'favorites', label: 'Favoris',   href: '/favorites',icon: <Heart size={20} /> },
-    { id: 'profile',   label: 'Profil',    href: '/profile',  icon: <User size={20} /> },
-  ]
-  return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-30 safe-bottom">
-      <div className="max-w-lg mx-auto flex items-center justify-around px-2 py-2">
-        {items.map((item) => (
-          <Link key={item.id} href={item.href}>
-            <div className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl transition-all ${active === item.id ? 'text-orange-500' : 'text-gray-400'}`}>
-              <span className="text-lg leading-none">{item.icon}</span>
-              <span className="text-[10px] font-medium">{item.label}</span>
-              {active === item.id && <span className="w-1 h-1 rounded-full bg-orange-500 mt-0.5"></span>}
-            </div>
-          </Link>
-        ))}
-      </div>
-    </nav>
   )
 }
