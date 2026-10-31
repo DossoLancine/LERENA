@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { ArrowLeft, MapPin, Clock, Users, Star, ChevronRight, Heart, Share2, CheckCircle2, PlusSquare, Scissors, Utensils, Building2, Ticket, MousePointer2, AlertTriangle, User as UserIcon, CalendarDays } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -9,6 +9,8 @@ import { joinQueue } from '@/server/actions/tickets'
 import { toggleFavorite } from '@/server/actions/favorites'
 import { useSession, signOut } from 'next-auth/react'
 import AppointmentBookingForm from '@/components/booking/appointment-booking-form'
+import { BottomSheet } from '@/components/ui/bottom-sheet'
+import { haptics } from '@/lib/haptics'
 
 type OrgDetails = NonNullable<Awaited<ReturnType<typeof getOrganizationById>>>
 
@@ -27,13 +29,36 @@ export default function OrgView({ params, initialOrg, initialIsFavorite }: {
   const [error, setError] = useState<string | null>(null)
   const [priorityLevel, setPriorityLevel] = useState<string>('STANDARD')
   const [bookingType, setBookingType] = useState<'TICKET' | 'APPOINTMENT'>('TICKET')
+  // Position GPS demandée dès le choix du service, pour que la prise de ticket soit immédiate
+  const coordsRef = useRef<{ lat: number; lng: number } | null>(null)
+
+  const getPosition = (timeout: number) => new Promise<{ lat: number; lng: number } | null>((resolve) => {
+    if (coordsRef.current) return resolve(coordsRef.current)
+    if (!navigator.geolocation) return resolve(null)
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        coordsRef.current = { lat: pos.coords.latitude, lng: pos.coords.longitude }
+        resolve(coordsRef.current)
+      },
+      () => resolve(null),
+      { maximumAge: 5 * 60 * 1000, timeout }
+    )
+  })
+
+  const selectService = (id: string) => {
+    haptics.tap()
+    setSelectedService(id)
+    setError(null)
+    if (!coordsRef.current) getPosition(8000)
+  }
 
   const handleFavoriteClick = async () => {
     if (!session?.user) {
       router.push(`/auth/login?callbackUrl=/org/${params.id}`)
       return
     }
-    // Optimistic UI update
+    // Mise à jour immédiate, annulée en cas d'échec
+    haptics.tap()
     setIsFavorite(!isFavorite)
     const res = await toggleFavorite(params.id)
     if (!res.success) {
@@ -53,44 +78,32 @@ export default function OrgView({ params, initialOrg, initialIsFavorite }: {
     setIsJoining(true)
     setError(null)
     
-    const tryJoin = async (lat?: number, lng?: number) => {
-      const res = await joinQueue(selectedService, params.id, priorityLevel, lat, lng)
-      if (res.success && res.ticketId) {
-        router.push(`/ticket/${res.ticketId}`)
-      } else {
-        if (res.error === "SESSION_EXPIRED") {
-          setError("Votre session est expirée suite à une mise à jour système. Reconnexion en cours...")
-          setTimeout(() => {
-            signOut({ callbackUrl: `/auth/login?callbackUrl=/org/${params.id}` })
-          }, 1500)
-          return
-        }
-        if (res.error === "GPS_REQUIRED") {
-          setError("Cet établissement exige votre position GPS pour éviter les abus. Veuillez autoriser la localisation.")
-          setIsJoining(false)
-          return
-        }
-        if (res.error === "OUT_OF_BOUNDS") {
-          setError(`Vous êtes trop loin ! Cet établissement n'autorise la prise de ticket qu'à proximité (max ${org?.maxRadiusKm || 10} km) pour éviter les retards. Rapprochez-vous !`)
-          setIsJoining(false)
-          return
-        }
-        setError(res.error || "Une erreur est survenue")
-        setIsJoining(false)
-      }
-    }
+    haptics.tap()
 
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => tryJoin(pos.coords.latitude, pos.coords.longitude),
-        (err) => {
-          console.warn("Erreur GPS lors de la prise de ticket:", err)
-          tryJoin() // Call without GPS, the server will block if requireGps is true
-        }
-      )
-    } else {
-      tryJoin()
+    // Position déjà connue (demandée au choix du service) ; sinon on ne l'attend que si elle est exigée
+    const coords = coordsRef.current ?? (org?.requireGps ? await getPosition(6000) : null)
+    const res = await joinQueue(selectedService, params.id, priorityLevel, coords?.lat, coords?.lng)
+
+    if (res.success && res.ticketId) {
+      haptics.success()
+      router.push(`/ticket/${res.ticketId}`)
+      return
     }
+    if (res.error === "SESSION_EXPIRED") {
+      setError("Votre session est expirée suite à une mise à jour système. Reconnexion en cours...")
+      setTimeout(() => {
+        signOut({ callbackUrl: `/auth/login?callbackUrl=/org/${params.id}` })
+      }, 1500)
+      return
+    }
+    if (res.error === "GPS_REQUIRED") {
+      setError("Cet établissement exige votre position GPS pour éviter les abus. Veuillez autoriser la localisation.")
+    } else if (res.error === "OUT_OF_BOUNDS") {
+      setError(`Vous êtes trop loin ! Cet établissement n'autorise la prise de ticket qu'à proximité (max ${org?.maxRadiusKm || 10} km) pour éviter les retards. Rapprochez-vous !`)
+    } else {
+      setError(res.error || "Une erreur est survenue")
+    }
+    setIsJoining(false)
   }
 
   if (!org) {
@@ -212,7 +225,7 @@ export default function OrgView({ params, initialOrg, initialIsFavorite }: {
               <button
                 key={svc.id}
                 onClick={() => {
-                  setSelectedService(svc.id)
+                  selectService(svc.id)
                 }}
                 disabled={!org.isActive}
                 className={`w-full flex items-center justify-between p-3 rounded-xl border-2 transition-all text-left ${
@@ -306,7 +319,7 @@ export default function OrgView({ params, initialOrg, initialIsFavorite }: {
                     </div>
                     <div className="text-right">
                       <p className="text-xs text-gray-500">Attente estimée</p>
-                      <p className="text-sm font-bold text-orange-500">~{totalWait > 0 ? totalWait : 10} min</p>
+                      <p className="text-sm font-bold text-orange-500">~{service.waitMin || 0} min</p>
                     </div>
                   </div>
                 ) : null}
@@ -349,6 +362,17 @@ export default function OrgView({ params, initialOrg, initialIsFavorite }: {
           )}
         </>
       )}
+      <BottomSheet open={isJoining} onClose={() => {}} dismissible={false}>
+        <div className="flex flex-col items-center py-6 text-center">
+          <div className="relative mb-6 flex h-28 w-48 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-400 to-orange-500 text-white shadow-xl shadow-orange-200 animate-pop-in">
+            <Ticket size={44} />
+            <span className="absolute -left-3 top-1/2 h-6 w-6 -translate-y-1/2 rounded-full bg-white" />
+            <span className="absolute -right-3 top-1/2 h-6 w-6 -translate-y-1/2 rounded-full bg-white" />
+          </div>
+          <p className="text-lg font-bold text-gray-900">Création de votre ticket…</p>
+          <p className="mt-1 text-sm text-gray-500">{service?.name ?? org?.name}</p>
+        </div>
+      </BottomSheet>
     </div>
   )
 }

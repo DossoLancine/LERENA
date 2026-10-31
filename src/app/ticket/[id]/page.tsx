@@ -26,7 +26,13 @@ const TIMELINE_STEPS = [
 
 import { getTicketById, leaveQueue } from '@/server/actions/tickets'
 import { getPromotionsByOrg } from '@/server/actions/marketing'
-import { PushNotification } from '@/components/ui/push-notification'
+import { ProgressRing } from '@/components/ticket/progress-ring'
+import { YourTurnOverlay } from '@/components/ticket/your-turn-overlay'
+import { BottomSheet } from '@/components/ui/bottom-sheet'
+import { useWakeLock } from '@/hooks/use-wake-lock'
+import { haptics, playChime, unlockAudio } from '@/lib/haptics'
+import { decodeCounter } from '@/lib/constants'
+import { PushOptIn } from '@/components/ticket/push-opt-in'
 import { NPSWidget, PromoCarousel } from '@/components/marketing/marketing-widgets'
 import { usePolling } from '@/hooks/use-polling'
 import { useOrgRealtime } from '@/hooks/use-org-realtime'
@@ -40,9 +46,10 @@ export default function TicketPage({ params }: { params: { id: string } }) {
   const [showLeaveDialog, setShowLeaveDialog] = useState(false)
   const [loading, setLoading] = useState(true)
   
-  const [showPush, setShowPush] = useState(false)
-  const [pushMessage, setPushMessage] = useState('')
+  const [showTurn, setShowTurn] = useState(false)
+  const [shareMsg, setShareMsg] = useState<string | null>(null)
   const prevStatus = useRef<string | null>(null)
+  const prevPosition = useRef<number | null>(null)
 
   const fetchTicket = useCallback(async () => {
     const data = await getTicketById(params.id)
@@ -57,14 +64,20 @@ export default function TicketPage({ params }: { params: { id: string } }) {
         }
       }
       
+      // Ticket appelé : alerte plein écran, vibration longue et carillon
       if (prevStatus.current === 'WAITING' && data.status === 'CALLED') {
-        const counterName = data.guestPhone?.startsWith('G-') ? data.guestPhone.replace('G-', '') : 'guichet'
-        setPushMessage(`C'est à votre tour ! Veuillez vous présenter au ${counterName}.`)
-        setShowPush(true)
-        if (navigator.vibrate) navigator.vibrate([200, 100, 200])
+        setShowTurn(true)
+        haptics.alert()
+        playChime()
       }
-      
+      // Le tour approche : petite vibration quand on passe à 2 personnes ou moins
+      const pos = data.position ?? 0
+      if (data.status === 'WAITING' && prevPosition.current !== null && prevPosition.current > 2 && pos <= 2) {
+        haptics.nudge()
+      }
+
       prevStatus.current = data.status
+      prevPosition.current = pos
     }
     setLoading(false)
     setSecondsAgo(0)
@@ -74,6 +87,15 @@ export default function TicketPage({ params }: { params: { id: string } }) {
   // La position change dès qu'un autre ticket de l'établissement bouge
   const live = useOrgRealtime(ticket?.queue?.branch?.organizationId, fetchTicket)
   usePolling(fetchTicket, live ? 30000 : 5000)
+
+  // Écran maintenu allumé quand le tour approche ou que le ticket est appelé
+  useWakeLock(!!ticket && (ticket.status === 'CALLED' || (ticket.status === 'WAITING' && (ticket.position ?? 99) <= 3)))
+
+  // Le carillon ne peut sonner qu'après un premier geste de l'utilisateur
+  useEffect(() => {
+    window.addEventListener('pointerdown', unlockAudio, { once: true })
+    return () => window.removeEventListener('pointerdown', unlockAudio)
+  }, [])
 
   useEffect(() => {
     const timeInterval = setInterval(() => {
@@ -103,6 +125,25 @@ export default function TicketPage({ params }: { params: { id: string } }) {
   const position = ticket.position || 0
   const initialPosition = ticket.initialPosition || position || 1
   
+  const counterName = decodeCounter(ticket.guestPhone)
+  const waitMin = Math.max(0, position * (ticket.service?.avgDurationMin || 15))
+  const waitLabel = position === 0 ? 'Maintenant' : `${waitMin}–${waitMin + 10} min`
+
+  const handleShare = async () => {
+    haptics.tap()
+    const url = window.location.href
+    const text = `Mon ticket ${ticket.displayNum} chez ${ticket.orgName} : suivez ma position en direct`
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'Mon ticket ATTENDS', text, url })
+        return
+      }
+      await navigator.clipboard.writeText(url)
+      setShareMsg('Lien copié')
+      setTimeout(() => setShareMsg(null), 2000)
+    } catch {}
+  }
+
   let progressPercent = 100
   if (ticket.status === 'WAITING') {
     progressPercent = Math.max(5, Math.round(((initialPosition - position) / initialPosition) * 100))
@@ -110,7 +151,7 @@ export default function TicketPage({ params }: { params: { id: string } }) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <PushNotification message={pushMessage} isVisible={showPush} onClose={() => setShowPush(false)} />
+      <YourTurnOverlay open={showTurn} ticketNumber={ticket.displayNum} counter={counterName} onDismiss={() => setShowTurn(false)} />
       {/* Header */}
       <div className="bg-white border-b border-gray-100 sticky top-0 z-20">
         <div className="max-w-lg mx-auto px-4 py-4 flex items-center justify-between">
@@ -135,7 +176,7 @@ export default function TicketPage({ params }: { params: { id: string } }) {
             </div>
             <div className="flex items-center gap-1 text-xs text-gray-500">
               <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-              Mis à jour il y a {secondsAgo}s
+              {live ? 'En direct' : `Mis à jour il y a ${secondsAgo}s`}
             </div>
           </div>
 
@@ -149,43 +190,22 @@ export default function TicketPage({ params }: { params: { id: string } }) {
               <p className="text-sm text-gray-500 mt-2">{ticket.orgName} · {ticket.serviceName}</p>
             </div>
 
-            {/* Position + Wait */}
-            <div className="grid grid-cols-2 gap-4 mb-5">
-              <div className="bg-gray-50 rounded-2xl p-4 text-center">
-                <div className="flex items-center justify-center gap-1 mb-1">
-                  <Users size={16} className="text-gray-400" />
-                </div>
-                <p className="text-3xl font-black text-gray-900">{position}</p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {position === 0 ? "C'est votre tour !" : `personne${position > 1 ? 's' : ''} devant vous`}
-                </p>
+            {/* Position dans la file */}
+            {ticket.status === 'WAITING' ? (
+              <ProgressRing position={Math.max(0, position - 1)} progress={progressPercent} waitLabel={waitLabel} />
+            ) : (
+              <div className="rounded-2xl bg-gray-50 p-4 text-center text-sm font-medium text-gray-600">
+                {ticket.status === 'CALLED' && `Présentez-vous au ${counterName}`}
+                {ticket.status === 'SERVING' && `Prise en charge au ${counterName}`}
+                {ticket.status === 'COMPLETED' && 'Merci de votre visite !'}
+                {(ticket.status === 'CANCELLED' || ticket.status === 'ABSENT') && "Ce ticket n'est plus dans la file."}
               </div>
-              <div className="bg-orange-50 rounded-2xl p-4 text-center">
-                <div className="flex items-center justify-center gap-1 mb-1">
-                  <Clock size={16} className="text-orange-400" />
-                </div>
-                <p className="text-3xl font-black text-orange-500">
-                  {Math.max(0, position * (ticket.service?.avgDurationMin || 15))}–{Math.max(0, position * (ticket.service?.avgDurationMin || 15)) + 10}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">minutes estimées</p>
-              </div>
-            </div>
-
-            {/* Progress bar */}
-            <div className="mb-2">
-              <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
-                <span>Progression</span>
-                <span>{progressPercent}%</span>
-              </div>
-              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-orange-400 to-orange-500 rounded-full transition-all duration-1000"
-                  style={{ width: `${progressPercent}%` }}
-                />
-              </div>
-            </div>
+            )}
           </div>
         </div>
+
+        {/* Alertes push : prévenu même téléphone verrouillé */}
+        {ticket.status === 'WAITING' && <PushOptIn ticketId={ticket.id} />}
 
         {/* Timeline */}
         <div className="bg-white rounded-2xl border border-gray-100 p-5">
@@ -339,21 +359,21 @@ export default function TicketPage({ params }: { params: { id: string } }) {
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 safe-bottom z-20">
         <div className="max-w-lg mx-auto flex gap-3">
           <button
-            onClick={() => setShowLeaveDialog(true)}
-            className="flex-1 py-3 rounded-2xl border-2 border-gray-200 text-gray-600 font-semibold text-sm hover:border-red-200 hover:text-red-500 transition-all"
+            onClick={() => { haptics.tap(); setShowLeaveDialog(true) }}
+            disabled={!['WAITING', 'CALLED'].includes(ticket.status)}
+            className="pressable flex-1 py-3 rounded-2xl border-2 border-gray-200 text-gray-600 font-semibold text-sm hover:border-red-200 hover:text-red-500 transition-all disabled:opacity-40"
           >
             Quitter la file
           </button>
-          <button className="flex-1 btn-primary text-sm">
-            Partager mon ticket
+          <button onClick={handleShare} className="flex-1 btn-primary text-sm">
+            {shareMsg ?? 'Partager mon ticket'}
           </button>
         </div>
       </div>
 
       {/* Leave dialog */}
-      {showLeaveDialog && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center">
-          <div className="bg-white rounded-t-3xl w-full max-w-lg p-6">
+      <BottomSheet open={showLeaveDialog} onClose={() => setShowLeaveDialog(false)}>
+          <div>
             <div className="text-center mb-4">
               <AlertTriangle size={48} className="mx-auto text-red-500" />
               <h3 className="text-lg font-bold text-gray-900 mt-3">Quitter la file ?</h3>
@@ -380,8 +400,7 @@ export default function TicketPage({ params }: { params: { id: string } }) {
               </button>
             </div>
           </div>
-        </div>
-      )}
+      </BottomSheet>
     </div>
   )
 }

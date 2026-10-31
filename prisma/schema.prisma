@@ -19,12 +19,13 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  memberships   OrganizationMember[]
-  tickets       Ticket[]
-  appointments  Appointment[]
-  agentSessions ServiceSession[]     @relation("AgentSessions")
-  favorites     Favorite[]
-  notifications Notification[]
+  memberships       OrganizationMember[]
+  tickets           Ticket[]
+  appointments      Appointment[]
+  agentSessions     ServiceSession[]     @relation("AgentSessions")
+  favorites         Favorite[]
+  notifications     Notification[]
+  pushSubscriptions PushSubscription[]
 }
 
 model Organization {
@@ -137,11 +138,12 @@ model Ticket {
   completedAt       DateTime?
   updatedAt         DateTime  @updatedAt
 
-  queue         Queue           @relation(fields: [queueId], references: [id], onDelete: Cascade)
-  service       Service         @relation(fields: [serviceId], references: [id])
-  user          User?           @relation(fields: [userId], references: [id])
-  session       ServiceSession?
-  notifications Notification[]
+  queue             Queue              @relation(fields: [queueId], references: [id], onDelete: Cascade)
+  service           Service            @relation(fields: [serviceId], references: [id])
+  user              User?              @relation(fields: [userId], references: [id])
+  session           ServiceSession?
+  notifications     Notification[]
+  pushSubscriptions PushSubscription[]
 }
 
 model Promotion {
@@ -211,6 +213,22 @@ model Notification {
 
   user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   ticket Ticket? @relation(fields: [ticketId], references: [id])
+}
+
+// Abonnement aux notifications push d'un appareil, lié au ticket suivi
+model PushSubscription {
+  id        String   @id @default(cuid())
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userId    String?
+  ticketId  String?
+  createdAt DateTime @default(now())
+
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ticket Ticket? @relation(fields: [ticketId], references: [id], onDelete: SetNull)
+
+  @@index([ticketId])
 }
 
 model Appointment {

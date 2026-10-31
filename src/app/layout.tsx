@@ -6,6 +6,10 @@ export const metadata: Metadata = {
   title: 'ATTENDS — Ne perdez plus votre temps à attendre',
   description: 'Gérez vos files d\'attente intelligemment. Rejoignez une file, suivez votre position et recevez une notification quand votre tour approche.',
   manifest: '/manifest.json',
+  icons: {
+    icon: [{ url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }],
+    apple: [{ url: '/icons/apple-touch-icon.png', sizes: '180x180' }],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',

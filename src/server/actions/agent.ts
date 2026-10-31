@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache"
 import { getStaffContext, getOrgQueueIds } from "@/lib/session"
 import { ACTIVE_TICKET_STATUSES, encodeCounter, startOfToday, type TicketStatus } from "@/lib/constants"
 import { notifyOrg } from "@/lib/realtime"
+import { sendPushToTicket } from "@/lib/push"
 
 export async function getAgentQueue() {
   try {
@@ -88,6 +89,7 @@ export async function updateTicketStatus(
     await prisma.ticket.update({ where: { id: ticketId }, data: updateData })
 
     await notifyOrg(ctx.orgId)
+    if (status === 'CALLED') await notifyCalledAndNext(currentTicket, counterName)
     revalidatePath('/agent')
     revalidatePath('/dashboard')
     revalidatePath(`/ticket/${ticketId}`)
@@ -98,6 +100,37 @@ export async function updateTicketStatus(
     console.error("Update ticket status error:", error)
     return { success: false }
   }
+}
+
+// Alertes push : le client appelé, puis les deux suivants de la même file
+async function notifyCalledAndNext(
+  ticket: { id: string; queueId: string; displayNum: string },
+  counterName?: string
+) {
+  const next = await prisma.ticket.findMany({
+    where: { queueId: ticket.queueId, status: 'WAITING' },
+    orderBy: { createdAt: 'asc' },
+    take: 2,
+    select: { id: true, displayNum: true }
+  })
+
+  await Promise.allSettled([
+    sendPushToTicket(ticket.id, {
+      title: "C'est votre tour !",
+      body: `Ticket ${ticket.displayNum} : présentez-vous au ${counterName || 'guichet'}.`,
+      url: `/ticket/${ticket.id}`,
+      tag: `ticket-${ticket.id}`,
+      urgent: true
+    }),
+    ...next.map((t, i) => sendPushToTicket(t.id, {
+      title: i === 0 ? 'Vous êtes le prochain' : 'Votre tour approche',
+      body: i === 0
+        ? `Ticket ${t.displayNum} : rapprochez-vous du guichet.`
+        : `Ticket ${t.displayNum} : plus qu'une personne devant vous.`,
+      url: `/ticket/${t.id}`,
+      tag: `ticket-${t.id}`
+    }))
+  ])
 }
 
 export async function getAgentStats() {

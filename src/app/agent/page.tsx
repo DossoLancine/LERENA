@@ -8,6 +8,8 @@ import { useSession, signOut } from 'next-auth/react'
 import UserProfileForm from '@/components/profile/user-profile-form'
 import { usePolling } from '@/hooks/use-polling'
 import { useOrgRealtime } from '@/hooks/use-org-realtime'
+import { haptics } from '@/lib/haptics'
+import { decodeCounter, encodeCounter, type TicketStatus } from '@/lib/constants'
 
 export default function AgentPage() {
   const { data: session } = useSession()
@@ -63,42 +65,43 @@ export default function AgentPage() {
     setIsDeskConfigured(false)
   }
 
-  const current = queue.find((t) => t.status === 'SERVING' || t.status === 'CALLED')
+  // Client en cours à CE guichet (plusieurs agents peuvent servir en même temps)
+  const current = queue.find((t) => (t.status === 'SERVING' || t.status === 'CALLED') && decodeCounter(t.guestPhone) === counter)
   const waiting = queue.filter((t) => t.status === 'WAITING')
 
-  const callNext = async () => {
-    if (current || waiting.length === 0 || !counter) return
-    setIsLoading(true)
-    const nextTicket = waiting[0]
-    await updateTicketStatus(nextTicket.id, 'CALLED', counter)
-    setLastAction(`${nextTicket.displayNum} appelé au ${counter}`)
-    await fetchQueue()
+  // Action instantanée : l'écran change dès l'appui, le serveur confirme ensuite
+  const act = async (ticketId: string, status: TicketStatus, label: string) => {
+    if (!counter) return
+    haptics.tap()
+    setQueue((q) =>
+      status === 'COMPLETED' || status === 'ABSENT'
+        ? q.filter((t) => t.id !== ticketId)
+        : q.map((t) => (t.id === ticketId ? { ...t, status, guestPhone: status === 'CALLED' ? encodeCounter(counter) : t.guestPhone } : t))
+    )
+    setLastAction(label)
+    const res = await updateTicketStatus(ticketId, status, counter)
+    if (res.success) {
+      if (status === 'COMPLETED') haptics.success()
+    } else {
+      setLastAction("Action non enregistrée : vérifiez la connexion et réessayez")
+    }
+    fetchQueue()
   }
 
-  const startService = async (ticketId: string) => {
-    if (!counter) return
-    setIsLoading(true)
-    await updateTicketStatus(ticketId, 'SERVING', counter)
-    setLastAction('Service commencé')
-    await fetchQueue()
+  const callNext = async () => {
+    if (current || waiting.length === 0) return
+    const nextTicket = waiting[0]
+    await act(nextTicket.id, 'CALLED', `${nextTicket.displayNum} appelé au ${counter}`)
   }
+
+  const startService = (ticketId: string) => act(ticketId, 'SERVING', 'Service commencé')
 
   const completeService = async (ticketId: string) => {
-    if (!counter) return
-    setIsLoading(true)
-    await updateTicketStatus(ticketId, 'COMPLETED', counter)
     setServedToday((n) => n + 1)
-    setLastAction('Service terminé')
-    await fetchQueue()
+    await act(ticketId, 'COMPLETED', 'Service terminé')
   }
 
-  const markAbsent = async (ticketId: string) => {
-    if (!counter) return
-    setIsLoading(true)
-    await updateTicketStatus(ticketId, 'ABSENT', counter)
-    setLastAction('Client marqué absent')
-    await fetchQueue()
-  }
+  const markAbsent = (ticketId: string) => act(ticketId, 'ABSENT', 'Client marqué absent')
 
   const statusColor: Record<string, string> = {
     SERVING: 'badge-serving',
