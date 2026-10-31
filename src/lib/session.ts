@@ -2,7 +2,7 @@ import { cache } from 'react'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import type { Role } from '@/lib/constants'
+import { STAFF_ROLES, type Role } from '@/lib/constants'
 
 export interface SessionUser {
   id: string
@@ -28,7 +28,7 @@ export interface MemberContext {
 // sans adhésion, l'accès est refusé.
 const getMemberContext = cache(async (): Promise<MemberContext | null> => {
   const user = await getSessionUser()
-  if (!user || (user.role !== 'AGENT' && user.role !== 'MANAGER')) return null
+  if (!user || !STAFF_ROLES.includes(user.role)) return null
 
   const membership = await prisma.organizationMember.findFirst({
     where: { userId: user.id },
@@ -45,8 +45,16 @@ export async function getManagerContext() {
   return ctx?.role === 'MANAGER' ? ctx : null
 }
 
+// Agents de guichet et responsables (écran /agent)
 export async function getStaffContext() {
-  return getMemberContext()
+  const ctx = await getMemberContext()
+  return ctx && (ctx.role === 'AGENT' || ctx.role === 'MANAGER') ? ctx : null
+}
+
+// Accueil (écran /reception) : agents d'accueil et responsables
+export async function getReceptionContext() {
+  const ctx = await getMemberContext()
+  return ctx && (ctx.role === 'RECEPTION' || ctx.role === 'MANAGER') ? ctx : null
 }
 
 // Identifiants des files d'attente d'une organisation

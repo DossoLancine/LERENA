@@ -3,6 +3,7 @@ import { distanceKm } from '@/lib/geo'
 import { PRIORITY_SCORES, type Priority } from '@/lib/constants'
 import { notifyOrg } from '@/lib/realtime'
 import { revalidatePath } from 'next/cache'
+import { logTicketEvent } from '@/lib/ticket-events'
 
 // Création d'un ticket, commune à tous les canaux : client connecté, visiteur,
 // et plus tard accueil et borne. Module serveur uniquement (jamais appelé du navigateur).
@@ -11,6 +12,8 @@ export interface TicketOwner {
   userId: string | null
   name: string
   phone: string | null
+  // Personne qui émet le ticket quand ce n'est pas le client (agent d'accueil)
+  actorId?: string | null
 }
 
 export interface IssueTicketInput {
@@ -23,6 +26,15 @@ export interface IssueTicketInput {
 }
 
 export class TicketError extends Error {}
+
+// File d'un service : par nom ou par préfixe, sinon la première file de l'agence
+export function queueForService<Q extends { name: string; prefix: string }>(service: { name: string; branch: { queues: Q[] } }): Q {
+  return service.branch.queues.find(q =>
+    service.name.toLowerCase().includes(q.name.toLowerCase()) ||
+    q.name.toLowerCase().includes(service.name.toLowerCase()) ||
+    q.prefix.toUpperCase() === service.name.trim()[0]?.toUpperCase()
+  ) || service.branch.queues[0]
+}
 
 export async function issueTicket({ orgId, serviceId, priority = 'STANDARD', lat, lng, owner }: IssueTicketInput) {
   const org = await prisma.organization.findUnique({ where: { id: orgId } })
@@ -46,12 +58,7 @@ export async function issueTicket({ orgId, serviceId, priority = 'STANDARD', lat
     throw new TicketError("Service ou file d'attente introuvable")
   }
 
-  // File du service : par nom ou par préfixe, sinon la première file de l'agence
-  const queue = service.branch.queues.find(q =>
-    service.name.toLowerCase().includes(q.name.toLowerCase()) ||
-    q.name.toLowerCase().includes(service.name.toLowerCase()) ||
-    q.prefix.toUpperCase() === service.name.trim()[0]?.toUpperCase()
-  ) || service.branch.queues[0]
+  const queue = queueForService(service)
 
   // Numéro attribué de façon atomique : deux clients simultanés ne reçoivent jamais le même
   const lastTicket = await prisma.ticket.findFirst({
@@ -89,6 +96,7 @@ export async function issueTicket({ orgId, serviceId, priority = 'STANDARD', lat
     })
   })
 
+  await logTicketEvent({ ticketId: ticket.id, type: 'ISSUED', actorId: owner.actorId ?? owner.userId })
   await notifyOrg(orgId)
   revalidatePath(`/org/${orgId}`)
   revalidatePath(`/tv/${orgId}`)

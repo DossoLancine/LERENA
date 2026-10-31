@@ -84,6 +84,7 @@ model Branch {
   services      Service[]
   queues        Queue[]
   businessHours BusinessHour[]
+  counters      Counter[]
   Appointment   Appointment[]
 }
 
@@ -124,7 +125,11 @@ model Ticket {
   userId            String?
   guestName         String?
   guestPhone        String?
-  counterName       String? // guichet qui a appelé le ticket
+  counterName       String? // guichet qui a appelé le ticket (nom affiché)
+  counterId         String?
+  queuedAt          DateTime  @default(now()) // entrée dans la file actuelle (change lors d'un transfert)
+  recalledAt        DateTime? // dernier rappel : la TV annonce à nouveau le numéro
+  notes             String? // note interne des agents, visible lors d'un transfert
   number            Int
   displayNum        String
   status            String    @default("WAITING")
@@ -145,6 +150,8 @@ model Ticket {
   session           ServiceSession?
   notifications     Notification[]
   pushSubscriptions PushSubscription[]
+  counter           Counter?           @relation(fields: [counterId], references: [id], onDelete: SetNull)
+  events            TicketEvent[]
 }
 
 model Promotion {
@@ -263,4 +270,37 @@ model PhoneVerification {
   createdAt DateTime @default(now())
 
   @@index([phone, purpose])
+}
+
+// Guichet physique d'une agence, et les services qu'il traite (vide = tous)
+model Counter {
+  id         String   @id @default(cuid())
+  branchId   String
+  name       String
+  isActive   Boolean  @default(true)
+  serviceIds String[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  branch  Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  tickets Ticket[]
+
+  @@unique([branchId, name])
+}
+
+// Historique d'un ticket : appel, rappel, transfert, pause, note… (suivi et audit)
+model TicketEvent {
+  id            String   @id @default(cuid())
+  ticketId      String
+  type          String // ISSUED | CALLED | RECALLED | SERVING | COMPLETED | ABSENT | CANCELLED | HELD | RESUMED | TRANSFERRED | NOTE | PRIORITY
+  actorId       String?
+  counterName   String?
+  fromServiceId String?
+  toServiceId   String?
+  note          String?
+  createdAt     DateTime @default(now())
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
 }

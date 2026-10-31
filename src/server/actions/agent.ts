@@ -6,6 +6,11 @@ import { getStaffContext, getOrgQueueIds } from "@/lib/session"
 import { ACTIVE_TICKET_STATUSES, startOfToday, type TicketStatus } from "@/lib/constants"
 import { notifyOrg } from "@/lib/realtime"
 import { sendPushToTicket } from "@/lib/push"
+import { logTicketEvent, type TicketEventType } from "@/lib/ticket-events"
+import { queueForService } from "@/lib/ticketing"
+
+// Ordre d'appel commun à toute l'app : priorité d'abord, puis entrée dans la file
+const CALL_ORDER = [{ priorityScore: 'desc' as const }, { queuedAt: 'asc' as const }]
 
 export async function getAgentQueue() {
   try {
@@ -20,7 +25,7 @@ export async function getAgentQueue() {
         queueId: { in: queueIds },
         status: { in: ACTIVE_TICKET_STATUSES }
       },
-      orderBy: [{ priorityScore: 'desc' }, { number: 'asc' }],
+      orderBy: CALL_ORDER,
       include: {
         service: true,
         // Uniquement le nom : jamais d'e-mail, téléphone ou mot de passe vers le navigateur
@@ -34,10 +39,35 @@ export async function getAgentQueue() {
   }
 }
 
+/** Guichets actifs de l'établissement, avec les services qu'ils traitent. */
+export async function getAgentCounters() {
+  const ctx = await getStaffContext()
+  if (!ctx) return { counters: [], services: [] }
+
+  const [counters, services] = await Promise.all([
+    prisma.counter.findMany({
+      where: { isActive: true, branch: { organizationId: ctx.orgId } },
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true, serviceIds: true }
+    }),
+    prisma.service.findMany({
+      where: { isActive: true, branch: { organizationId: ctx.orgId } },
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true }
+    })
+  ])
+  return { counters, services }
+}
+
+const EVENT_FOR_STATUS: Partial<Record<TicketStatus, TicketEventType>> = {
+  CALLED: 'CALLED', SERVING: 'SERVING', COMPLETED: 'COMPLETED', ABSENT: 'ABSENT', CANCELLED: 'CANCELLED', ON_HOLD: 'HELD'
+}
+
 export async function updateTicketStatus(
   ticketId: string,
   status: TicketStatus,
-  counterName?: string
+  counterName?: string,
+  counterId?: string
 ) {
   try {
     const ctx = await getStaffContext()
@@ -48,13 +78,23 @@ export async function updateTicketStatus(
     })
     if (!currentTicket) return { success: false }
 
+    // Le guichet doit appartenir à l'établissement de l'agent
+    const counter = counterId
+      ? await prisma.counter.findFirst({ where: { id: counterId, branch: { organizationId: ctx.orgId } }, select: { id: true, name: true } })
+      : null
+
     const now = new Date()
     const updateData: Record<string, unknown> = { status }
 
     if (status === 'CALLED') {
       updateData.calledAt = now
       // Guichet assigné, affiché sur la TV et chez le client
-      if (counterName) updateData.counterName = counterName
+      if (counter) {
+        updateData.counterId = counter.id
+        updateData.counterName = counter.name
+      } else if (counterName) {
+        updateData.counterName = counterName
+      }
     } else if (status === 'SERVING') {
       updateData.startedAt = currentTicket.startedAt || now
     } else if (status === 'COMPLETED') {
@@ -63,7 +103,7 @@ export async function updateTicketStatus(
       // Session de service pour l'AHT et les statistiques
       const started = currentTicket.startedAt || currentTicket.calledAt || now
       const durationSec = Math.max(1, Math.round((now.getTime() - started.getTime()) / 1000))
-      const waitSec = Math.max(0, Math.round((started.getTime() - currentTicket.createdAt.getTime()) / 1000))
+      const waitSec = Math.max(0, Math.round((started.getTime() - currentTicket.queuedAt.getTime()) / 1000))
 
       try {
         await prisma.serviceSession.upsert({
@@ -88,8 +128,13 @@ export async function updateTicketStatus(
 
     await prisma.ticket.update({ where: { id: ticketId }, data: updateData })
 
+    const eventType = EVENT_FOR_STATUS[status]
+    if (eventType) {
+      await logTicketEvent({ ticketId, type: eventType, actorId: ctx.userId, counterName: counter?.name ?? counterName ?? currentTicket.counterName })
+    }
+
     await notifyOrg(ctx.orgId)
-    if (status === 'CALLED') await notifyCalledAndNext(currentTicket, counterName)
+    if (status === 'CALLED') await notifyCalledAndNext(currentTicket, counter?.name ?? counterName)
     revalidatePath('/agent')
     revalidatePath('/dashboard')
     revalidatePath(`/ticket/${ticketId}`)
@@ -102,6 +147,113 @@ export async function updateTicketStatus(
   }
 }
 
+// Ticket de l'établissement de l'agent, ou null
+async function findOwnTicket(ticketId: string, orgId: string) {
+  return prisma.ticket.findFirst({
+    where: { id: ticketId, queue: { branch: { organizationId: orgId } } },
+    include: { service: { select: { name: true } } }
+  })
+}
+
+/** Rappel : la TV annonce à nouveau le numéro et le client reçoit une nouvelle alerte. */
+export async function recallTicket(ticketId: string) {
+  const ctx = await getStaffContext()
+  if (!ctx) return { success: false }
+  const ticket = await findOwnTicket(ticketId, ctx.orgId)
+  if (!ticket || ticket.status !== 'CALLED') return { success: false }
+
+  await prisma.ticket.update({ where: { id: ticketId }, data: { recalledAt: new Date() } })
+  await logTicketEvent({ ticketId, type: 'RECALLED', actorId: ctx.userId, counterName: ticket.counterName })
+  await notifyOrg(ctx.orgId)
+  await sendPushToTicket(ticketId, {
+    title: 'Rappel : c’est votre tour',
+    body: `Ticket ${ticket.displayNum} : présentez-vous au ${ticket.counterName || 'guichet'}.`,
+    url: `/ticket/${ticketId}`,
+    tag: `ticket-${ticketId}`,
+    urgent: true
+  })
+  return { success: true }
+}
+
+/** Reprise d'un ticket mis en pause : il revient au guichet qui l'avait appelé. */
+export async function resumeTicket(ticketId: string) {
+  const ctx = await getStaffContext()
+  if (!ctx) return { success: false }
+  const ticket = await findOwnTicket(ticketId, ctx.orgId)
+  if (!ticket || ticket.status !== 'ON_HOLD') return { success: false }
+
+  await prisma.ticket.update({ where: { id: ticketId }, data: { status: 'CALLED', recalledAt: new Date() } })
+  await logTicketEvent({ ticketId, type: 'RESUMED', actorId: ctx.userId, counterName: ticket.counterName })
+  await notifyOrg(ctx.orgId)
+  return { success: true }
+}
+
+/**
+ * Transfert vers un autre service (ex. consultation → caisse → pharmacie).
+ * Le client garde son numéro et passe en fin de la nouvelle file, avec sa priorité.
+ */
+export async function transferTicket(ticketId: string, toServiceId: string, note?: string) {
+  const ctx = await getStaffContext()
+  if (!ctx) return { success: false, error: 'Non autorisé' }
+
+  const [ticket, target] = await Promise.all([
+    findOwnTicket(ticketId, ctx.orgId),
+    prisma.service.findFirst({
+      where: { id: toServiceId, isActive: true, branch: { organizationId: ctx.orgId } },
+      include: { branch: { include: { queues: true } } }
+    })
+  ])
+  if (!ticket) return { success: false, error: 'Ticket introuvable' }
+  if (!target || target.branch.queues.length === 0) return { success: false, error: 'Service introuvable' }
+  if (target.id === ticket.serviceId) return { success: false, error: 'Le ticket est déjà dans ce service' }
+
+  const queue = queueForService(target)
+  const cleanNote = note?.trim().slice(0, 500) || null
+
+  await prisma.ticket.update({
+    where: { id: ticketId },
+    data: {
+      serviceId: target.id,
+      queueId: queue.id,
+      status: 'WAITING',
+      queuedAt: new Date(),
+      counterId: null,
+      counterName: null,
+      calledAt: null,
+      startedAt: null,
+      ...(cleanNote ? { notes: ticket.notes ? `${ticket.notes}\n${cleanNote}` : cleanNote } : {})
+    }
+  })
+  await logTicketEvent({
+    ticketId, type: 'TRANSFERRED', actorId: ctx.userId, counterName: ticket.counterName,
+    fromServiceId: ticket.serviceId, toServiceId: target.id, note: cleanNote
+  })
+  await notifyOrg(ctx.orgId)
+  await sendPushToTicket(ticketId, {
+    title: 'Étape suivante',
+    body: `Ticket ${ticket.displayNum} : vous êtes maintenant dans la file « ${target.name} ».`,
+    url: `/ticket/${ticketId}`,
+    tag: `ticket-${ticketId}`
+  })
+  revalidatePath(`/ticket/${ticketId}`)
+  return { success: true }
+}
+
+/** Note interne sur un ticket, visible des agents (utile lors d'un transfert). */
+export async function addTicketNote(ticketId: string, note: string) {
+  const ctx = await getStaffContext()
+  if (!ctx) return { success: false }
+  const clean = note.trim().slice(0, 500)
+  if (!clean) return { success: false }
+  const ticket = await findOwnTicket(ticketId, ctx.orgId)
+  if (!ticket) return { success: false }
+
+  await prisma.ticket.update({ where: { id: ticketId }, data: { notes: ticket.notes ? `${ticket.notes}\n${clean}` : clean } })
+  await logTicketEvent({ ticketId, type: 'NOTE', actorId: ctx.userId, note: clean })
+  await notifyOrg(ctx.orgId)
+  return { success: true }
+}
+
 // Alertes push : le client appelé, puis les deux suivants de la même file
 async function notifyCalledAndNext(
   ticket: { id: string; queueId: string; displayNum: string },
@@ -109,7 +261,7 @@ async function notifyCalledAndNext(
 ) {
   const next = await prisma.ticket.findMany({
     where: { queueId: ticket.queueId, status: 'WAITING' },
-    orderBy: { createdAt: 'asc' },
+    orderBy: CALL_ORDER,
     take: 2,
     select: { id: true, displayNum: true }
   })

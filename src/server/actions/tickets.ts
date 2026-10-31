@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma"
 import { getSessionUser } from "@/lib/session"
 import { issueTicket } from "@/lib/ticketing"
+import { maskPhone } from "@/lib/phone"
 import { notifyOrg } from "@/lib/realtime"
 import { revalidatePath } from "next/cache"
 
@@ -60,25 +61,27 @@ export async function getTicketById(id: string) {
 
     if (!ticket) return null;
 
-    // Calculer la position réelle dynamiquement (nombre de tickets WAITING créés avant celui-ci dans la même file)
-    let realPosition = ticket.position;
+    // Position réelle, dans l'ordre d'appel de l'agent : priorité d'abord, puis entrée dans la file
+    let realPosition = 0
     if (ticket.status === 'WAITING') {
-      const earlierWaitingTickets = await prisma.ticket.count({
+      const ahead = await prisma.ticket.count({
         where: {
           queueId: ticket.queueId,
           status: 'WAITING',
-          createdAt: {
-            lt: ticket.createdAt
-          }
+          OR: [
+            { priorityScore: { gt: ticket.priorityScore } },
+            { priorityScore: ticket.priorityScore, queuedAt: { lt: ticket.queuedAt } }
+          ]
         }
-      });
-      realPosition = earlierWaitingTickets + 1;
-    } else {
-      realPosition = 0; // S'il n'est plus en attente (CALLED, SERVING, etc.), il n'y a plus d'attente
+      })
+      realPosition = ahead + 1
     }
 
+    // Ce lien est partageable : jamais de note interne ni de numéro complet
+    const { notes: _internalNotes, guestPhone, ...publicTicket } = ticket
     return {
-      ...ticket,
+      ...publicTicket,
+      guestPhone: guestPhone ? maskPhone(guestPhone) : null,
       initialPosition: ticket.position, // Position at creation
       position: realPosition,           // Current dynamic position
       orgName: ticket.queue?.branch?.organization?.name || 'Établissement Inconnu',

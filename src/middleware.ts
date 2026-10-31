@@ -6,7 +6,7 @@ export default withAuth(
     const token = req.nextauth.token
     const path = req.nextUrl.pathname
 
-    const isB2BRoute = path.startsWith('/dashboard') || path.startsWith('/agent')
+    const isB2BRoute = path.startsWith('/dashboard') || path.startsWith('/agent') || path.startsWith('/reception')
     if (isB2BRoute && !token) {
       return NextResponse.redirect(new URL('/pro/login', req.url))
     }
@@ -20,6 +20,10 @@ export default withAuth(
     }
 
     // Mes tickets et Profil restent ouverts aux visiteurs (tickets sans compte, préférences d'affichage)
+    if (path.startsWith('/reception') && token?.role !== 'RECEPTION' && token?.role !== 'MANAGER') {
+      return NextResponse.redirect(new URL('/', req.url))
+    }
+
     const isClientRoute = path.startsWith('/favorites')
     if (isClientRoute && !token) {
       return NextResponse.redirect(new URL('/auth/login', req.url))
@@ -36,5 +40,5 @@ export default withAuth(
 )
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/agent/:path*', '/favorites/:path*']
+  matcher: ['/dashboard/:path*', '/agent/:path*', '/reception/:path*', '/favorites/:path*']
 }

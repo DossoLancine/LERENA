@@ -1,8 +1,18 @@
-export type Role = 'CLIENT' | 'AGENT' | 'MANAGER'
+export type Role = 'CLIENT' | 'RECEPTION' | 'AGENT' | 'MANAGER'
 
-export type TicketStatus = 'WAITING' | 'CALLED' | 'SERVING' | 'COMPLETED' | 'CANCELLED' | 'ABSENT'
+// Rôles du personnel d'un établissement, et la page d'arrivée de chacun
+export const STAFF_ROLES: Role[] = ['RECEPTION', 'AGENT', 'MANAGER']
+export function homeForRole(role: Role | undefined) {
+  if (role === 'MANAGER') return '/dashboard'
+  if (role === 'AGENT') return '/agent'
+  if (role === 'RECEPTION') return '/reception'
+  return '/home'
+}
 
-export const ACTIVE_TICKET_STATUSES: TicketStatus[] = ['WAITING', 'CALLED', 'SERVING']
+export type TicketStatus = 'WAITING' | 'CALLED' | 'SERVING' | 'ON_HOLD' | 'COMPLETED' | 'CANCELLED' | 'ABSENT'
+
+// ON_HOLD : client parti chercher un document ; il garde sa place auprès du même guichet
+export const ACTIVE_TICKET_STATUSES: TicketStatus[] = ['WAITING', 'CALLED', 'SERVING', 'ON_HOLD']
 
 export type Priority = 'STANDARD' | 'PRIORITY' | 'VIP'
 
@@ -20,7 +30,7 @@ export function priorityLabel(score: number) {
 
 export const APPOINTMENT_STATUSES = ['CONFIRMED', 'COMPLETED', 'CANCELLED', 'NO_SHOW'] as const
 
-// Nom du guichet à afficher (Ticket.counterName), en attendant une table Counter dédiée
+// Nom du guichet à afficher (Ticket.counterName)
 export function counterLabel(counterName: string | null | undefined) {
   return counterName || 'Guichet 1'
 }
