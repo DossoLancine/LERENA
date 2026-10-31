@@ -6,7 +6,7 @@ import { MapPin, Save, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 
 // Dynamic import for Leaflet (SSR disabled)
-const LocationPickerMap = dynamic(() => import('@/components/LocationPickerMap'), {
+const LocationPickerMap = dynamic(() => import('@/components/maps/location-picker-map'), {
   ssr: false,
   loading: () => (
     <div className="w-full min-h-[400px] flex items-center justify-center bg-gray-100 animate-pulse rounded-2xl">

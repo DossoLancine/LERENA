@@ -1,14 +1,15 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Users, Clock, TrendingUp, TrendingDown, CheckCircle2, AlertTriangle, BarChart3, Settings, ChevronRight, Activity, User as UserIcon, X, LogOut } from 'lucide-react'
 import { signOut } from 'next-auth/react'
-import AnalyticsTab from './analytics-tab'
-import PromotionsTab from './promotions-tab'
-import SettingsTab from './settings-tab'
-import ServicesTab from './services-tab'
-import AgendaTab from './agenda-tab'
-import UserProfileForm from '@/components/user-profile-form'
+import AnalyticsTab from './_components/analytics-tab'
+import PromotionsTab from './_components/promotions-tab'
+import SettingsTab from './_components/settings-tab'
+import ServicesTab from './_components/services-tab'
+import AgendaTab from './_components/agenda-tab'
+import UserProfileForm from '@/components/profile/user-profile-form'
+import { usePolling } from '@/hooks/use-polling'
 
 const statusBadge: Record<string, string> = {
   SERVING: 'badge-serving',
@@ -27,7 +28,7 @@ const statusLabel: Record<string, string> = {
   CANCELLED: 'Annulé',
 }
 
-import { getManagerStats, toggleOrganizationStatus, getLiveQueue, getOrganizationServices } from '../actions/manager'
+import { getManagerStats, toggleOrganizationStatus, getLiveQueue, getOrganizationServices } from '@/server/actions/manager'
 
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<'overview' | 'queue' | 'agenda' | 'services' | 'analytics' | 'marketing' | 'settings'>('overview')
@@ -54,11 +55,8 @@ export default function DashboardPage() {
     }
   }
 
-  useEffect(() => {
-    fetchStats()
-    const interval = setInterval(fetchStats, 5000)
-    return () => clearInterval(interval)
-  }, [])
+  // Rafraîchissement uniquement sur les onglets qui affichent la file en direct
+  usePolling(fetchStats, 5000, activeTab === 'overview' || activeTab === 'queue')
 
   if (loading) {
     return <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -68,8 +66,8 @@ export default function DashboardPage() {
 
   const handleToggleOpen = async () => {
     if (!stats) return
-    const success = await toggleOrganizationStatus(stats.orgId, !stats.isOpen)
-    if (success) {
+    const res = await toggleOrganizationStatus(stats.orgId, !stats.isOpen)
+    if (res.success) {
       setStats({ ...stats, isOpen: !stats.isOpen })
     }
   }

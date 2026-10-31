@@ -4,7 +4,7 @@ import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Clock } from 'lucide-react'
-import PhoneInput from '@/components/phone-input'
+import PhoneInput from '@/components/ui/phone-input'
 
 function RegisterForm() {
   const router = useRouter()

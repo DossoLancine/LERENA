@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell
 } from 'recharts'
-import { getAnalyticsSummary, type AnalyticsSummary } from '../actions/analytics'
+import { getAnalyticsSummary, type AnalyticsSummary } from '@/server/actions/analytics'
 import { TrendingUp, TrendingDown, Clock, UserX, CheckCircle2, BarChart3 } from 'lucide-react'
 
 export default function AnalyticsTab() {

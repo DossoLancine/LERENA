@@ -38,7 +38,7 @@ import {
   removeMemberFromOrganization,
   resetDailyQueue,
   exportTicketsHistory
-} from '../actions/settings'
+} from '@/server/actions/settings'
 
 export default function SettingsTab() {
   const [activeSubSection, setActiveSubSection] = useState<'profile' | 'qrcode' | 'tv' | 'team' | 'data'>('profile')

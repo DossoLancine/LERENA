@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Calendar, Clock, ChevronRight, CheckCircle2 } from 'lucide-react'
-import { createAppointment } from '@/app/actions/appointments'
+import { createAppointment } from '@/server/actions/appointments'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 

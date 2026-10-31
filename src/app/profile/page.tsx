@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { ChevronRight, Bell, Shield, HelpCircle, LogOut, Clock, Star, User as UserIcon, BarChart3, Home, Compass, Ticket, Heart, X } from 'lucide-react'
 import { useSession, signOut } from 'next-auth/react'
 import { useState } from 'react'
-import UserProfileForm from '@/components/user-profile-form'
+import UserProfileForm from '@/components/profile/user-profile-form'
 
 export default function ProfilePage() {
   const { data: session, status } = useSession()

@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Plus, Settings, CheckCircle2, Clock, Users, Trash2, Power, AlertCircle, Sparkles } from 'lucide-react'
-import { getOrganizationServices } from '../actions/manager'
-import { createOrganizationService, toggleServiceStatus, deleteOrganizationService } from '../actions/services'
+import { getOrganizationServices } from '@/server/actions/manager'
+import { createOrganizationService, toggleServiceStatus, deleteOrganizationService } from '@/server/actions/services'
+import { usePolling } from '@/hooks/use-polling'
 
 export default function ServicesTab() {
   const [services, setServices] = useState<any[]>([])
@@ -30,11 +31,7 @@ export default function ServicesTab() {
     }
   }
 
-  useEffect(() => {
-    loadServices()
-    const interval = setInterval(loadServices, 5000)
-    return () => clearInterval(interval)
-  }, [])
+  usePolling(loadServices, 5000)
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()

@@ -1,42 +1,16 @@
 'use server'
 
 import { prisma } from "@/lib/prisma"
-import { getServerSession } from "next-auth/next"
-import { authOptions } from "@/lib/auth"
+import { getManagerContext } from "@/lib/session"
 import { revalidatePath } from "next/cache"
 
-// 1. Récupérer l'organisation du manager connecté
+// 1. Organisation du manager connecté (isolation stricte, sans repli)
 async function getManagerOrg() {
-  const session = await getServerSession(authOptions)
-  if (!session || (session.user as any)?.role !== 'MANAGER') {
-    return null
-  }
+  const ctx = await getManagerContext()
+  if (!ctx) return null
 
-  const userId = (session.user as any).id
-
-  // Isolation multi-tenant stricte par adhésion du manager
-  const membership = await prisma.organizationMember.findFirst({
-    where: { userId },
-    include: {
-      organization: {
-        include: {
-          branches: {
-            include: {
-              queues: true,
-              services: true
-            }
-          }
-        }
-      }
-    }
-  })
-
-  if (membership?.organization) {
-    return membership.organization
-  }
-
-  // Fallback si manager principal de l'organisation
-  return await prisma.organization.findFirst({
+  return prisma.organization.findUnique({
+    where: { id: ctx.orgId },
     include: {
       branches: {
         include: {
@@ -196,7 +170,7 @@ export async function deleteOrganizationService(serviceId: string) {
       where: { id: serviceId },
       include: {
         branch: true,
-        tickets: { select: { id: true } }
+        _count: { select: { tickets: true } }
       }
     })
 
@@ -205,7 +179,7 @@ export async function deleteOrganizationService(serviceId: string) {
     }
 
     // Si des tickets existent, on désactive pour préserver l'historique comptable
-    if (service.tickets.length > 0) {
+    if (service._count.tickets > 0) {
       await prisma.service.update({
         where: { id: serviceId },
         data: { isActive: false }

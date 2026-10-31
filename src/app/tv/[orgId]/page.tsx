@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useState, useRef, useMemo, useCallback } from 'react'
-import { getTVQueue } from '../../actions/tv'
+import { getTVQueue } from '@/server/actions/tv'
+import { usePolling } from '@/hooks/use-polling'
 import {
   Volume2,
   Tv,
@@ -164,11 +165,7 @@ export default function TVPage({ params }: { params: { orgId: string } }) {
     }
   }, [params.orgId])
 
-  useEffect(() => {
-    fetchData()
-    const pollInterval = setInterval(fetchData, 3000)
-    return () => clearInterval(pollInterval)
-  }, [fetchData])
+  usePolling(fetchData, 3000)
 
   // Moteur d'horloge absolue et de rotation multi-vidéos
   useEffect(() => {

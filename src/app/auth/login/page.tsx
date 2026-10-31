@@ -5,7 +5,7 @@ import { signIn } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Clock, Zap, Briefcase, Headphones, User } from 'lucide-react'
-import PhoneInput from '@/components/phone-input'
+import PhoneInput from '@/components/ui/phone-input'
 
 function LoginForm() {
   const router = useRouter()

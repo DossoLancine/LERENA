@@ -2,11 +2,11 @@
 import { useState, useEffect } from 'react'
 import { Search, Filter, MapPin, Clock, Users, Star, ChevronRight, PlusSquare, Scissors, Utensils, Building2, Home, Compass, Ticket, Heart, User as UserIcon, Map as MapIcon, List as ListIcon } from 'lucide-react'
 import Link from 'next/link'
-import { getOrganizations } from '../actions/orgs'
+import { getOrganizations } from '@/server/actions/orgs'
 import dynamic from 'next/dynamic'
 
 // Dynamic import for Leaflet (SSR disabled)
-const ExploreMap = dynamic(() => import('@/components/ExploreMap'), {
+const ExploreMap = dynamic(() => import('@/components/maps/explore-map'), {
   ssr: false,
   loading: () => (
     <div className="w-full h-[calc(100vh-140px)] flex items-center justify-center bg-gray-100 animate-pulse rounded-t-3xl">

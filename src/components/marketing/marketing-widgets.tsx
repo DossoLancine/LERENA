@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Star, CheckCircle2, Sparkles, Share2, Tag, Gift, X } from 'lucide-react'
-import { submitNPS, claimTicketPromotion, cancelTicketPromotion } from '@/app/actions/marketing'
+import { submitNPS, claimTicketPromotion, cancelTicketPromotion } from '@/server/actions/marketing'
 
 // ==========================================
 // 1. WIDGET NPS (Notation Post-Service)

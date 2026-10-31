@@ -1,57 +1,39 @@
 'use server'
 
 import { prisma } from "@/lib/prisma"
-import { getServerSession } from "next-auth/next"
-import { authOptions } from "@/lib/auth"
+import { getSessionUser } from "@/lib/session"
+import { distanceKm } from "@/lib/geo"
+import { PRIORITY_SCORES, type Priority } from "@/lib/constants"
 import { revalidatePath } from "next/cache"
-
-// Calcule la distance en km entre deux points GPS
-function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
-  const R = 6371;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = 
-    Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-    Math.sin(dLon/2) * Math.sin(dLon/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  return R * c;
-}
 
 export async function joinQueue(serviceId: string, orgId: string, priority: string = 'STANDARD', userLat?: number, userLng?: number) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!(session?.user as any)?.id) {
-      throw new Error("UNAUTHORIZED")
-    }
-    const userId = (session!.user as any).id
+    const sessionUser = await getSessionUser()
+    if (!sessionUser) throw new Error("UNAUTHORIZED")
 
-    // VÉRIFICATION DE LA SESSISON EN BASE DE DONNÉES
-    const validUser = await prisma.user.findUnique({
-      where: { id: userId }
-    })
-    
-    if (!validUser) {
-      throw new Error("SESSION_EXPIRED")
-    }
+    // Session obsolète (compte supprimé après une réinitialisation de la base)
+    const validUser = await prisma.user.findUnique({ where: { id: sessionUser.id }, select: { id: true } })
+    if (!validUser) throw new Error("SESSION_EXPIRED")
 
     // GEOFENCING LOGIC
     const org = await prisma.organization.findUnique({ where: { id: orgId } })
-    if (org?.requireGps) {
+    if (!org) throw new Error("Établissement introuvable")
+    if (!org.isActive) throw new Error("Cet établissement est fermé pour le moment")
+    if (org.requireGps) {
       if (!userLat || !userLng) {
         throw new Error("GPS_REQUIRED")
       }
       if (org.lat && org.lng) {
-        const distance = calculateDistance(userLat, userLng, org.lat, org.lng)
+        const distance = distanceKm(userLat, userLng, org.lat, org.lng)
         if (distance > org.maxRadiusKm) {
           throw new Error("OUT_OF_BOUNDS")
         }
       }
     }
 
-    // Find the queue associated with the service (via branch)
-    const service = await prisma.service.findUnique({
-      where: { id: serviceId },
+    // Le service doit appartenir à l'établissement demandé
+    const service = await prisma.service.findFirst({
+      where: { id: serviceId, isActive: true, branch: { organizationId: orgId } },
       include: { branch: { include: { queues: true } } }
     })
 
@@ -66,59 +48,39 @@ export async function joinQueue(serviceId: string, orgId: string, priority: stri
       q.prefix.toUpperCase() === service.name.trim()[0]?.toUpperCase()
     ) || service.branch.queues[0]
 
-    // Get last ticket number in queue
+    // Numéro attribué de façon atomique : deux clients simultanés ne reçoivent jamais le même
     const lastTicket = await prisma.ticket.findFirst({
       where: { queueId: queue.id },
-      orderBy: { number: 'desc' }
+      orderBy: { number: 'desc' },
+      select: { number: true }
     })
-
-    const newNumber = (lastTicket?.number || 0) + 1
-    const displayNum = `${queue.prefix}${newNumber.toString().padStart(3, '0')}`
-
-    // Calculate position
-    const currentWaiters = await prisma.ticket.count({
-      where: { queueId: queue.id, status: 'WAITING' }
-    })
-
-    const position = currentWaiters + 1
-
-    // Calculate priorityScore
-    let priorityScore = 1;
-    if (priority === 'VIP') priorityScore = 3;
-    else if (priority === 'PRIORITY') priorityScore = 2;
-
-    // Vérifier que le user existe bien dans la DB (sécurité contre les vieilles sessions après un reset)
-    const dbUser = await prisma.user.findUnique({
-      where: { id: userId }
-    })
-
-    let validUserId = dbUser ? dbUser.id : null;
-
-    if (!validUserId) {
-      // Si l'utilisateur n'existe plus en base (suite à un reset), on refuse avec un message clair
-      throw new Error("SESSION_EXPIRED");
+    if (lastTicket && queue.currentNum < lastTicket.number) {
+      await prisma.queue.update({ where: { id: queue.id }, data: { currentNum: lastTicket.number } })
     }
-    const guestName = session!.user?.name || 'Client'
 
-    // Create ticket
-    const ticket = await prisma.ticket.create({
-      data: {
-        queueId: queue.id,
-        serviceId: service.id,
-        userId: validUserId,
-        guestName,
-        number: newNumber,
-        displayNum,
-        priorityScore,
-        status: 'WAITING',
-        position: position
-      }
-    })
+    const priorityScore = PRIORITY_SCORES[priority as Priority] ?? PRIORITY_SCORES.STANDARD
 
-    // Update current queue currentNum
-    await prisma.queue.update({
-      where: { id: queue.id },
-      data: { currentNum: { increment: 1 } }
+    const ticket = await prisma.$transaction(async (tx) => {
+      const { currentNum: newNumber } = await tx.queue.update({
+        where: { id: queue.id },
+        data: { currentNum: { increment: 1 } },
+        select: { currentNum: true }
+      })
+      const waiting = await tx.ticket.count({ where: { queueId: queue.id, status: 'WAITING' } })
+
+      return tx.ticket.create({
+        data: {
+          queueId: queue.id,
+          serviceId: service.id,
+          userId: sessionUser.id,
+          guestName: sessionUser.name || 'Client',
+          number: newNumber,
+          displayNum: `${queue.prefix}${newNumber.toString().padStart(3, '0')}`,
+          priorityScore,
+          status: 'WAITING',
+          position: waiting + 1
+        }
+      })
     })
 
     revalidatePath(`/org/${orgId}`)
@@ -135,11 +97,11 @@ export async function joinQueue(serviceId: string, orgId: string, priority: stri
 
 export async function getUserTickets() {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user) return []
-    
+    const user = await getSessionUser()
+    if (!user) return []
+
     const tickets = await prisma.ticket.findMany({
-      where: { userId: (session.user as any).id },
+      where: { userId: user.id },
       orderBy: { createdAt: 'desc' },
       include: {
         queue: { include: { branch: { include: { organization: true } } } },

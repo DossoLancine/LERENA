@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Heart, ChevronRight, Clock, Users, PlusSquare, Scissors, Home, Compass, Ticket, User, Utensils, Building2, AlertTriangle } from 'lucide-react'
-import { getMyFavorites, toggleFavorite } from '../actions/favorites'
+import { getMyFavorites, toggleFavorite } from '@/server/actions/favorites'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 

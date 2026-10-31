@@ -1,20 +1,30 @@
 'use server'
 
 import { prisma } from "@/lib/prisma"
-import { getServerSession } from "next-auth/next"
-import { authOptions } from "@/lib/auth"
 import { revalidatePath } from "next/cache"
 import bcrypt from "bcryptjs"
+import { getManagerContext, getOrgQueueIds } from "@/lib/session"
+import { ACTIVE_TICKET_STATUSES, priorityLabel } from "@/lib/constants"
+
+// Toutes les actions de ce fichier agissent uniquement sur l'organisation du manager connecté.
+// Le paramètre orgId reçu de l'interface est vérifié, jamais utilisé tel quel.
+async function requireOwnOrg(orgId?: string) {
+  const ctx = await getManagerContext()
+  if (!ctx) return null
+  if (orgId && orgId !== ctx.orgId) return null
+  return ctx
+}
+
+const DENIED = { success: false as const, error: 'Accès non autorisé' }
 
 // 1. Récupérer tous les paramètres de l'organisation
 export async function getOrganizationSettings() {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session || (session.user as any)?.role !== 'MANAGER') {
-      return { success: false, error: 'Accès non autorisé' }
-    }
+    const ctx = await requireOwnOrg()
+    if (!ctx) return DENIED
 
-    const org = await prisma.organization.findFirst({
+    const org = await prisma.organization.findUnique({
+      where: { id: ctx.orgId },
       include: {
         branches: {
           include: {
@@ -69,13 +79,11 @@ export async function updateOrganizationProfile(orgId: string, data: {
   tvVideoDuration?: number
 }) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session || (session.user as any)?.role !== 'MANAGER') {
-      return { success: false, error: 'Accès non autorisé' }
-    }
+    const ctx = await requireOwnOrg(orgId)
+    if (!ctx) return DENIED
 
     const updated = await prisma.organization.update({
-      where: { id: orgId },
+      where: { id: ctx.orgId },
       data: {
         name: data.name,
         category: data.category,
@@ -94,8 +102,8 @@ export async function updateOrganizationProfile(orgId: string, data: {
     })
 
     revalidatePath('/dashboard')
-    revalidatePath(`/org/${orgId}`)
-    revalidatePath(`/tv/${orgId}`)
+    revalidatePath(`/org/${ctx.orgId}`)
+    revalidatePath(`/tv/${ctx.orgId}`)
     revalidatePath('/explore')
     revalidatePath('/')
 
@@ -115,61 +123,61 @@ export async function addMemberToOrganization(orgId: string, data: {
   role?: 'AGENT' | 'MANAGER'
 }) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session || (session.user as any)?.role !== 'MANAGER') {
-      return { success: false, error: 'Accès non autorisé' }
-    }
+    const ctx = await requireOwnOrg(orgId)
+    if (!ctx) return DENIED
 
     const email = data.email.trim().toLowerCase()
     const role = data.role || 'AGENT'
-    const defaultPassword = data.password && data.password.trim() ? data.password : 'password123'
-    const hashedPassword = await bcrypt.hash(defaultPassword, 10)
 
-    // Vérifier si l'utilisateur existe déjà
     let user = await prisma.user.findUnique({
-      where: { email }
+      where: { email },
+      include: { memberships: { select: { organizationId: true } } }
     })
 
+    if (user && user.memberships.some(m => m.organizationId !== ctx.orgId)) {
+      return { success: false, error: 'Ce compte appartient déjà à un autre établissement' }
+    }
+
     if (!user) {
+      const defaultPassword = data.password && data.password.trim() ? data.password : 'password123'
       user = await prisma.user.create({
         data: {
           email,
           name: data.name,
           phone: data.phone || null,
-          password: hashedPassword,
-          role: role
-        }
+          password: await bcrypt.hash(defaultPassword, 10),
+          role
+        },
+        include: { memberships: { select: { organizationId: true } } }
       })
     } else {
-      // Mettre à jour le rôle si nécessaire
       await prisma.user.update({
         where: { id: user.id },
         data: {
-          role: role,
+          role,
           ...(data.name ? { name: data.name } : {}),
           ...(data.phone ? { phone: data.phone } : {})
         }
       })
     }
 
-    // Lier à l'organisation
     await prisma.organizationMember.upsert({
       where: {
         userId_organizationId: {
           userId: user.id,
-          organizationId: orgId
+          organizationId: ctx.orgId
         }
       },
       update: { role },
       create: {
         userId: user.id,
-        organizationId: orgId,
+        organizationId: ctx.orgId,
         role
       }
     })
 
     revalidatePath('/dashboard')
-    return { success: true, user }
+    return { success: true, user: { id: user.id, name: user.name, email: user.email, role } }
   } catch (error: any) {
     console.error('addMemberToOrganization error:', error)
     return { success: false, error: error.message || 'Erreur lors de l’ajout du collaborateur' }
@@ -179,14 +187,13 @@ export async function addMemberToOrganization(orgId: string, data: {
 // 4. Retirer un agent / membre de l'organisation
 export async function removeMemberFromOrganization(memberId: string) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session || (session.user as any)?.role !== 'MANAGER') {
-      return { success: false, error: 'Accès non autorisé' }
-    }
+    const ctx = await requireOwnOrg()
+    if (!ctx) return DENIED
 
-    await prisma.organizationMember.delete({
-      where: { id: memberId }
+    const res = await prisma.organizationMember.deleteMany({
+      where: { id: memberId, organizationId: ctx.orgId, userId: { not: ctx.userId } }
     })
+    if (res.count === 0) return { success: false, error: 'Membre introuvable' }
 
     revalidatePath('/dashboard')
     return { success: true }
@@ -203,14 +210,22 @@ export async function updateQueueConfig(queueId: string, data: {
   status?: string
 }) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session || (session.user as any)?.role !== 'MANAGER') {
-      return { success: false, error: 'Accès non autorisé' }
-    }
+    const ctx = await requireOwnOrg()
+    if (!ctx) return DENIED
+
+    const queue = await prisma.queue.findFirst({
+      where: { id: queueId, branch: { organizationId: ctx.orgId } },
+      select: { id: true }
+    })
+    if (!queue) return { success: false, error: 'File introuvable' }
 
     const updated = await prisma.queue.update({
-      where: { id: queueId },
-      data
+      where: { id: queue.id },
+      data: {
+        ...(data.name !== undefined ? { name: data.name } : {}),
+        ...(data.prefix !== undefined ? { prefix: data.prefix } : {}),
+        ...(data.status !== undefined ? { status: data.status } : {})
+      }
     })
 
     revalidatePath('/dashboard')
@@ -224,29 +239,15 @@ export async function updateQueueConfig(queueId: string, data: {
 // 6. Réinitialiser la file du jour (clôture des tickets non servis)
 export async function resetDailyQueue(orgId: string) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session || (session.user as any)?.role !== 'MANAGER') {
-      return { success: false, error: 'Accès non autorisé' }
-    }
+    const ctx = await requireOwnOrg(orgId)
+    if (!ctx) return DENIED
 
-    const org = await prisma.organization.findUnique({
-      where: { id: orgId },
-      include: {
-        branches: {
-          include: { queues: true }
-        }
-      }
-    })
+    const queueIds = await getOrgQueueIds(ctx.orgId)
 
-    if (!org) return { success: false, error: 'Organisation introuvable' }
-
-    const queueIds = org.branches.flatMap(b => b.queues.map(q => q.id))
-
-    // Marquer tous les tickets en attente ou appelés comme annulés ou terminés
     const res = await prisma.ticket.updateMany({
       where: {
         queueId: { in: queueIds },
-        status: { in: ['WAITING', 'CALLED', 'SERVING'] }
+        status: { in: ACTIVE_TICKET_STATUSES }
       },
       data: {
         status: 'COMPLETED',
@@ -256,7 +257,7 @@ export async function resetDailyQueue(orgId: string) {
 
     revalidatePath('/dashboard')
     revalidatePath('/agent')
-    revalidatePath(`/tv/${orgId}`)
+    revalidatePath(`/tv/${ctx.orgId}`)
 
     return { success: true, count: res.count }
   } catch (error: any) {
@@ -268,52 +269,33 @@ export async function resetDailyQueue(orgId: string) {
 // 7. Exporter l'historique des tickets en format structuré pour CSV
 export async function exportTicketsHistory(orgId: string) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session || (session.user as any)?.role !== 'MANAGER') {
-      return { success: false, error: 'Accès non autorisé' }
-    }
+    const ctx = await requireOwnOrg(orgId)
+    if (!ctx) return DENIED
 
-    const org = await prisma.organization.findUnique({
-      where: { id: orgId },
+    const tickets = await prisma.ticket.findMany({
+      where: { queue: { branch: { organizationId: ctx.orgId } } },
+      orderBy: { createdAt: 'desc' },
+      take: 500,
       include: {
-        branches: {
-          include: {
-            queues: {
-              include: {
-                tickets: {
-                  include: {
-                    service: true,
-                    user: true
-                  },
-                  orderBy: { createdAt: 'desc' },
-                  take: 500
-                }
-              }
-            }
-          }
-        }
+        service: { select: { name: true } },
+        user: { select: { name: true, phone: true } }
       }
     })
 
-    if (!org) return { success: false, error: 'Organisation introuvable' }
-
-    const tickets = org.branches.flatMap(b =>
-      b.queues.flatMap(q =>
-        q.tickets.map(t => ({
-          id: t.id,
-          number: t.displayNum,
-          service: t.service?.name || 'N/A',
-          client: t.guestName || t.user?.name || 'Anonyme',
-          phone: t.guestPhone || t.user?.phone || 'N/A',
-          status: t.status,
-          priority: t.priorityScore === 3 ? 'VIP' : t.priorityScore === 2 ? 'PMR/Prioritaire' : 'Standard',
-          nps: t.npsScore ? `${t.npsScore}/5` : 'Non noté',
-          date: t.createdAt.toISOString()
-        }))
-      )
-    )
-
-    return { success: true, tickets }
+    return {
+      success: true,
+      tickets: tickets.map(t => ({
+        id: t.id,
+        number: t.displayNum,
+        service: t.service?.name || 'N/A',
+        client: t.guestName || t.user?.name || 'Anonyme',
+        phone: t.user?.phone || 'N/A',
+        status: t.status,
+        priority: priorityLabel(t.priorityScore),
+        nps: t.npsScore ? `${t.npsScore}/5` : 'Non noté',
+        date: t.createdAt.toISOString()
+      }))
+    }
   } catch (error: any) {
     console.error('exportTicketsHistory error:', error)
     return { success: false, error: error.message || 'Erreur export' }

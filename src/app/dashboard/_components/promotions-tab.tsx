@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Plus, Trash2, Tag, ImageIcon } from 'lucide-react'
-import { getManagerPromotions, createPromotion, deletePromotion } from '../actions/marketing'
+import { getManagerPromotions, createPromotion, deletePromotion } from '@/server/actions/marketing'
 
 export default function PromotionsTab() {
   const [promos, setPromos] = useState<any[]>([])

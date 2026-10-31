@@ -1,6 +1,7 @@
 'use server'
 
 import { prisma } from "@/lib/prisma"
+import { ACTIVE_TICKET_STATUSES, decodeCounter } from "@/lib/constants"
 
 export async function getTVQueue(orgId: string) {
   try {
@@ -13,10 +14,13 @@ export async function getTVQueue(orgId: string) {
               include: {
                 tickets: {
                   where: {
-                    status: { in: ['WAITING', 'CALLED', 'SERVING'] }
+                    status: { in: ACTIVE_TICKET_STATUSES }
                   },
                   orderBy: { number: 'asc' },
-                  include: { service: true, user: true }
+                  include: {
+                    service: { select: { name: true } },
+                    user: { select: { name: true } }
+                  }
                 }
               }
             }
@@ -38,7 +42,7 @@ export async function getTVQueue(orgId: string) {
 
     const mapTicket = (t: any) => ({
       ...t,
-      counter: t.guestPhone?.startsWith('G-') ? t.guestPhone.replace('G-', '') : 'Guichet 1'
+      counter: decodeCounter(t.guestPhone)
     })
 
     // Sort: CALLED and SERVING first, then WAITING

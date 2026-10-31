@@ -5,8 +5,8 @@ import Link from 'next/link'
 import { Search, Compass, Ticket, Heart, User as UserIcon, Home as HomeIcon, MapPin, Clock, Users, PlusSquare, Scissors, Utensils, Building2, ChevronRight } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { getOrganizations } from '../actions/orgs'
-import { getUserTickets } from '../actions/tickets'
+import { getOrganizations } from '@/server/actions/orgs'
+import { getUserTickets } from '@/server/actions/tickets'
 
 export default function HomePage() {
   const { data: session, status } = useSession()

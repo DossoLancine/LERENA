@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react'
 import { Users, Clock, CheckCircle2, SkipForward, UserX, Play, Square, ChevronDown, Megaphone, PartyPopper, User as UserIcon, X, LogOut, Monitor, Edit2 } from 'lucide-react'
 
-import { getAgentQueue, updateTicketStatus, getAgentStats } from '../actions/agent'
+import { getAgentQueue, updateTicketStatus, getAgentStats } from '@/server/actions/agent'
 import { useSession, signOut } from 'next-auth/react'
-import UserProfileForm from '@/components/user-profile-form'
+import UserProfileForm from '@/components/profile/user-profile-form'
+import { usePolling } from '@/hooks/use-polling'
 
 export default function AgentPage() {
   const { data: session } = useSession()
@@ -42,10 +43,9 @@ export default function AgentPage() {
       setIsLoading(false)
     }
 
-    fetchQueue()
-    const interval = setInterval(fetchQueue, 5000)
-    return () => clearInterval(interval)
   }, [])
+
+  usePolling(fetchQueue, 5000)
 
   const saveDeskName = () => {
     if (!deskInput.trim()) return

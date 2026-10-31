@@ -23,10 +23,11 @@ const TIMELINE_STEPS = [
   { key: 'done',        label: 'Terminé',               activeFor: ['COMPLETED'] },
 ]
 
-import { getTicketById } from '../../actions/tickets'
-import { getPromotionsByOrg } from '../../actions/marketing'
-import { PushNotification } from '@/components/push-notification'
-import { NPSWidget, PromoCarousel } from '@/components/marketing-widgets'
+import { getTicketById } from '@/server/actions/tickets'
+import { getPromotionsByOrg } from '@/server/actions/marketing'
+import { PushNotification } from '@/components/ui/push-notification'
+import { NPSWidget, PromoCarousel } from '@/components/marketing/marketing-widgets'
+import { usePolling } from '@/hooks/use-polling'
 import { useRef } from 'react'
 
 export default function TicketPage({ params }: { params: { id: string } }) {
@@ -68,21 +69,15 @@ export default function TicketPage({ params }: { params: { id: string } }) {
   }, [params.id, ticket])
 
   // Initial fetch and Real-time polling
+  usePolling(fetchTicket, 5000)
+
   useEffect(() => {
-    fetchTicket()
-    const interval = setInterval(() => {
-      fetchTicket()
-    }, 5000)
-    
     const timeInterval = setInterval(() => {
       setSecondsAgo(s => s + 1)
     }, 1000)
 
-    return () => {
-      clearInterval(interval)
-      clearInterval(timeInterval)
-    }
-  }, [fetchTicket])
+    return () => clearInterval(timeInterval)
+  }, [])
 
   if (loading) {
     return <div className="min-h-screen bg-gray-50 flex items-center justify-center">

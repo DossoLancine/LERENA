@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { Clock, Home, Compass, Ticket, Heart, User } from 'lucide-react'
 
 import { useEffect, useState } from 'react'
-import { getUserTickets } from '../actions/tickets'
+import { getUserTickets } from '@/server/actions/tickets'
 
 export default function TicketsPage() {
   const [tickets, setTickets] = useState<any[]>([])

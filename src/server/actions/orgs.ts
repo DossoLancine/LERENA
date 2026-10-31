@@ -1,19 +1,7 @@
 'use server'
 
 import { prisma } from "@/lib/prisma"
-
-// Calcule la distance en km entre deux points GPS
-function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
-  const R = 6371;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a =
-    Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-    Math.sin(dLon/2) * Math.sin(dLon/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  return R * c;
-}
+import { distanceKm, formatDistance } from "@/lib/geo"
 
 export async function getOrganizations(search?: string, userLat?: number, userLng?: number) {
   try {
@@ -25,17 +13,30 @@ export async function getOrganizations(search?: string, userLat?: number, userLn
         ]
       } : undefined,
       include: {
-        branches: { include: { queues: true } }
+        branches: {
+          select: {
+            queues: { select: { id: true } },
+            services: { where: { isActive: true }, select: { avgDurationMin: true } }
+          }
+        }
       }
     })
 
-    // ✅ FIX N+1: 1 seule requête groupée pour tous les scores NPS
-    const allNpsStats = await prisma.ticket.groupBy({
-      by: ['queueId'],
-      where: { npsScore: { not: null } },
-      _avg: { npsScore: true },
-      _count: { npsScore: true }
-    })
+    // Requêtes groupées (pas de N+1) : notes NPS et personnes en attente par file
+    const [allNpsStats, waitingByQueue] = await Promise.all([
+      prisma.ticket.groupBy({
+        by: ['queueId'],
+        where: { npsScore: { not: null } },
+        _avg: { npsScore: true },
+        _count: { npsScore: true }
+      }),
+      prisma.ticket.groupBy({
+        by: ['queueId'],
+        where: { status: 'WAITING' },
+        _count: { _all: true }
+      })
+    ])
+    const waitingMap = new Map(waitingByQueue.map(w => [w.queueId, w._count._all]))
 
     const queueToOrg = await prisma.queue.findMany({
       where: { id: { in: allNpsStats.map(s => s.queueId) } },
@@ -55,9 +56,11 @@ export async function getOrganizations(search?: string, userLat?: number, userLn
     }
 
     const formattedOrgs = orgs.map(org => {
-      const totalWait = org.branches.reduce((acc, branch) => {
-        return acc + branch.queues.reduce((qAcc, q) => qAcc + (q.currentNum * 15), 0)
-      }, 0)
+      // Attente estimée = personnes en file × durée moyenne des services de l'établissement
+      const waitingCount = org.branches.reduce((acc, b) => acc + b.queues.reduce((q, queue) => q + (waitingMap.get(queue.id) ?? 0), 0), 0)
+      const durations = org.branches.flatMap(b => b.services.map(sv => sv.avgDurationMin))
+      const avgDuration = durations.length ? durations.reduce((a, d) => a + d, 0) / durations.length : 15
+      const waitMin = Math.round(waitingCount * avgDuration)
 
       const nps = orgNpsMap.get(org.id)
       const rating = nps && nps.count > 0 ? Number((nps.totalScore / nps.count).toFixed(1)) : 0
@@ -73,8 +76,8 @@ export async function getOrganizations(search?: string, userLat?: number, userLn
       let distanceNum = Infinity;
       let distanceStr = "";
       if (userLat && userLng && org.lat && org.lng) {
-        distanceNum = calculateDistance(userLat, userLng, org.lat, org.lng);
-        distanceStr = distanceNum < 1 ? `${Math.round(distanceNum * 1000)} m` : `${distanceNum.toFixed(1)} km`;
+        distanceNum = distanceKm(userLat, userLng, org.lat, org.lng);
+        distanceStr = formatDistance(distanceNum);
       }
 
       return {
@@ -83,7 +86,9 @@ export async function getOrganizations(search?: string, userLat?: number, userLn
         category: org.category,
         distanceNum,
         distance: distanceStr,
-        waitRange: totalWait > 0 ? `${totalWait}-${totalWait + 10} min` : "0-10 min",
+        waitMin,
+        waitingCount,
+        waitRange: waitMin > 0 ? `${waitMin}-${waitMin + 10} min` : "0-10 min",
         isOpen: org.isActive,
         lat: org.lat,
         lng: org.lng,
@@ -134,8 +139,8 @@ export async function getOrganizationById(id: string, userLat?: number, userLng?
     let distanceStr = "À proximité";
     let distanceNum = Infinity;
     if (userLat && userLng && org.lat && org.lng) {
-      distanceNum = calculateDistance(userLat, userLng, org.lat, org.lng);
-      distanceStr = distanceNum < 1 ? `${Math.round(distanceNum * 1000)} m` : `${distanceNum.toFixed(1)} km`;
+      distanceNum = distanceKm(userLat, userLng, org.lat, org.lng);
+      distanceStr = formatDistance(distanceNum);
     }
 
     return {

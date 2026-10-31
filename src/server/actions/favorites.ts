@@ -1,18 +1,17 @@
 'use server'
 
 import { prisma } from "@/lib/prisma"
-import { getServerSession } from "next-auth/next"
-import { authOptions } from "@/lib/auth"
+import { getSessionUser } from "@/lib/session"
 import { revalidatePath } from "next/cache"
 
 export async function toggleFavorite(orgId: string) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user) {
+    const user = await getSessionUser()
+    if (!user) {
       return { success: false, error: 'UNAUTHORIZED' }
     }
 
-    const userId = (session.user as any).id
+    const userId = user.id
 
     const existingFavorite = await prisma.favorite.findUnique({
       where: {
@@ -49,10 +48,10 @@ export async function toggleFavorite(orgId: string) {
 
 export async function checkIsFavorite(orgId: string) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user) return false
+    const user = await getSessionUser()
+    if (!user) return false
 
-    const userId = (session.user as any).id
+    const userId = user.id
     const count = await prisma.favorite.count({
       where: {
         userId,
@@ -67,10 +66,10 @@ export async function checkIsFavorite(orgId: string) {
 
 export async function getMyFavorites() {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user) return []
+    const user = await getSessionUser()
+    if (!user) return []
 
-    const userId = (session.user as any).id
+    const userId = user.id
 
     const favorites = await prisma.favorite.findMany({
       where: { userId },

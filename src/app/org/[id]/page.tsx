@@ -4,11 +4,11 @@ import { useState, useEffect } from 'react'
 import { ArrowLeft, MapPin, Clock, Users, Star, ChevronRight, Heart, Share2, CheckCircle2, PlusSquare, Scissors, Utensils, Building2, Ticket, MousePointer2, AlertTriangle, User as UserIcon, CalendarDays } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { getOrganizationById } from '../../actions/orgs'
-import { joinQueue } from '../../actions/tickets'
-import { toggleFavorite, checkIsFavorite } from '../../actions/favorites'
+import { getOrganizationById } from '@/server/actions/orgs'
+import { joinQueue } from '@/server/actions/tickets'
+import { toggleFavorite, checkIsFavorite } from '@/server/actions/favorites'
 import { useSession, signOut } from 'next-auth/react'
-import AppointmentBookingForm from '@/components/AppointmentBookingForm'
+import AppointmentBookingForm from '@/components/booking/appointment-booking-form'
 
 export default function OrgPage({ params }: { params: { id: string } }) {
   const { data: session } = useSession()

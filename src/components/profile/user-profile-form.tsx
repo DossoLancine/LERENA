@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { updateUserProfile, getUserProfile } from '@/app/actions/user'
+import { updateUserProfile, getUserProfile } from '@/server/actions/user'
 import { User as UserIcon, Phone, Mail, Lock, Save, Loader2, CheckCircle2 } from 'lucide-react'
-import PhoneInput from '@/components/phone-input'
+import PhoneInput from '@/components/ui/phone-input'
 
 export default function UserProfileForm({ theme = 'orange' }: { theme?: 'orange' | 'blue' | 'indigo' }) {
   const [loading, setLoading] = useState(true)

@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Calendar, User, Phone, Edit2, CheckCircle2, XCircle } from 'lucide-react'
-import { getAppointments, updateAppointmentStatus } from '@/app/actions/appointments'
+import { getAppointments, updateAppointmentStatus } from '@/server/actions/appointments'
+import { usePolling } from '@/hooks/use-polling'
 
 export default function AgendaTab({ orgId }: { orgId: string }) {
   const [appointments, setAppointments] = useState<any[]>([])
@@ -16,11 +17,7 @@ export default function AgendaTab({ orgId }: { orgId: string }) {
     setLoading(false)
   }
 
-  useEffect(() => {
-    fetchAppointments()
-    const interval = setInterval(fetchAppointments, 15000)
-    return () => clearInterval(interval)
-  }, [orgId])
+  usePolling(fetchAppointments, 15000)
 
   const handleUpdateStatus = async (id: string, status: string) => {
     await updateAppointmentStatus(id, status)

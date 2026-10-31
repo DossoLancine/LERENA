@@ -1,8 +1,7 @@
 'use server'
 
 import { prisma } from "@/lib/prisma"
-import { getServerSession } from "next-auth/next"
-import { authOptions } from "@/lib/auth"
+import { getManagerContext } from "@/lib/session"
 
 export interface HourlyData {
   hour: number
@@ -27,33 +26,22 @@ export interface AnalyticsSummary {
 
 export async function getAnalyticsSummary(): Promise<AnalyticsSummary | null> {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session || (session.user as any).role !== 'MANAGER') {
-      return null
-    }
+    const ctx = await getManagerContext()
+    if (!ctx) return null
 
-    // Get all tickets for the first org (MVP — manager scoped)
-    const org = await prisma.organization.findFirst({
-      include: {
-        branches: {
-          include: {
-            queues: {
-              include: {
-                tickets: {
-                  include: { service: true }
-                }
-              }
-            }
-          }
-        }
+    // 90 derniers jours de l'organisation du manager connecté
+    const since = new Date(Date.now() - 90 * 24 * 3600 * 1000)
+    const allTickets = await prisma.ticket.findMany({
+      where: { queue: { branch: { organizationId: ctx.orgId } }, createdAt: { gte: since } },
+      select: {
+        serviceId: true,
+        status: true,
+        createdAt: true,
+        startedAt: true,
+        completedAt: true,
+        service: { select: { name: true } }
       }
     })
-
-    if (!org) return null
-
-    const allTickets = org.branches.flatMap(b =>
-      b.queues.flatMap(q => q.tickets)
-    )
 
     const totalTickets = allTickets.length
 
