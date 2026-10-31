@@ -33,6 +33,7 @@ import { useWakeLock } from '@/hooks/use-wake-lock'
 import { haptics, playChime, unlockAudio } from '@/lib/haptics'
 import { counterLabel } from '@/lib/constants'
 import { PushOptIn } from '@/components/ticket/push-opt-in'
+import { LeaveNowCard, SpeakPositionButton } from '@/components/ticket/leave-now-card'
 import { NPSWidget, PromoCarousel } from '@/components/marketing/marketing-widgets'
 import { usePolling } from '@/hooks/use-polling'
 import { useOrgRealtime } from '@/hooks/use-org-realtime'
@@ -128,6 +129,13 @@ export default function TicketPage({ params }: { params: { id: string } }) {
   const counterName = counterLabel(ticket.counterName)
   const waitMin = Math.max(0, position * (ticket.service?.avgDurationMin || 15))
   const waitLabel = position === 0 ? 'Maintenant' : `${waitMin}–${waitMin + 10} min`
+  const ahead = Math.max(0, position - 1)
+  const spokenText = ticket.status === 'CALLED'
+    ? `Ticket ${ticket.displayNum}. C'est votre tour. Présentez-vous au ${counterName}.`
+    : ticket.status === 'WAITING'
+      ? `Ticket ${ticket.displayNum}. ${ahead === 0 ? 'Vous êtes le prochain.' : `${ahead} personne${ahead > 1 ? 's' : ''} devant vous.`} Attente estimée : ${waitLabel}.`
+      : `Ticket ${ticket.displayNum}.`
+  const org = ticket.queue?.branch?.organization
 
   const handleShare = async () => {
     haptics.tap()
@@ -155,13 +163,11 @@ export default function TicketPage({ params }: { params: { id: string } }) {
       {/* Header */}
       <div className="bg-white border-b border-gray-100 sticky top-0 z-20">
         <div className="max-w-lg mx-auto px-4 py-4 flex items-center justify-between">
-          <button onClick={() => router.back()} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center">
+          <button onClick={() => router.back()} aria-label="Retour" className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center">
             <ArrowLeft size={18} className="text-gray-700" />
           </button>
           <h1 className="font-bold text-gray-900">Mon ticket</h1>
-          <button className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center">
-            <Share2 size={16} className="text-gray-600" />
-          </button>
+          <SpeakPositionButton text={spokenText} />
         </div>
       </div>
 
@@ -206,6 +212,11 @@ export default function TicketPage({ params }: { params: { id: string } }) {
 
         {/* Alertes push : prévenu même téléphone verrouillé */}
         {ticket.status === 'WAITING' && <PushOptIn ticketId={ticket.id} />}
+
+        {/* Partez au bon moment : trajet comparé à l'attente restante */}
+        {ticket.status === 'WAITING' && position > 0 && (
+          <LeaveNowCard orgLat={org?.lat ?? null} orgLng={org?.lng ?? null} waitMin={waitMin} />
+        )}
 
         {/* Timeline */}
         <div className="bg-white rounded-2xl border border-gray-100 p-5">

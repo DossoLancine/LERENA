@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { getManagerContext, getSessionUser } from '@/lib/session'
 import { APPOINTMENT_STATUSES } from '@/lib/constants'
+import { bookableDays, isSlotAvailable, slotsForDay } from '@/lib/slots'
 
 export async function createAppointment(orgId: string, serviceId: string, scheduledDate: Date) {
   const user = await getSessionUser()
@@ -22,6 +23,11 @@ export async function createAppointment(orgId: string, serviceId: string, schedu
   if (!service) return { success: false, error: 'Service introuvable' }
   if (service.branch.organization.bookingMode === 'QUEUE_ONLY') {
     return { success: false, error: "Cet établissement ne prend pas de rendez-vous" }
+  }
+
+  // Le créneau doit exister dans les horaires et être encore libre (pas de double réservation)
+  if (!(await isSlotAvailable(orgId, serviceId, date))) {
+    return { success: false, error: 'Ce créneau vient d’être pris ou n’est plus disponible. Choisissez-en un autre.' }
   }
 
   try {
@@ -87,4 +93,14 @@ export async function updateAppointmentStatus(id: string, status: string) {
     console.error(error)
     return { success: false, error: 'Failed to update status' }
   }
+}
+
+/** Jours réservables pour un service (deux prochaines semaines). */
+export async function getBookingDays(orgId: string, serviceId: string) {
+  return bookableDays(orgId, serviceId)
+}
+
+/** Créneaux d'une journée pour un service, libres ou pris. */
+export async function getAvailableSlots(orgId: string, serviceId: string, day: string) {
+  return slotsForDay(orgId, serviceId, day)
 }

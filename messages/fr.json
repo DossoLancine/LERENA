@@ -161,5 +161,27 @@
     "deleteTitle": "Supprimer votre compte ?",
     "deleteText": "Vos informations personnelles seront effacées. Vos tickets passés restent anonymes dans les statistiques des établissements. Cette action est définitive.",
     "deleteConfirm": "Supprimer"
+  },
+  "booking": {
+    "pickService": "Choisissez d’abord un service ci-dessus.",
+    "pickDay": "Choisir une date",
+    "pickTime": "Heures disponibles",
+    "noDays": "Aucun jour disponible à la réservation pour ce service.",
+    "dayFull": "Cette journée est complète. Choisissez un autre jour.",
+    "confirm": "Valider le rendez-vous",
+    "loginToBook": "Se connecter pour réserver",
+    "accountNeeded": "Un compte est nécessaire pour gérer vos rendez-vous.",
+    "confirmed": "Rendez-vous confirmé !",
+    "confirmedText": "Votre réservation chez {org} est validée."
+  },
+  "leaveNow": {
+    "cta": "Quand dois-je partir ?",
+    "hint": "Calcul de votre trajet jusqu’à l’établissement",
+    "locating": "Calcul du trajet…",
+    "denied": "Position indisponible : autorisez la localisation pour ce calcul.",
+    "now": "Partez maintenant",
+    "inMinutes": "Partez dans environ {minutes} min",
+    "travel": "Trajet estimé : {minutes} min",
+    "speak": "Lire ma position à voix haute"
   }
 }

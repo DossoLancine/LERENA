@@ -1,157 +1,132 @@
 'use client'
 
-import { useState } from 'react'
-import { Calendar, Clock, ChevronRight, CheckCircle2 } from 'lucide-react'
-import { createAppointment } from '@/server/actions/appointments'
+import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
+import { Calendar, Clock, CheckCircle2, ChevronRight } from 'lucide-react'
+import { createAppointment, getAvailableSlots, getBookingDays } from '@/server/actions/appointments'
+import { Button, Card } from '@/components/ui'
+import { cn } from '@/lib/cn'
+import { haptics } from '@/lib/haptics'
+import { t } from '@/lib/i18n'
 
-export default function AppointmentBookingForm({ orgId, serviceId, orgName }: { orgId: string, serviceId: string | null, orgName: string }) {
+/** Réservation sur les créneaux réels : horaires de l'agence, durée du service, rendez-vous déjà pris. */
+export default function AppointmentBookingForm({ orgId, serviceId, orgName }: { orgId: string; serviceId: string | null; orgName: string }) {
   const router = useRouter()
   const { data: session } = useSession()
-  const [selectedDate, setSelectedDate] = useState<string>('')
-  const [selectedTime, setSelectedTime] = useState<string>('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [days, setDays] = useState<string[] | null>(null)
+  const [day, setDay] = useState('')
+  const [slots, setSlots] = useState<{ time: string; available: boolean }[] | null>(null)
+  const [time, setTime] = useState('')
+  const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Generate some dummy slots for the demo (every 30 mins from 9am to 5pm)
-  const timeSlots = [
-    '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
-    '14:00', '14:30', '15:00', '15:30', '16:00', '16:30'
-  ]
+  useEffect(() => {
+    setDays(null); setDay(''); setSlots(null); setTime('')
+    if (serviceId) getBookingDays(orgId, serviceId).then(setDays)
+  }, [orgId, serviceId])
 
-  // Next 7 days
-  const getNextDays = () => {
-    const days = []
-    for (let i = 1; i <= 7; i++) {
-      const d = new Date()
-      d.setDate(d.getDate() + i)
-      // Skip sunday
-      if (d.getDay() !== 0) {
-        days.push({
-          date: d.toISOString().split('T')[0],
-          dayName: d.toLocaleDateString('fr-FR', { weekday: 'short' }),
-          dayNum: d.getDate()
-        })
-      }
-    }
-    return days
-  }
-  const nextDays = getNextDays()
+  useEffect(() => {
+    setSlots(null); setTime('')
+    if (serviceId && day) getAvailableSlots(orgId, serviceId, day).then(setSlots)
+  }, [orgId, serviceId, day])
 
-  const handleBook = async () => {
-    if (!serviceId) {
-      setError("Veuillez sélectionner un service d'abord.")
-      return
-    }
-    if (!selectedDate || !selectedTime) {
-      setError("Veuillez sélectionner une date et une heure.")
-      return
-    }
-
+  const book = async () => {
+    if (!serviceId || !day || !time) return
     if (!session?.user) {
       router.push(`/auth/login?callbackUrl=/org/${orgId}`)
       return
     }
-
-    setIsSubmitting(true)
+    haptics.tap()
+    setSubmitting(true)
     setError(null)
-
-    // Construct full date
-    const [hours, minutes] = selectedTime.split(':')
-    const scheduledDate = new Date(selectedDate)
-    scheduledDate.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0)
-
-    const res = await createAppointment(orgId, serviceId, scheduledDate)
-    
+    const res = await createAppointment(orgId, serviceId, new Date(`${day}T${time}:00Z`))
     if (res.success) {
+      haptics.success()
       setSuccess(true)
-      setTimeout(() => {
-        router.push('/tickets') // Redirect to tickets/appointments list page (to be renamed/adapted)
-      }, 2000)
-    } else {
-      setError(res.error || "Erreur lors de la réservation.")
-      setIsSubmitting(false)
+      setTimeout(() => router.push('/tickets'), 1800)
+      return
     }
+    setError(res.error ?? t('errors.generic.title'))
+    setSubmitting(false)
+    // Le créneau a pu être pris entre-temps : on rafraîchit la liste
+    getAvailableSlots(orgId, serviceId, day).then(setSlots)
   }
 
   if (success) {
     return (
-      <div className="bg-white rounded-2xl border border-green-100 p-6 mb-4 text-center">
-        <CheckCircle2 size={48} className="text-green-500 mx-auto mb-3" />
-        <h3 className="text-lg font-bold text-gray-900 mb-1">Rendez-vous confirmé !</h3>
-        <p className="text-sm text-gray-500">Votre réservation chez {orgName} est validée.</p>
-      </div>
+      <Card className="mb-4 p-6 text-center animate-pop-in">
+        <CheckCircle2 size={48} className="mx-auto mb-3 text-success" />
+        <h3 className="mb-1 text-lg font-bold text-ink">{t('booking.confirmed')}</h3>
+        <p className="text-sm text-ink-muted">{t('booking.confirmedText', { org: orgName })}</p>
+      </Card>
     )
   }
 
+  if (!serviceId) {
+    return <Card className="mb-4 p-4 text-sm text-ink-muted">{t('booking.pickService')}</Card>
+  }
+
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-4 mb-4">
-      <h2 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-        <Calendar size={18} className="text-orange-500" />
-        Choisir une date
-      </h2>
-      
-      {/* Date Selector (Horizontal Scroll) */}
-      <div className="flex gap-2 overflow-x-auto pb-2 hide-scrollbar mb-4">
-        {nextDays.map((day) => (
-          <button
-            key={day.date}
-            onClick={() => { setSelectedDate(day.date); setSelectedTime('') }}
-            className={`flex flex-col items-center justify-center p-3 min-w-[70px] rounded-xl border-2 transition-all ${
-              selectedDate === day.date
-                ? 'border-orange-500 bg-orange-50 text-orange-600'
-                : 'border-gray-100 hover:border-gray-200 text-gray-600'
-            }`}
-          >
-            <span className="text-xs font-medium uppercase">{day.dayName}</span>
-            <span className="text-xl font-bold">{day.dayNum}</span>
-          </button>
-        ))}
-      </div>
+    <Card className="mb-4 p-4">
+      <h2 className="mb-3 flex items-center gap-2 font-semibold text-ink"><Calendar size={18} className="text-brand" />{t('booking.pickDay')}</h2>
 
-      {selectedDate && (
-        <>
-          <h2 className="font-semibold text-gray-900 mb-3 flex items-center gap-2 mt-2">
-            <Clock size={18} className="text-orange-500" />
-            Heures disponibles
-          </h2>
-          <div className="grid grid-cols-4 gap-2 mb-4">
-            {timeSlots.map((time) => (
-              <button
-                key={time}
-                onClick={() => setSelectedTime(time)}
-                className={`py-2 px-1 text-sm font-semibold rounded-lg border-2 transition-all ${
-                  selectedTime === time
-                    ? 'border-orange-500 bg-orange-50 text-orange-600'
-                    : 'border-gray-100 hover:border-gray-200 text-gray-700'
-                }`}
-              >
-                {time}
+      {days === null ? (
+        <div className="mb-4 flex gap-2">{Array.from({ length: 5 }, (_, i) => <div key={i} className="h-16 w-[70px] animate-pulse rounded-xl bg-gray-200/80" />)}</div>
+      ) : days.length === 0 ? (
+        <p className="mb-4 text-sm text-ink-muted">{t('booking.noDays')}</p>
+      ) : (
+        <div className="hide-scrollbar mb-4 flex gap-2 overflow-x-auto pb-2" role="radiogroup" aria-label={t('booking.pickDay')}>
+          {days.map(d => {
+            const date = new Date(`${d}T12:00:00Z`)
+            const active = day === d
+            return (
+              <button key={d} role="radio" aria-checked={active} onClick={() => { haptics.tap(); setDay(d) }}
+                className={cn('flex min-w-[70px] flex-col items-center justify-center rounded-xl border-2 p-3 transition-all active:scale-95',
+                  active ? 'border-brand bg-brand-50 text-brand-700' : 'border-surface-line text-ink-muted hover:border-gray-200')}>
+                <span className="text-xs font-medium uppercase">{date.toLocaleDateString('fr-FR', { weekday: 'short', timeZone: 'UTC' })}</span>
+                <span className="text-xl font-bold">{date.getUTCDate()}</span>
+                <span className="text-[10px]">{date.toLocaleDateString('fr-FR', { month: 'short', timeZone: 'UTC' })}</span>
               </button>
-            ))}
-          </div>
-        </>
-      )}
-
-      {error && (
-        <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm text-center rounded-lg">
-          {error}
+            )
+          })}
         </div>
       )}
 
-      <button
-        onClick={handleBook}
-        disabled={!selectedDate || !selectedTime || isSubmitting || !serviceId}
-        className="w-full bg-gray-900 text-white font-bold py-3.5 rounded-2xl text-sm flex items-center justify-center gap-2 hover:bg-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {isSubmitting ? (
-          <span className="animate-pulse">Réservation...</span>
-        ) : (
-          <>Valider le Rendez-vous <ChevronRight size={16} /></>
-        )}
-      </button>
-    </div>
+      {day && (
+        <>
+          <h2 className="mb-3 mt-2 flex items-center gap-2 font-semibold text-ink"><Clock size={18} className="text-brand" />{t('booking.pickTime')}</h2>
+          {slots === null ? (
+            <div className="mb-4 grid grid-cols-4 gap-2">{Array.from({ length: 8 }, (_, i) => <div key={i} className="h-10 animate-pulse rounded-lg bg-gray-200/80" />)}</div>
+          ) : slots.every(s => !s.available) ? (
+            <p className="mb-4 text-sm text-ink-muted">{t('booking.dayFull')}</p>
+          ) : (
+            <div className="mb-4 grid grid-cols-4 gap-2" role="radiogroup" aria-label={t('booking.pickTime')}>
+              {slots.map(s => (
+                <button key={s.time} role="radio" aria-checked={time === s.time} disabled={!s.available}
+                  onClick={() => { haptics.tap(); setTime(s.time) }}
+                  className={cn('min-h-[44px] rounded-lg border-2 px-1 text-sm font-semibold transition-all active:scale-95 disabled:cursor-not-allowed disabled:border-transparent disabled:bg-gray-50 disabled:text-gray-300 disabled:line-through',
+                    time === s.time ? 'border-brand bg-brand-50 text-brand-700' : 'border-surface-line text-gray-700 hover:border-gray-200')}>
+                  {s.time}
+                </button>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {error && <p role="alert" className="mb-4 rounded-lg bg-danger-soft p-3 text-center text-sm text-danger-ink">{error}</p>}
+
+      <Button variant="dark" size="lg" fullWidth loading={submitting} disabled={!day || !time} onClick={book}>
+        {session?.user ? t('booking.confirm') : t('booking.loginToBook')} <ChevronRight size={16} />
+      </Button>
+      {!session?.user && (
+        <p className="mt-3 text-center text-xs text-ink-muted">
+          {t('booking.accountNeeded')} <Link href="/auth/register" className="font-semibold text-brand">{t('tickets.createAccount')}</Link>
+        </p>
+      )}
+    </Card>
   )
 }
