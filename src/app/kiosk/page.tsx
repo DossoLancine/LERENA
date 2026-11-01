@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import QRCode from 'qrcode'
 import {
   Ticket, Users, Clock,
-  Volume2, ArrowLeft, UserRound, Accessibility, WifiOff, Hand
+  Volume2, ArrowLeft, WifiOff, Hand, Loader2, ChevronRight
 } from 'lucide-react'
 import { PairingScreen, readDeviceToken, adoptDeviceRole } from '@/components/devices/pairing-screen'
 import { getDeviceStatus, getKioskBoard, issueKioskTicket } from '@/server/actions/devices'
@@ -18,7 +18,8 @@ import { t } from '@/lib/i18n'
 
 type Board = NonNullable<Awaited<ReturnType<typeof getKioskBoard>>>
 type Issued = Extract<Awaited<ReturnType<typeof issueKioskTicket>>, { success: true }>['ticket']
-type Step = 'welcome' | 'service' | 'priority' | 'ticket'
+// Pas d'étape « priorité » : à la borne, tout le monde prend un ticket normal (les priorités se donnent à l'accueil)
+type Step = 'welcome' | 'service' | 'ticket'
 
 const IDLE_MS = 30_000
 const TICKET_SCREEN_MS = 15_000
@@ -98,13 +99,14 @@ export default function KioskPage() {
     setStep('service')
   }
 
-  const issue = async (priorityId: string | null, sid: string | null = serviceId) => {
-    if (!token || !sid || busy) return
+  const issue = async (sid: string) => {
+    if (!token || busy) return
     haptics.tap()
+    setServiceId(sid)
     setBusy(true)
     setError(null)
     try {
-      const res = await issueKioskTicket(token, sid, priorityId)
+      const res = await issueKioskTicket(token, sid)
       if (!res.success) {
         setError(res.error)
         return
@@ -135,10 +137,11 @@ export default function KioskPage() {
     }} />
   }
 
-  const service = board?.services.find(s => s.id === serviceId)
+  // Beaucoup de services : bandeaux plus compacts pour tout voir sans faire défiler
+  const dense = (board?.services.length ?? 0) > 9
 
   return (
-    <main className="flex min-h-screen select-none flex-col bg-surface-sunken" onPointerDown={step === 'welcome' ? undefined : touch}>
+    <main className="flex h-[100dvh] select-none flex-col overflow-hidden bg-surface-sunken" onPointerDown={step === 'welcome' ? undefined : touch}>
       {/* Ticket imprimé (format 80 mm) */}
       {issued && (
         <div className="hidden print:block">
@@ -153,13 +156,13 @@ export default function KioskPage() {
         </div>
       )}
 
-      <header className="flex items-center justify-between bg-white px-8 py-5 shadow-card print:hidden">
+      <header className="flex shrink-0 items-center justify-between bg-white px-5 py-4 shadow-card md:px-8 md:py-5 print:hidden">
         <span className="flex items-center gap-3 text-2xl font-black text-ink">
           <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand text-white"><Ticket size={24} /></span>
           {board?.orgName ?? 'ATTENDS'}
         </span>
         {step !== 'welcome' && step !== 'ticket' && (
-          <button onClick={() => (step === 'priority' ? setStep('service') : reset())}
+          <button onClick={reset}
             className="flex min-h-touch items-center gap-2 rounded-2xl bg-gray-100 px-6 text-lg font-semibold text-ink">
             <ArrowLeft size={22} /> {t('kiosk.back')}
           </button>
@@ -172,7 +175,7 @@ export default function KioskPage() {
         </p>
       )}
 
-      <section className="flex flex-1 flex-col items-center justify-center p-8 print:hidden">
+      <section className={cn('flex min-h-0 flex-1 flex-col items-center p-4 md:p-6 print:hidden', step === 'service' ? 'justify-start' : 'justify-center')}>
         {!board ? (
           <div className="h-16 w-16 animate-spin rounded-full border-4 border-brand border-t-transparent" aria-busy="true" />
         ) : !board.isOpen ? (
@@ -188,63 +191,42 @@ export default function KioskPage() {
             <span className="mt-4 text-2xl text-white/85">{t('kiosk.touchText')}</span>
           </button>
         ) : step === 'service' ? (
-          /* Écran 1 : service */
-          <div className="w-full max-w-5xl">
-            <h1 className="mb-8 text-center text-4xl font-black text-ink">{t('kiosk.chooseService')}</h1>
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          /* Écran 1 : service — bandeaux horizontaux, 1 à 3 colonnes selon la largeur de la tablette */
+          <div className="flex min-h-0 w-full max-w-7xl flex-1 flex-col">
+            <h1 className={cn('mb-4 text-center font-black text-ink md:mb-6 [@media(max-height:700px)]:mb-3 [@media(max-height:700px)]:text-2xl', dense ? 'text-3xl' : 'text-4xl')}>{t('kiosk.chooseService')}</h1>
+            {error && <p role="alert" className="mb-4 rounded-2xl bg-danger-soft p-4 text-center text-lg font-semibold text-danger-ink">{error}</p>}
+            <ul className={cn('stagger grid content-start gap-3 overflow-y-auto overscroll-contain pb-4 md:grid-cols-2', board.services.length > 6 && 'xl:grid-cols-3')}>
               {board.services.map(s => {
                 // Pictogramme choisi pour le service (sinon celui du secteur) : la borne se comprend sans lire
                 const Icon = iconFor(s.icon, 'ticket')
+                const loading = busy && serviceId === s.id
                 return (
-                  <div key={s.id} className="relative">
-                    <button onClick={() => {
-                        haptics.tap()
-                        setServiceId(s.id)
-                        // Sans motif de priorité défini par l'établissement, le ticket sort directement
-                        if (board.priorities.length === 0) issue(null, s.id)
-                        else setStep('priority')
-                      }}
-                      className="flex min-h-[200px] w-full flex-col items-center justify-center gap-4 rounded-3xl border-2 border-surface-line bg-white p-6 text-center shadow-card active:border-brand">
-                      <Icon size={56} className="text-brand" />
-                      <span className="text-2xl font-bold text-ink">{s.name}</span>
-                      <span className="flex items-center gap-4 text-base text-ink-muted">
-                        <span className="flex items-center gap-1"><Users size={16} />{s.waiting}</span>
-                        <span className="flex items-center gap-1"><Clock size={16} />~{s.waitMin} min</span>
+                  <li key={s.id} className="flex items-stretch gap-2">
+                    <button onClick={() => issue(s.id)} disabled={busy}
+                      className={cn('flex min-w-0 flex-1 items-center gap-4 rounded-2xl border-2 bg-white px-4 text-left shadow-card disabled:opacity-60',
+                        dense ? 'min-h-[76px] py-2 [@media(max-height:700px)]:min-h-[64px]' : 'min-h-[96px] py-3',
+                        loading ? 'border-brand' : 'border-surface-line active:border-brand')}>
+                      <span className={cn('flex shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand', dense ? 'h-12 w-12' : 'h-14 w-14')}>
+                        {loading ? <Loader2 size={dense ? 26 : 30} className="animate-spin" aria-hidden="true" /> : <Icon size={dense ? 26 : 30} aria-hidden="true" />}
                       </span>
+                      <span className="min-w-0 flex-1">
+                        <span lang="fr" className={cn('block font-bold leading-tight text-ink line-clamp-2 break-words hyphens-auto', dense ? 'text-xl' : 'text-2xl')}>{s.name}</span>
+                        <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 whitespace-nowrap text-sm text-ink-muted">
+                          <span className="flex items-center gap-1"><Users size={14} aria-hidden="true" />{s.waiting} en attente</span>
+                          <span className="flex items-center gap-1"><Clock size={14} aria-hidden="true" />~{s.waitMin} min</span>
+                        </span>
+                      </span>
+                      <ChevronRight size={22} className="shrink-0 text-ink-subtle" aria-hidden="true" />
                     </button>
                     <button onClick={() => speak(`${s.name}. ${s.waiting} personne${s.waiting > 1 ? 's' : ''} en attente.`)}
                       aria-label={t('kiosk.listen', { name: s.name })}
-                      className="absolute right-3 top-3 flex h-12 w-12 items-center justify-center rounded-full bg-info-soft text-info">
+                      className="flex w-12 shrink-0 items-center justify-center rounded-2xl bg-info-soft text-info">
                       <Volume2 size={22} />
                     </button>
-                  </div>
+                  </li>
                 )
               })}
-            </div>
-          </div>
-        ) : step === 'priority' ? (
-          /* Écran 2 : priorité */
-          <div className="w-full max-w-4xl text-center">
-            <h1 className="text-4xl font-black text-ink">{t('kiosk.priorityTitle')}</h1>
-            <p className="mt-2 text-xl text-ink-muted">{service?.name}</p>
-            <div className="mt-10 grid gap-5 sm:grid-cols-2">
-              <button onClick={() => issue(null)} disabled={busy}
-                className="flex min-h-[220px] flex-col items-center justify-center gap-4 rounded-3xl bg-brand p-8 text-white shadow-raised disabled:opacity-60 sm:row-span-2">
-                <UserRound size={64} />
-                <span className="text-3xl font-black">{t('kiosk.standard')}</span>
-              </button>
-              {/* Motifs de priorité définis par l'établissement */}
-              <div className="stagger grid gap-3">
-                {board.priorities.map(p => (
-                  <button key={p.id} onClick={() => issue(p.id)} disabled={busy}
-                    className="flex min-h-[88px] items-center gap-4 rounded-3xl border-4 border-info bg-white px-6 text-left text-info-ink shadow-card disabled:opacity-60">
-                    <Accessibility size={40} className="shrink-0" />
-                    <span className="text-2xl font-black">{p.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-            {error && <p role="alert" className="mt-6 rounded-2xl bg-danger-soft p-4 text-lg font-semibold text-danger-ink">{error}</p>}
+            </ul>
           </div>
         ) : issued ? (
           /* Écran 3 : ticket */
