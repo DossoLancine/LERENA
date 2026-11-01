@@ -48,7 +48,7 @@ export default function DashboardOverviewPage() {
 
   return (
     <>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="stagger grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label={t('dashboard.kpi.waiting')} value={stats?.currentWaiting ?? 0} icon={<Users size={18} className="text-brand" />} />
         <StatCard
           label={t('dashboard.kpi.longestWait')}
@@ -130,7 +130,7 @@ export default function DashboardOverviewPage() {
           {liveQueue.length === 0 ? (
             <p className="p-6 text-center text-xs text-ink-subtle">{t('dashboard.noActiveTicket')}</p>
           ) : (
-            <ul className="divide-y divide-surface-line">
+            <ul className="stagger divide-y divide-surface-line">
               {liveQueue.slice(0, 6).map(ticket => (
                 <li key={ticket.id} className="flex items-center justify-between px-5 py-3">
                   <div className="flex min-w-0 items-center gap-3">
@@ -155,7 +155,7 @@ export default function DashboardOverviewPage() {
           {services.length === 0 ? (
             <EmptyState title={t('dashboard.noService')} />
           ) : (
-            <ul className="divide-y divide-surface-line">
+            <ul className="stagger divide-y divide-surface-line">
               {services.map(svc => (
                 <li key={svc.id} className="px-5 py-4">
                   <div className="mb-2 flex items-center justify-between">

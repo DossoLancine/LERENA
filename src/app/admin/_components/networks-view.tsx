@@ -55,7 +55,7 @@ export function NetworksView({ networks }: { networks: Networks }) {
         {networks.length === 0 ? (
           <EmptyState icon={<Network size={40} />} title="Aucun réseau" description="Créez un réseau puis rattachez-y ses établissements depuis l’onglet Établissements." />
         ) : (
-          <ul className="divide-y divide-surface-line">
+          <ul className="stagger divide-y divide-surface-line">
             {networks.map(n => (
               <li key={n.id} className="flex flex-col gap-3 px-5 py-4 md:flex-row md:items-start">
                 <div className="min-w-0 flex-1">

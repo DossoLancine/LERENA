@@ -208,7 +208,7 @@ export default function AgentPage() {
             <div className="grid grid-cols-2 gap-3">
               {counters.map(c => (
                 <button key={c.id} onClick={() => chooseCounter({ id: c.id, name: c.name })}
-                  className="min-h-touch rounded-2xl border-2 border-surface-line p-4 font-bold text-ink transition-all hover:border-brand active:scale-95">
+                  className="min-h-touch rounded-2xl border-2 border-surface-line p-4 font-bold text-ink transition-all hover:border-brand">
                   {c.name}
                 </button>
               ))}
@@ -232,7 +232,7 @@ export default function AgentPage() {
     onClick: () => void; icon: React.ReactNode; label: string; shortcut: string; tone?: 'neutral' | 'good' | 'bad' | 'brand'
   }) => (
     <button key={label} onClick={onClick} title={`${label} (${shortcut.toUpperCase()})`}
-      className={cn('flex min-h-touch flex-col items-center justify-center gap-1 rounded-2xl px-2 py-3 text-xs font-semibold transition-all active:scale-95',
+      className={cn('flex min-h-touch flex-col items-center justify-center gap-1 rounded-2xl px-2 py-3 text-xs font-semibold transition-all',
         tone === 'good' && 'bg-success text-white',
         tone === 'bad' && (dark ? 'bg-red-900/40 text-red-300' : 'bg-danger-soft text-danger-ink'),
         tone === 'brand' && 'bg-brand text-white',
@@ -334,7 +334,7 @@ export default function AgentPage() {
             <div className="text-center">
               <p className={cn('mb-4 text-sm', muted)}>{waiting.length > 0 ? t('agent.noCurrent') : t('agent.nobodyWaiting')}</p>
               <button onClick={callNext} disabled={waiting.length === 0}
-                className="flex w-full min-h-touch items-center justify-center gap-2 rounded-2xl bg-brand py-5 text-lg font-bold text-white shadow-raised transition-all active:scale-[0.98] disabled:opacity-40">
+                className="flex w-full min-h-touch items-center justify-center gap-2 rounded-2xl bg-brand py-5 text-lg font-bold text-white shadow-raised transition-all disabled:opacity-40">
                 <Megaphone size={22} /> {t('agent.callNext')}
                 <kbd className="rounded bg-white/20 px-2 text-xs">Espace</kbd>
               </button>
@@ -347,7 +347,7 @@ export default function AgentPage() {
         {onHold.length > 0 && (
           <section className={cn('mb-4 rounded-card border p-4', surface)}>
             <p className={cn('mb-2 text-xs font-semibold uppercase tracking-wider', muted)}>{t('agent.onHold')}</p>
-            <ul className="space-y-2">
+            <ul className="stagger space-y-2">
               {onHold.map(tk => (
                 <li key={tk.id} className="flex items-center justify-between gap-2">
                   <span className={cn('font-mono font-bold', strong)}>{tk.displayNum} <span className={cn('font-sans text-sm font-normal', muted)}>{tk.guestName}</span></span>
@@ -400,7 +400,7 @@ export default function AgentPage() {
           <div className="grid grid-cols-2 gap-2">
             {services.filter(s => s.id !== current?.serviceId).map(s => (
               <button key={s.id} onClick={() => doTransfer(s.id)}
-                className="min-h-touch rounded-xl border-2 border-surface-line p-3 text-sm font-semibold text-ink transition-all hover:border-brand active:scale-95">
+                className="min-h-touch rounded-xl border-2 border-surface-line p-3 text-sm font-semibold text-ink transition-all hover:border-brand">
                 {s.name}
               </button>
             ))}

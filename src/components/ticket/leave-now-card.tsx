@@ -77,7 +77,7 @@ export function SpeakPositionButton({ text }: { text: string }) {
 
   return (
     <button onClick={speak} aria-label={t('leaveNow.speak')} title={t('leaveNow.speak')}
-      className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-gray-700 active:scale-95">
+      className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-gray-700">
       <Volume2 size={17} />
     </button>
   )

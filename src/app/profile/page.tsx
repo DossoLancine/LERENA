@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { useSession, signOut } from 'next-auth/react'
 import { LogOut, Type, Contrast, Languages, Bell, Trash2, BarChart3, Headset, Pencil } from 'lucide-react'
 import UserProfileForm from '@/components/profile/user-profile-form'
-import { ClientNav } from '@/components/navigation/client-nav'
 import { Button, Card, Dialog, BottomSheet, useToast } from '@/components/ui'
 import { getMySummary, deleteMyAccount } from '@/server/actions/me'
 import { readPreferences, savePreferences, type Preferences, type TextSize } from '@/lib/preferences'
@@ -113,7 +112,7 @@ export default function ProfilePage() {
                   role="radio"
                   aria-checked={prefs.textSize === size.value}
                   onClick={() => updatePrefs({ ...prefs, textSize: size.value })}
-                  className={cn('min-h-touch rounded-xl border-2 font-semibold transition-all active:scale-95', size.sample,
+                  className={cn('min-h-touch rounded-xl border-2 font-semibold transition-all', size.sample,
                     prefs.textSize === size.value ? 'border-brand bg-brand-50 text-brand-700' : 'border-surface-line text-ink-muted')}
                 >
                   {t(size.label)}
@@ -145,11 +144,11 @@ export default function ProfilePage() {
         {/* Accès professionnels */}
         {(role === 'AGENT' || role === 'MANAGER') && (
           <Card className="grid grid-cols-2 gap-2 p-3">
-            <Link href="/agent" className="flex flex-col items-center gap-2 rounded-xl bg-info-soft p-3 text-info-ink active:scale-95">
+            <Link href="/agent" className="flex flex-col items-center gap-2 rounded-xl bg-info-soft p-3 text-info-ink">
               <Headset size={26} /><span className="text-xs font-semibold">{t('profile.agentSpace')}</span>
             </Link>
             {role === 'MANAGER' && (
-              <Link href="/dashboard" className="flex flex-col items-center gap-2 rounded-xl bg-brand-50 p-3 text-brand-700 active:scale-95">
+              <Link href="/dashboard" className="flex flex-col items-center gap-2 rounded-xl bg-brand-50 p-3 text-brand-700">
                 <BarChart3 size={26} /><span className="text-xs font-semibold">{t('dashboard.eyebrow')}</span>
               </Link>
             )}
@@ -186,7 +185,6 @@ export default function ProfilePage() {
         </div>
       </BottomSheet>
 
-      <ClientNav />
     </div>
   )
 }

@@ -8,7 +8,6 @@ import { Heart, ChevronRight, Clock, Users, Home, Compass, Ticket, User, AlertTr
 import { getMyFavorites, toggleFavorite } from '@/server/actions/favorites'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { ClientNav } from '@/components/navigation/client-nav'
 
 export default function FavoritesPage() {
   const { data: session, status } = useSession()
@@ -60,7 +59,7 @@ export default function FavoritesPage() {
         </div>
       </div>
       
-      <div className="max-w-lg mx-auto px-4 py-6 space-y-3 pb-24">
+      <div className="stagger max-w-lg mx-auto px-4 py-6 space-y-3 pb-24">
         {favorites.length === 0 ? (
           <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center flex flex-col items-center">
             <Heart size={48} className="text-gray-200 mb-4" />
@@ -73,7 +72,7 @@ export default function FavoritesPage() {
         ) : (
           favorites.map((org) => (
             <Link key={org.id} href={`/org/${org.id}`}>
-              <div className="bg-white rounded-2xl border border-gray-100 p-4 hover:shadow-md transition-all flex items-center gap-3 relative overflow-hidden group">
+              <div className="bg-white rounded-2xl border border-gray-100 p-4 lift flex items-center gap-3 relative overflow-hidden group">
                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl ${org.color}`}>
                   <DynamicIcon name={org.icon} size={24} />
                 </div>
@@ -106,7 +105,6 @@ export default function FavoritesPage() {
           ))
         )}
       </div>
-      <ClientNav />
     </div>
   )
 }

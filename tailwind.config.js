@@ -4,6 +4,9 @@ module.exports = {
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+    // Couleurs des secteurs (src/lib/icons.tsx) et classes construites dans les utilitaires
+    './src/lib/**/*.{js,ts,jsx,tsx}',
+    './src/hooks/**/*.{js,ts,jsx,tsx}',
   ],
   theme: {
     extend: {
@@ -52,6 +55,14 @@ module.exports = {
       boxShadow: {
         card: '0 1px 2px rgba(17, 24, 39, 0.04), 0 1px 3px rgba(17, 24, 39, 0.06)',
         raised: '0 10px 30px -10px rgba(17, 24, 39, 0.25)',
+      },
+      // Transitions par défaut : sortie douce, alignée sur le système de mouvement (globals.css)
+      transitionTimingFunction: {
+        DEFAULT: 'cubic-bezier(0.22, 1, 0.36, 1)',
+        spring: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+      },
+      transitionDuration: {
+        DEFAULT: '220ms',
       },
       minHeight: {
         touch: '48px',

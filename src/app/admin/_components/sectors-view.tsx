@@ -46,7 +46,7 @@ export function SectorsView({ data }: { data: Data }) {
           subtitle="Filtres de l’application, pictogrammes et services proposés à la création d’un site"
           action={<Button size="sm" icon={<Plus size={16} />} onClick={() => setDraft(NEW_DRAFT)}>Nouveau secteur</Button>}
         />
-        <ul className="divide-y divide-surface-line">
+        <ul className="stagger divide-y divide-surface-line">
           {data.sectors.map(s => (
             <li key={s.id} className="flex items-center gap-3 px-5 py-3">
               <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-xl', sectorColor(s.color).soft)}>

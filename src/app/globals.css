@@ -16,8 +16,8 @@
 }
 
 :root {
-  --orange: #F97316;
-  --orange-dark: #EA580C;
+  --orange: #C2410C;
+  --orange-dark: #9A3412;
   --blue-deep: #1E3A5F;
   --blue-mid: #2563EB;
   --green: #22C55E;
@@ -45,10 +45,10 @@ body {
 
 @layer components {
   .btn-primary {
-    @apply bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white font-semibold py-3 px-6 rounded-2xl transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.97];
+    @apply bg-brand hover:bg-brand-600 active:bg-brand-700 text-white font-semibold py-3 px-6 rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed;
   }
   .btn-secondary {
-    @apply bg-white border border-gray-200 hover:bg-gray-50 text-gray-900 font-semibold py-3 px-6 rounded-2xl transition-all duration-150 active:scale-[0.97];
+    @apply bg-white border border-gray-200 hover:bg-gray-50 text-gray-900 font-semibold py-3 px-6 rounded-2xl;
   }
   .card {
     @apply bg-white rounded-2xl shadow-sm border border-gray-100 p-4;
@@ -85,29 +85,137 @@ body {
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 16px); }
 .safe-top { padding-top: env(safe-area-inset-top, 0px); }
 
-/* ---------- Mouvement et retours visuels (phase 2) ---------- */
+/* ---------- Système de mouvement ----------
+   Trois courbes, trois durées : tout ce qui bouge dans l'app en dérive.
+   - ressort : un objet qui répond au doigt (relâchement d'un bouton, apparition d'une carte)
+   - sortie : un panneau qui arrive et se pose (volets, fenêtres, pages)
+   - standard : changements d'état discrets (couleurs, ombres)
+*/
+:root {
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur-fast: 140ms;
+  --dur-base: 240ms;
+  --dur-slow: 420ms;
+}
 
-/* Entrée de page : opacité seule, pour ne pas décaler les barres fixées en bas d'écran */
+/* Retour tactile universel : tout élément cliquable s'enfonce sous le doigt et rebondit au relâchement.
+   La propriété « scale » se combine avec les transformations existantes (centrage, translations). */
+:where(button, a, [role='button'], summary, label[for], select) {
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    scale var(--dur-base) var(--ease-spring),
+    background-color var(--dur-fast) var(--ease-standard),
+    color var(--dur-fast) var(--ease-standard),
+    border-color var(--dur-fast) var(--ease-standard),
+    box-shadow var(--dur-base) var(--ease-standard),
+    opacity var(--dur-fast) var(--ease-standard);
+}
+:is(button, [role='button'], summary):not(:disabled):active { scale: 0.96; transition-duration: 80ms; }
+/* Les liens-cartes s'enfoncent moins : ce sont de grandes surfaces */
+:is(a):active { scale: 0.985; transition-duration: 80ms; }
+
+/* Les utilitaires Tailwind « transition-* » gardent leur effet, et le retour tactile (scale) rebondit partout :
+   quand une propriété apparaît deux fois dans la liste, la dernière occurrence s'applique. */
+.transition-all { transition-property: all, scale; transition-timing-function: var(--ease-out), var(--ease-spring); transition-duration: 220ms, var(--dur-base); }
+.transition-colors { transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, scale; transition-timing-function: var(--ease-standard), var(--ease-standard), var(--ease-standard), var(--ease-standard), var(--ease-standard), var(--ease-standard), var(--ease-spring); transition-duration: var(--dur-fast), var(--dur-fast), var(--dur-fast), var(--dur-fast), var(--dur-fast), var(--dur-fast), var(--dur-base); }
+.transition-transform { transition-property: transform, scale; transition-timing-function: var(--ease-out), var(--ease-spring); transition-duration: 220ms, var(--dur-base); }
+
+/* Cartes cliquables : légère élévation au survol (souris), enfoncement au toucher */
+.lift {
+  transition: scale var(--dur-base) var(--ease-spring), box-shadow var(--dur-base) var(--ease-standard), translate var(--dur-base) var(--ease-out);
+}
+@media (hover: hover) {
+  .lift:hover { translate: 0 -2px; box-shadow: 0 12px 28px -12px rgba(17, 24, 39, 0.18); }
+}
+/* L'enfoncement vient du lien qui entoure la carte ; ici on annule seulement l'élévation */
+.lift:active { translate: 0 0; transition-duration: 80ms; }
+
+/* Champs : l'anneau de focus apparaît en douceur */
+:where(input, textarea, select) { transition: box-shadow var(--dur-base) var(--ease-out), border-color var(--dur-fast) var(--ease-standard), background-color var(--dur-fast) var(--ease-standard); }
+
+/* Entrée de page : opacité seule ; ni transformation ni filtre,
+   pour ne pas décrocher les barres fixées en bas d'écran */
 @keyframes page-in {
   from { opacity: 0; }
   to { opacity: 1; }
 }
-.animate-page-in { animation: page-in 180ms ease-out both; }
+.animate-page-in { animation: page-in var(--dur-base) var(--ease-out) both; }
 
-/* Apparition « ressort » d'un élément (ticket créé, alerte) */
+/* Apparition « ressort » (ticket créé, alerte, fenêtre) */
 @keyframes pop-in {
-  0% { opacity: 0; transform: scale(0.92); }
-  60% { opacity: 1; transform: scale(1.02); }
-  100% { opacity: 1; transform: scale(1); }
+  from { opacity: 0; transform: scale(0.9) translateY(6px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
 }
-.animate-pop-in { animation: pop-in 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.animate-pop-in { animation: pop-in var(--dur-slow) var(--ease-spring) both; }
 
-/* Montée depuis le bas pour les éléments d'une liste */
+@keyframes pop-out {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(0.96) translateY(4px); }
+}
+.animate-pop-out { animation: pop-out 160ms var(--ease-standard) both; }
+
+/* Montée depuis le bas (éléments de liste, notifications) */
 @keyframes rise-in {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
 }
-.animate-rise-in { animation: rise-in 240ms ease-out both; }
+.animate-rise-in { animation: rise-in var(--dur-slow) var(--ease-out) both; }
+
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fade-out { from { opacity: 1; } to { opacity: 0; } }
+.animate-fade-in { animation: fade-in var(--dur-base) var(--ease-standard) both; }
+.animate-fade-out { animation: fade-out 160ms var(--ease-standard) both; }
+
+/* Cascade : les enfants directs entrent l'un après l'autre (12 premiers échelonnés, les suivants ensemble) */
+.stagger > * { animation: rise-in var(--dur-slow) var(--ease-out) both; }
+/* Les liens sont « inline » par défaut : sans bloc, ils ne peuvent pas se déplacer */
+.stagger > a { display: block; }
+.stagger > *:nth-child(1) { animation-delay: 0ms; }
+.stagger > *:nth-child(2) { animation-delay: 35ms; }
+.stagger > *:nth-child(3) { animation-delay: 70ms; }
+.stagger > *:nth-child(4) { animation-delay: 105ms; }
+.stagger > *:nth-child(5) { animation-delay: 140ms; }
+.stagger > *:nth-child(6) { animation-delay: 175ms; }
+.stagger > *:nth-child(7) { animation-delay: 210ms; }
+.stagger > *:nth-child(8) { animation-delay: 245ms; }
+.stagger > *:nth-child(9) { animation-delay: 280ms; }
+.stagger > *:nth-child(10) { animation-delay: 315ms; }
+.stagger > *:nth-child(11) { animation-delay: 350ms; }
+.stagger > *:nth-child(n + 12) { animation-delay: 385ms; }
+
+/* Chargement : reflet qui balaie le squelette, plus vivant qu'un clignotement */
+@keyframes shimmer { from { background-position: 150% 0; } to { background-position: -50% 0; } }
+.shimmer {
+  background: linear-gradient(100deg, #eceef1 30%, #f7f8fa 50%, #eceef1 70%);
+  background-size: 200% 100%;
+  animation: shimmer 1.3s linear infinite;
+}
+
+/* Barre de progression de navigation, en haut de l'écran */
+@keyframes nav-progress {
+  0% { transform: scaleX(0); }
+  40% { transform: scaleX(0.55); }
+  100% { transform: scaleX(0.9); }
+}
+.nav-progress { transform-origin: left; animation: nav-progress 2.4s var(--ease-out) forwards; }
+
+/* Icône qui rebondit quand l'onglet devient actif */
+@keyframes icon-bounce {
+  0% { transform: scale(1); }
+  35% { transform: scale(0.82); }
+  70% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+.animate-icon-bounce { animation: icon-bounce 460ms var(--ease-spring); }
+
+/* Valeur qui vient de changer : petit éclat pour attirer l'œil */
+@keyframes value-flash {
+  0% { transform: translateY(6px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+.animate-value { display: inline-block; animation: value-flash var(--dur-base) var(--ease-spring); }
 
 /* Onde autour du numéro appelé */
 @keyframes ripple {
@@ -116,13 +224,25 @@ body {
 }
 .animate-ripple { animation: ripple 1.8s ease-out infinite; }
 
-/* Retour tactile : le bouton s'enfonce légèrement sous le doigt */
-.pressable { transition: transform 120ms ease, opacity 120ms ease; }
-.pressable:active { transform: scale(0.97); }
+/* Coche de confirmation qui se dessine */
+@keyframes draw { to { stroke-dashoffset: 0; } }
+.animate-draw { stroke-dasharray: 48; stroke-dashoffset: 48; animation: draw 520ms var(--ease-out) 120ms forwards; }
 
+/* Ancienne classe, conservée : le retour tactile est désormais global */
+.pressable { transition: scale var(--dur-base) var(--ease-spring); }
+.pressable:active { scale: 0.97; }
+
+/* Mouvement réduit : on garde les fondus (repères utiles), on supprime déplacements, rebonds et boucles */
 @media (prefers-reduced-motion: reduce) {
-  .animate-page-in, .animate-pop-in, .animate-rise-in, .animate-ripple { animation: none; }
-  .pressable:active { transform: none; }
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
+    transition-duration: 1ms !important;
+  }
+  :is(button, a, [role='button'], summary):active, .pressable:active { scale: none; }
+  .lift:hover { translate: none; }
+  .shimmer { animation: none; }
 }
 
 /* ---------- Contraste élevé (préférence de l'usager) ---------- */

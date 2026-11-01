@@ -12,7 +12,7 @@ export default async function AdminHealthPage() {
 
   return (
     <>
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+      <div className="stagger grid grid-cols-2 gap-3 md:grid-cols-3">
         <StatCard label="Établissements" value={c.orgs} />
         <StatCard label="Comptes" value={c.users.toLocaleString('fr-FR')} />
         <StatCard label="Tickets aujourd’hui" value={c.ticketsToday.toLocaleString('fr-FR')} />
@@ -22,7 +22,7 @@ export default async function AdminHealthPage() {
 
       <Card>
         <CardHeader title="Services" subtitle={`Vérifié le ${new Date(health.checkedAt).toLocaleString('fr-FR')}`} />
-        <ul className="divide-y divide-surface-line">
+        <ul className="stagger divide-y divide-surface-line">
           {health.services.map(s => (
             <li key={s.name} className="flex items-center gap-3 px-5 py-3">
               {s.ok

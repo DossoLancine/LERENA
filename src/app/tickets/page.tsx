@@ -8,7 +8,6 @@ import { getUserTickets } from '@/server/actions/tickets'
 import { getGuestTickets } from '@/server/actions/guest'
 import { cancelMyAppointment, getMyAppointments } from '@/server/actions/me'
 import { getGuestTicketIds } from '@/lib/guest-tickets'
-import { ClientNav } from '@/components/navigation/client-nav'
 import { Card, EmptyState, TicketStatusBadge, Button, useToast } from '@/components/ui'
 import { ListPageSkeleton } from '@/components/ui/skeletons'
 import { ACTIVE_TICKET_STATUSES } from '@/lib/constants'
@@ -87,7 +86,7 @@ export default function TicketsPage() {
               />
             </Card>
           ) : (
-            <ul className="space-y-3">
+            <ul className="stagger space-y-3">
               {active.map(tk => (
                 <li key={tk.id} className="animate-rise-in">
                   <Link href={`/ticket/${tk.id}`} className="pressable block rounded-card border-2 border-brand-200 bg-white p-4 shadow-card">
@@ -108,7 +107,7 @@ export default function TicketsPage() {
         {appointments.length > 0 && (
           <section aria-labelledby="appt-title">
             <h2 id="appt-title" className="mb-3 text-xs font-semibold uppercase tracking-wider text-ink-subtle">{t('tickets.appointments')}</h2>
-            <ul className="space-y-3">
+            <ul className="stagger space-y-3">
               {appointments.map(a => (
                 <li key={a.id}>
                   <Card className="flex items-center gap-3 p-4">
@@ -149,7 +148,7 @@ export default function TicketsPage() {
                     </div>
                     <TicketStatusBadge status={tk.status} />
                     <Link href={`/org/${tk.orgId}`} aria-label={t('tickets.again', { org: tk.orgName })} title={t('tickets.again', { org: tk.orgName })}
-                      className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-50 text-brand-600 active:scale-95">
+                      className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-50 text-brand-600">
                       <RotateCcw size={16} />
                     </Link>
                   </Card>
@@ -167,7 +166,6 @@ export default function TicketsPage() {
           </Card>
         )}
       </main>
-      <ClientNav />
     </div>
   )
 }

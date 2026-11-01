@@ -155,7 +155,7 @@ export default function KioskPage() {
         </span>
         {step !== 'welcome' && step !== 'ticket' && (
           <button onClick={() => (step === 'priority' ? setStep('service') : reset())}
-            className="flex min-h-touch items-center gap-2 rounded-2xl bg-gray-100 px-6 text-lg font-semibold text-ink active:scale-95">
+            className="flex min-h-touch items-center gap-2 rounded-2xl bg-gray-100 px-6 text-lg font-semibold text-ink">
             <ArrowLeft size={22} /> {t('kiosk.back')}
           </button>
         )}
@@ -177,7 +177,7 @@ export default function KioskPage() {
           </div>
         ) : step === 'welcome' ? (
           /* Écran 0 : invitation */
-          <button onClick={start} className="flex h-full w-full max-w-4xl flex-col items-center justify-center rounded-[2.5rem] bg-gradient-to-br from-brand to-brand-600 p-16 text-white shadow-raised active:scale-[0.99]">
+          <button onClick={start} className="flex h-full w-full max-w-4xl flex-col items-center justify-center rounded-[2.5rem] bg-gradient-to-br from-brand to-brand-600 p-16 text-white shadow-raised">
             <Hand size={80} className="mb-8 animate-bounce" />
             <span className="text-5xl font-black">{t('kiosk.touch')}</span>
             <span className="mt-4 text-2xl text-white/85">{t('kiosk.touchText')}</span>
@@ -193,7 +193,7 @@ export default function KioskPage() {
                 return (
                   <div key={s.id} className="relative">
                     <button onClick={() => { haptics.tap(); setServiceId(s.id); setStep('priority') }}
-                      className="flex min-h-[200px] w-full flex-col items-center justify-center gap-4 rounded-3xl border-2 border-surface-line bg-white p-6 text-center shadow-card active:scale-[0.98] active:border-brand">
+                      className="flex min-h-[200px] w-full flex-col items-center justify-center gap-4 rounded-3xl border-2 border-surface-line bg-white p-6 text-center shadow-card active:border-brand">
                       <Icon size={56} className="text-brand" />
                       <span className="text-2xl font-bold text-ink">{s.name}</span>
                       <span className="flex items-center gap-4 text-base text-ink-muted">
@@ -203,7 +203,7 @@ export default function KioskPage() {
                     </button>
                     <button onClick={() => speak(`${s.name}. ${s.waiting} personne${s.waiting > 1 ? 's' : ''} en attente.`)}
                       aria-label={t('kiosk.listen', { name: s.name })}
-                      className="absolute right-3 top-3 flex h-12 w-12 items-center justify-center rounded-full bg-info-soft text-info active:scale-95">
+                      className="absolute right-3 top-3 flex h-12 w-12 items-center justify-center rounded-full bg-info-soft text-info">
                       <Volume2 size={22} />
                     </button>
                   </div>
@@ -218,12 +218,12 @@ export default function KioskPage() {
             <p className="mt-2 text-xl text-ink-muted">{service?.name}</p>
             <div className="mt-10 grid gap-5 sm:grid-cols-2">
               <button onClick={() => issue('STANDARD')} disabled={busy}
-                className="flex min-h-[220px] flex-col items-center justify-center gap-4 rounded-3xl bg-brand p-8 text-white shadow-raised active:scale-[0.98] disabled:opacity-60">
+                className="flex min-h-[220px] flex-col items-center justify-center gap-4 rounded-3xl bg-brand p-8 text-white shadow-raised disabled:opacity-60">
                 <UserRound size={64} />
                 <span className="text-3xl font-black">{t('kiosk.standard')}</span>
               </button>
               <button onClick={() => issue('PRIORITY')} disabled={busy}
-                className="flex min-h-[220px] flex-col items-center justify-center gap-4 rounded-3xl border-4 border-info bg-white p-8 text-info-ink shadow-card active:scale-[0.98] disabled:opacity-60">
+                className="flex min-h-[220px] flex-col items-center justify-center gap-4 rounded-3xl border-4 border-info bg-white p-8 text-info-ink shadow-card disabled:opacity-60">
                 <Accessibility size={64} />
                 <span className="text-3xl font-black">{t('kiosk.priority')}</span>
                 <span className="text-lg">{t('kiosk.priorityText')}</span>
@@ -241,7 +241,7 @@ export default function KioskPage() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             {qr && <img src={qr} alt={t('reception.scanToFollow')} className="mx-auto my-6 h-44 w-44" />}
             <p className="text-lg text-ink-muted">{t('kiosk.takeTicket')}</p>
-            <button onClick={reset} className={cn('mt-8 min-h-touch rounded-2xl bg-gray-900 px-10 py-4 text-xl font-bold text-white active:scale-95')}>
+            <button onClick={reset} className={cn('mt-8 min-h-touch rounded-2xl bg-gray-900 px-10 py-4 text-xl font-bold text-white')}>
               {t('kiosk.done')}
             </button>
           </div>

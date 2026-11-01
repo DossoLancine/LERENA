@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { AnimatedNumber } from '@/components/ui/animated-number'
 
 /**
  * Anneau de progression autour du nombre de personnes devant le client (0 = il est le prochain).
@@ -15,7 +16,13 @@ export function ProgressRing({ position, progress, waitLabel }: {
   const stroke = 14
   const r = (size - stroke) / 2
   const circumference = 2 * Math.PI * r
-  const offset = circumference * (1 - Math.min(100, Math.max(0, progress)) / 100)
+  const target = circumference * (1 - Math.min(100, Math.max(0, progress)) / 100)
+  // L'anneau se remplit à l'ouverture du ticket, puis suit la progression
+  const [offset, setOffset] = useState(circumference)
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setOffset(target))
+    return () => cancelAnimationFrame(id)
+  }, [target])
 
   // Petit rebond du chiffre quand la position change
   const [bump, setBump] = useState(false)
@@ -47,7 +54,7 @@ export function ProgressRing({ position, progress, waitLabel }: {
           className="text-6xl font-black text-gray-900 tabular-nums leading-none"
           style={{ transform: bump ? 'scale(1.15)' : 'scale(1)', transition: 'transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)' }}
         >
-          {position}
+          <AnimatedNumber value={position} duration={500} />
         </span>
         <span className="mt-2 text-xs font-medium text-gray-500">
           {position === 0 ? 'vous êtes le prochain' : `personne${position > 1 ? 's' : ''} devant vous`}

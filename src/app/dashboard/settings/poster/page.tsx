@@ -88,7 +88,7 @@ export default function PosterSettingsPage() {
               <button
                 type="button"
                 onClick={handlePrintPoster}
-                className="flex items-center gap-2 bg-orange-500 text-white px-5 py-2.5 rounded-xl font-semibold text-xs hover:bg-orange-600 active:scale-95 transition-all shadow-md shadow-orange-200"
+                className="flex items-center gap-2 bg-orange-500 text-white px-5 py-2.5 rounded-xl font-semibold text-xs hover:bg-orange-600 transition-all shadow-md shadow-orange-200"
               >
                 <Printer size={16} />
                 Imprimer l'Affiche A4

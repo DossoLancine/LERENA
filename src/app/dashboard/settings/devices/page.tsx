@@ -74,7 +74,7 @@ export default function DevicesSettingsPage() {
         ) : devices.length === 0 ? (
           <EmptyState icon={<Tv size={32} />} title={t('devices.none')} />
         ) : (
-          <ul className="divide-y divide-surface-line">
+          <ul className="stagger divide-y divide-surface-line">
             {devices.map(d => (
               <li key={d.id} className="flex items-center gap-3 px-5 py-4">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-info-soft text-info">

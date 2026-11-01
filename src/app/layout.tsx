@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { NextAuthProvider } from '@/components/providers'
+import { NavProgress } from '@/components/navigation/nav-progress'
+import { ClientNav } from '@/components/navigation/client-nav'
 
 export const metadata: Metadata = {
   title: 'ATTENDS — Ne perdez plus votre temps à attendre',
@@ -39,8 +41,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="min-h-screen bg-gray-50 antialiased">
+        <NavProgress />
         <NextAuthProvider>
           {children}
+          <ClientNav />
         </NextAuthProvider>
       </body>
     </html>

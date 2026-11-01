@@ -1,6 +1,7 @@
 // Système de design ATTENDS : importer depuis '@/components/ui'
 export { Button, IconButton, Spinner } from './button'
 export { Card, CardHeader, StatCard, EmptyState } from './card'
+export { AnimatedNumber } from './animated-number'
 export { Badge, TicketStatusBadge, TICKET_STATUS_BADGE, type BadgeTone } from './badge'
 export { Field, TextInput, TextArea, SelectInput } from './field'
 export { Dialog } from './dialog'

@@ -2,7 +2,7 @@
 // à la place d'un écran blanc ou d'un indicateur qui tourne.
 
 function Bar({ className = '' }: { className?: string }) {
-  return <div className={`animate-pulse rounded-xl bg-gray-200/80 ${className}`} />
+  return <div className={`shimmer rounded-xl ${className}`} />
 }
 
 export function ListPageSkeleton({ title = true }: { title?: boolean }) {

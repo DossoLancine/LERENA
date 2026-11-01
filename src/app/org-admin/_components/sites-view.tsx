@@ -88,7 +88,7 @@ export function SitesView({ initial }: { initial: Overview }) {
 
   return (
     <>
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <div className="stagger grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatCard label="Sites ouverts" value={`${totals.open}/${data.sites.length}`} icon={<Building2 size={18} className="text-brand" aria-hidden="true" />} />
         <StatCard label="En attente maintenant" value={fr(totals.waiting)} icon={<Users size={18} className="text-info" aria-hidden="true" />} />
         <StatCard label="Servis aujourd’hui" value={fr(totals.served)} icon={<CheckCircle2 size={18} className="text-success" aria-hidden="true" />} />
@@ -117,7 +117,7 @@ export function SitesView({ initial }: { initial: Overview }) {
           <EmptyState icon={<Building2 size={40} />} title="Aucun site pour l’instant"
             description={data.canEdit ? 'Créez le premier site : ses services sont préparés d’après son secteur.' : 'L’administrateur du réseau n’a pas encore ajouté de site.'} />
         ) : (
-          <ul className="divide-y divide-surface-line">
+          <ul className="stagger divide-y divide-surface-line">
             {sites.map((site, i) => (
               <li key={site.id} className="flex flex-col gap-3 px-5 py-4 md:flex-row md:items-center">
                 <div className="flex min-w-0 flex-1 items-center gap-3">
