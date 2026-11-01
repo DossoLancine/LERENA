@@ -9,6 +9,7 @@ import { priorityText } from "@/lib/priority-text"
 import { audit } from "@/lib/audit"
 import { notifyOrg } from "@/lib/realtime"
 import { tempPassword } from "@/lib/passwords"
+import { sendCredentialsEmail } from "@/lib/messaging"
 
 // Toutes les actions de ce fichier agissent uniquement sur l'organisation du manager connecté.
 // Le paramètre orgId reçu de l'interface est vérifié, jamais utilisé tel quel.
@@ -193,6 +194,7 @@ export async function addMemberToOrganization(orgId: string, data: {
 
     await audit({ action: 'MEMBER_ADDED', targetType: 'User', targetId: user.id, organizationId: ctx.orgId, details: `${email} (${role})` })
     revalidatePath('/dashboard')
+    if (generatedPassword) await sendCredentialsEmail({ to: email, name: data.name, password: generatedPassword, organizationId: ctx.orgId })
     return { success: true, user: { id: user.id, name: user.name, email: user.email, role }, tempPassword: generatedPassword }
   } catch (error: any) {
     console.error('addMemberToOrganization error:', error)

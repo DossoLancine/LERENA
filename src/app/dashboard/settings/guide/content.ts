@@ -1,7 +1,7 @@
 // Guide d'utilisation affiché dans Paramètres → Guide d'utilisation.
 // À METTRE À JOUR à chaque évolution de l'application (nouvel écran, nouvelle étape, changement de nom).
 
-export const GUIDE_UPDATED_AT = '1er novembre 2026 (priorités au choix du visiteur : réglable)'
+export const GUIDE_UPDATED_AT = '1er novembre 2026 (sécurité du compte, notifications)'
 
 export interface GuideSection {
   id: string
@@ -125,6 +125,30 @@ export const GUIDE: GuideSection[] = [
     steps: [
       'Les appareils d’une agence se connectent depuis le tableau de bord de cette agence : une TV de l’agence A n’affiche jamais les tickets de l’agence B.',
       'Le siège (administrateur du réseau) suit toutes les agences dans l’espace réseau : affluence en direct, création de nouvelles agences, rapport mensuel.'
+    ]
+  },
+  {
+    id: 'compte',
+    title: 'Compte et sécurité',
+    steps: [
+      'Mot de passe oublié : sur la page de connexion, « Mot de passe oublié ? ». Avec un e-mail, vous recevez un lien valable 1 heure ; avec un numéro, un code par SMS.',
+      'Un collaborateur créé dans « Équipe & agents » reçoit un mot de passe provisoire (affiché une fois et envoyé par e-mail). Il doit le remplacer à sa première connexion.',
+      'Double authentification : depuis « Sécurité du compte » (bouton bouclier ou fenêtre « Mon profil »), activez un code à 6 chiffres via une application comme Google Authenticator. Elle est obligatoire pour les administrateurs de réseau et de la plateforme. Notez vos 8 codes de secours.',
+      'Appareils connectés : « Sécurité du compte » liste les appareils ouverts sur votre compte ; vous pouvez en déconnecter un, ou tous les autres.',
+      'Les postes du personnel inactifs depuis 12 heures sont déconnectés automatiquement.'
+    ],
+    tips: [
+      'Après 5 erreurs de mot de passe, la connexion est bloquée 15 minutes pour ce compte.',
+      'Clients : un code PIN d’au moins 6 chiffres. Personnel : un mot de passe de 8 caractères avec lettres et chiffres.'
+    ]
+  },
+  {
+    id: 'notifications',
+    title: 'Notifications et SMS',
+    steps: [
+      'Les visiteurs qui suivent leur ticket dans l’application sont prévenus gratuitement par notification quand leur tour approche et quand c’est leur tour.',
+      'Paramètres → Notifications : activez les SMS « vous êtes le prochain » et « c’est votre tour » pour les visiteurs sans notification (ticket pris à l’accueil ou à la borne avec un numéro). Au plus 2 SMS par ticket.',
+      'La même page affiche le nombre de SMS et d’e-mails envoyés dans le mois.'
     ]
   },
   {

@@ -62,6 +62,8 @@ model Organization {
   // Le visiteur peut-il choisir lui-même une priorité ? (par défaut non : elle s'attribue à l'accueil)
   visitorPriorityApp   Boolean  @default(false)
   visitorPriorityKiosk Boolean  @default(false)
+  // SMS « bientôt votre tour » aux visiteurs sans notification push (coût par SMS : désactivé par défaut)
+  smsTurnAlerts        Boolean  @default(false)
   networkId            String?
   sectorId             String?
   createdAt            DateTime @default(now())
@@ -431,6 +433,7 @@ model OutboundMessage {
   provider       String?
   error          String?
   organizationId String?
+  ticketId       String? // ticket concerné (évite d'envoyer deux fois la même alerte)
   createdAt      DateTime @default(now())
 
   @@index([organizationId, createdAt])

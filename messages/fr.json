@@ -82,7 +82,8 @@
       "location": "Localisation & horaires",
       "devices": "Appareils",
       "guide": "Guide d’utilisation",
-      "priorities": "Priorités"
+      "priorities": "Priorités",
+      "notifications": "Notifications"
     }
   },
   "guest": {
