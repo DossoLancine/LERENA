@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { ticketRoutes } from '@/lib/ticket-route'
 import { revalidatePath } from "next/cache"
 import { getStaffContext, getOrgQueueIds } from "@/lib/session"
+import { siteQueueIds } from "@/lib/sites"
 import { ACTIVE_TICKET_STATUSES, startOfToday, type TicketStatus } from "@/lib/constants"
 import { notifyOrg } from "@/lib/realtime"
 import { sendPushToTicket } from "@/lib/push"
@@ -14,12 +15,16 @@ import { queueForService } from "@/lib/ticketing"
 // Ordre d'appel commun à toute l'app : priorité d'abord, puis entrée dans la file
 const CALL_ORDER = [{ priorityScore: 'desc' as const }, { queuedAt: 'asc' as const }]
 
-export async function getAgentQueue() {
+/** File de l'agent : celle du site de son guichet (tout l'établissement si son guichet n'est pas connu). */
+export async function getAgentQueue(counterId?: string | null) {
   try {
     const ctx = await getStaffContext()
     if (!ctx) return []
 
-    const queueIds = await getOrgQueueIds(ctx.orgId)
+    const counter = counterId
+      ? await prisma.counter.findFirst({ where: { id: counterId, branch: { organizationId: ctx.orgId } }, select: { branchId: true } })
+      : null
+    const queueIds = counter ? await siteQueueIds(ctx.orgId, counter.branchId) : await getOrgQueueIds(ctx.orgId)
     if (queueIds.length === 0) return []
 
     const tickets = await prisma.ticket.findMany({
@@ -52,16 +57,17 @@ export async function getAgentCounters() {
   const [counters, services] = await Promise.all([
     prisma.counter.findMany({
       where: { isActive: true, branch: { organizationId: ctx.orgId } },
-      orderBy: { name: 'asc' },
-      select: { id: true, name: true, serviceIds: true }
+      orderBy: [{ branch: { createdAt: 'asc' } }, { name: 'asc' }],
+      select: { id: true, name: true, serviceIds: true, branchId: true, branch: { select: { name: true } } }
     }),
     prisma.service.findMany({
       where: { isActive: true, branch: { organizationId: ctx.orgId } },
       orderBy: { name: 'asc' },
-      select: { id: true, name: true }
+      select: { id: true, name: true, branchId: true }
     })
   ])
-  return { counters, services }
+  const multiSite = new Set(counters.map(c => c.branchId)).size > 1
+  return { counters: counters.map(c => ({ id: c.id, name: c.name, serviceIds: c.serviceIds, branchId: c.branchId, siteName: multiSite ? c.branch.name : null })), services }
 }
 
 const EVENT_FOR_STATUS: Partial<Record<TicketStatus, TicketEventType>> = {

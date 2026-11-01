@@ -12,6 +12,7 @@ import { usePolling } from '@/hooks/use-polling'
 import { useOrgRealtime } from '@/hooks/use-org-realtime'
 import { haptics } from '@/lib/haptics'
 import { cn } from '@/lib/cn'
+import { SiteSwitcher } from '@/components/sites/site-switcher'
 import { t, type MessageKey } from '@/lib/i18n'
 
 type Board = NonNullable<Awaited<ReturnType<typeof getReceptionBoard>>>
@@ -109,6 +110,7 @@ export default function ReceptionPage() {
           <div>
             <p className="text-xs text-ink-muted">{t('reception.title')} · {session?.user?.name}</p>
             <h1 className="text-lg font-bold text-ink">{board.org.name}</h1>
+            <SiteSwitcher allowAll={false} className="mt-1" />
           </div>
           <div className="flex items-center gap-3">
             <span className={cn('flex items-center gap-1.5 text-xs font-medium', live ? 'text-success' : 'text-ink-subtle')}>

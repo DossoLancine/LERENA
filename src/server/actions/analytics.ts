@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma"
 import { getManagerContext } from "@/lib/session"
+import { branchFilter } from '@/lib/sites'
 
 // Statistiques du responsable sur une période, comparées à la période précédente de même durée
 
@@ -89,7 +90,7 @@ export async function getAnalyticsSummary(days: PeriodDays = 7): Promise<Analyti
       calledAt: true, startedAt: true, completedAt: true, npsScore: true,
       service: { select: { name: true } }
     } as const
-    const scope = { queue: { branch: { organizationId: ctx.orgId } } }
+    const scope = { queue: { branch: await branchFilter(ctx.orgId) } }
 
     const [org, rows, prevRows] = await Promise.all([
       prisma.organization.findUnique({ where: { id: ctx.orgId }, select: { name: true } }),

@@ -121,7 +121,7 @@ export default function DevicesSettingsPage() {
                   <input aria-label={t('devices.name')} defaultValue={d.name ?? ''}
                     onBlur={e => e.target.value.trim() && e.target.value !== d.name && renameDevice(d.id, e.target.value)}
                     className="w-full rounded-lg border border-transparent px-1 py-0.5 font-semibold text-ink hover:border-gray-200 focus:border-brand focus:outline-none" />
-                  <p className="px-1 text-xs text-ink-muted">{d.type === 'TV' ? t('devices.tv') : t('devices.kiosk')} · {ago(d.lastSeenAt)}</p>
+                  <p className="px-1 text-xs text-ink-muted">{d.type === 'TV' ? t('devices.tv') : t('devices.kiosk')}{d.siteName ? ` · ${d.siteName}` : ''} · {ago(d.lastSeenAt)}</p>
                 </div>
                 <span className={cn('flex items-center gap-1.5 text-xs font-semibold', d.online ? 'text-success' : 'text-ink-subtle')}>
                   <span className={cn('h-2 w-2 rounded-full', d.online ? 'bg-success' : 'bg-gray-300')} />

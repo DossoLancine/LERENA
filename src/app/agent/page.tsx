@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react'
 import { useSession, signOut } from 'next-auth/react'
 import {
   Monitor, Megaphone, Play, CheckCircle2, UserX, Pause, ArrowRightLeft, StickyNote,
@@ -39,9 +39,12 @@ export default function AgentPage() {
 
   const [queue, setQueue] = useState<QueueTicket[]>([])
   const [stats, setStats] = useState({ servedToday: 0, avgMin: 12, orgId: null as string | null })
-  const [counters, setCounters] = useState<{ id: string; name: string; serviceIds: string[] }[]>([])
-  const [services, setServices] = useState<{ id: string; name: string }[]>([])
+  const [counters, setCounters] = useState<{ id: string; name: string; serviceIds: string[]; branchId: string; siteName: string | null }[]>([])
+  const [services, setServices] = useState<{ id: string; name: string; branchId: string }[]>([])
   const [counter, setCounter] = useState<CounterChoice | null>(null)
+  // Guichet courant lu par le rafraîchissement (la file dépend de son site)
+  const counterIdRef = useRef<string | null>(null)
+  counterIdRef.current = counter?.id ?? null
   const [loading, setLoading] = useState(true)
   const [ui, setUi] = useState({ dark: false, compact: false })
   const [now, setNow] = useState(Date.now())
@@ -80,7 +83,8 @@ export default function AgentPage() {
   }
 
   const fetchAll = useCallback(async () => {
-    const [q, s, c] = await Promise.all([getAgentQueue(), getAgentStats(), getAgentCounters()])
+    // File du site du guichet choisi
+    const [q, s, c] = await Promise.all([getAgentQueue(counterIdRef.current), getAgentStats(), getAgentCounters()])
     setQueue(q)
     if (s) setStats(s)
     setCounters(c.counters)
@@ -220,6 +224,7 @@ export default function AgentPage() {
                 <button key={c.id} onClick={() => chooseCounter({ id: c.id, name: c.name })}
                   className="min-h-touch rounded-2xl border-2 border-surface-line p-4 font-bold text-ink transition-all hover:border-brand">
                   {c.name}
+                  {c.siteName && <span className="block text-xs font-medium text-ink-muted">{c.siteName}</span>}
                 </button>
               ))}
             </div>
@@ -415,7 +420,7 @@ export default function AgentPage() {
       <Dialog open={showTransfer} onClose={() => setShowTransfer(false)} title={t('agent.transferTitle')}>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-2">
-            {services.filter(s => s.id !== current?.serviceId).map(s => {
+            {services.filter(s => s.id !== current?.serviceId && (!realCounter?.branchId || s.branchId === realCounter.branchId)).map(s => {
               // Aucun autre guichet ne traite ce service : le client restera chez ce guichet
               const onlyHere = !otherCounterServes(s.id)
               return (

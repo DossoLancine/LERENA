@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { getManagerContext, getSessionUser } from "@/lib/session"
+import { branchFilter } from '@/lib/sites'
 import { notifyOrg } from "@/lib/realtime"
 
 // Ticket du client connecté (les tickets sans compte restent modifiables via leur lien)
@@ -170,7 +171,7 @@ export async function getAvgNPS() {
   if (!ctx) return null
 
   const stats = await prisma.ticket.aggregate({
-    where: { npsScore: { not: null }, queue: { branch: { organizationId: ctx.orgId } } },
+    where: { npsScore: { not: null }, queue: { branch: await branchFilter(ctx.orgId) } },
     _avg: { npsScore: true }
   })
   const avg = stats._avg.npsScore

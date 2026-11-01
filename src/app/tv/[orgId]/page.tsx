@@ -80,6 +80,8 @@ export default function TVPage({ params }: { params: { orgId: string } }) {
   const router = useRouter()
   const [offline, setOffline] = useState(false)
   const [data, setData] = useState<any>(null)
+  // Site de l'écran : paramètre ?site= à l'ouverture, puis celui enregistré pour l'appareil
+  const siteRef = useRef<string | null>(typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('site') : null)
   const [currentTime, setCurrentTime] = useState(new Date())
 
   // Mode de vue actif ('queue' ou 'media')
@@ -137,7 +139,7 @@ export default function TVPage({ params }: { params: { orgId: string } }) {
   const fetchData = useCallback(async () => {
     let res: Awaited<ReturnType<typeof getTVQueue>> = null
     try {
-      res = await getTVQueue(params.orgId)
+      res = await getTVQueue(params.orgId, siteRef.current)
     } catch {
       // Réseau coupé : on garde l'affichage précédent et on le signale discrètement
       setOffline(true)
@@ -148,7 +150,10 @@ export default function TVPage({ params }: { params: { orgId: string } }) {
     // Écran appairé : signe de vie ; s'il a été retiré du tableau de bord, retour à l'écran de code
     const token = readDeviceToken('TV')
     if (token) {
-      getDeviceStatus(token).then(status => { if (!status || !status.paired) router.replace('/tv/pair') }).catch(() => {})
+      getDeviceStatus(token).then(status => {
+        if (!status || !status.paired) return router.replace('/tv/pair')
+        if (status.siteId && status.siteId !== siteRef.current) siteRef.current = status.siteId
+      }).catch(() => {})
     }
 
     if (res) {

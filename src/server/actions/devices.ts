@@ -5,6 +5,7 @@ import { hashSecret, isPlausibleSecret, newSecret } from '@/lib/secrets'
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { getManagerContext } from '@/lib/session'
+import { siteForWrite, siteScope } from '@/lib/sites'
 import { priorityOptions } from '@/lib/priorities'
 import { issueTicket, TicketError } from '@/lib/ticketing'
 import { audit } from "@/lib/audit"
@@ -80,7 +81,7 @@ export async function getDeviceStatus(token: string) {
   }
 
   await prisma.device.update({ where: { id: device.id }, data: { lastSeenAt: new Date() } })
-  return { paired: true as const, type: device.type as PairingType, orgId: device.organizationId, name: device.name }
+  return { paired: true as const, type: device.type as PairingType, orgId: device.organizationId, siteId: device.branchId, name: device.name }
 }
 
 /** Le responsable rattache l'appareil à son établissement en saisissant le code affiché. */
@@ -106,6 +107,7 @@ export async function pairDevice(code: string, name: string, role?: DeviceType) 
     data: {
       type,
       organizationId: ctx.orgId,
+      branchId: await siteForWrite(ctx.orgId),
       name: name.trim().slice(0, 40) || `${type === 'TV' ? 'Écran' : 'Borne'} ${count + 1}`,
       pairedAt: new Date(),
       pairingCode: null,
@@ -120,15 +122,17 @@ export async function pairDevice(code: string, name: string, role?: DeviceType) 
 export async function listDevices() {
   const ctx = await getManagerContext()
   if (!ctx) return []
+  const scope = await siteScope(ctx.orgId)
   const devices = await prisma.device.findMany({
-    where: { organizationId: ctx.orgId },
+    where: { organizationId: ctx.orgId, ...(scope ? { OR: [{ branchId: scope }, { branchId: null }] } : {}) },
     orderBy: { pairedAt: 'asc' },
-    select: { id: true, type: true, name: true, pairedAt: true, lastSeenAt: true }
+    select: { id: true, type: true, name: true, pairedAt: true, lastSeenAt: true, branch: { select: { name: true } } }
   })
   const now = Date.now()
   return devices.map(d => ({
     ...d,
     type: d.type as DeviceType,
+    siteName: d.branch?.name ?? null,
     online: !!d.lastSeenAt && now - d.lastSeenAt.getTime() < ONLINE_WINDOW_MS,
     lastSeenAt: d.lastSeenAt?.toISOString() ?? null
   }))
@@ -167,13 +171,14 @@ export async function getKioskBoard(token: string) {
   const [org, services, waiting, priorities] = await Promise.all([
     prisma.organization.findUnique({ where: { id: orgId }, select: { name: true, isActive: true, sector: { select: { icon: true } } } }),
     prisma.service.findMany({
-      where: { isActive: true, branch: { organizationId: orgId } },
+      // Services du site de la borne (de tout l'établissement si la borne n'est pas rattachée à un site)
+      where: { isActive: true, branch: device.branchId ? { id: device.branchId } : { organizationId: orgId } },
       orderBy: { name: 'asc' },
       select: { id: true, name: true, description: true, avgDurationMin: true, icon: true }
     }),
     prisma.ticket.groupBy({
       by: ['serviceId'],
-      where: { status: 'WAITING', queue: { branch: { organizationId: orgId } } },
+      where: { status: 'WAITING', queue: { branch: device.branchId ? { id: device.branchId } : { organizationId: orgId } } },
       _count: { _all: true }
     }),
     // Motifs proposés à la borne (vide si l'établissement ne l'autorise pas)
@@ -247,6 +252,8 @@ export async function createSetupLink() {
   const link = await prisma.deviceSetupLink.create({
     data: {
       organizationId: ctx.orgId,
+      // Les appareils installés avec ce lien appartiennent au site actif
+      branchId: await siteForWrite(ctx.orgId),
       tokenHash: hashSecret(secret),
       expiresAt: new Date(now.getTime() + SETUP_LINK_TTL_MIN * 60_000),
       createdById: ctx.userId
@@ -280,7 +287,7 @@ async function activeLink(secret: string) {
   if (!isPlausibleSecret(secret)) return null
   return prisma.deviceSetupLink.findFirst({
     where: { tokenHash: hashSecret(secret), usedAt: null, expiresAt: { gt: new Date() } },
-    select: { id: true, organizationId: true, organization: { select: { name: true } } }
+    select: { id: true, organizationId: true, branchId: true, organization: { select: { name: true } } }
   })
 }
 
@@ -310,6 +317,7 @@ export async function redeemSetupLink(secret: string, role: DeviceType) {
       type: role,
       token: hashSecret(token),
       organizationId: link.organizationId,
+      branchId: link.branchId,
       name: `${role === 'TV' ? 'Écran' : 'Borne'} ${count + 1}`,
       pairedAt: new Date(),
       lastSeenAt: new Date()
@@ -319,5 +327,5 @@ export async function redeemSetupLink(secret: string, role: DeviceType) {
   await prisma.deviceSetupLink.update({ where: { id: link.id }, data: { deviceId: device.id } })
   await audit({ action: 'DEVICE_PAIRED', targetType: 'Device', targetId: device.id, organizationId: link.organizationId, details: `${role} (lien d’installation)` })
   revalidatePath('/dashboard/settings/devices')
-  return { success: true as const, token, orgId: link.organizationId, type: role }
+  return { success: true as const, token, orgId: link.organizationId, siteId: link.branchId, type: role }
 }

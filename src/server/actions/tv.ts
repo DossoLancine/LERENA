@@ -3,12 +3,14 @@
 import { prisma } from "@/lib/prisma"
 import { ACTIVE_TICKET_STATUSES, counterLabel } from "@/lib/constants"
 
-export async function getTVQueue(orgId: string) {
+/** File affichée par l'écran : celle de son site (siteId), ou de tout l'établissement. */
+export async function getTVQueue(orgId: string, siteId?: string | null) {
   try {
     const org = await prisma.organization.findUnique({
       where: { id: orgId },
       include: {
         branches: {
+          where: siteId ? { id: siteId } : undefined,
           include: {
             queues: {
               include: {
@@ -58,7 +60,7 @@ export async function getTVQueue(orgId: string) {
 
     // Derniers appels (2 dernières heures), pour ceux qui ont manqué l'annonce
     const recentCalls = await prisma.ticket.findMany({
-      where: { queue: { branch: { organizationId: orgId } }, calledAt: { gte: new Date(Date.now() - 2 * 3600_000) } },
+      where: { queue: { branch: siteId ? { id: siteId, organizationId: orgId } : { organizationId: orgId } }, calledAt: { gte: new Date(Date.now() - 2 * 3600_000) } },
       orderBy: { calledAt: 'desc' },
       take: 6,
       select: { id: true, displayNum: true, counterName: true, calledAt: true }
@@ -80,6 +82,7 @@ export async function getTVQueue(orgId: string) {
     return {
       orgId: org.id,
       orgName: org.name,
+      siteName: siteId ? org.branches[0]?.name ?? null : null,
       active,
       waiting,
       tvVideoUrl: playlist[0]?.url || org.tvVideoUrl || null,

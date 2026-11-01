@@ -18,7 +18,7 @@ export function readDeviceToken(type: PairingType) {
  */
 export function PairingScreen({ type, onPaired }: {
   type: PairingType
-  onPaired: (status: { orgId: string; name: string | null; type: DeviceType; token: string }) => void
+  onPaired: (status: { orgId: string; siteId?: string | null; name: string | null; type: DeviceType; token: string }) => void
 }) {
   const [code, setCode] = useState<string | null>(null)
   const [token, setToken] = useState<string | null>(null)
@@ -66,7 +66,7 @@ export function PairingScreen({ type, onPaired }: {
     }
     if (status.paired) {
       done.current = true
-      onPaired({ orgId: status.orgId!, name: status.name ?? null, type: status.type === 'KIOSK' ? 'KIOSK' : 'TV', token })
+      onPaired({ orgId: status.orgId!, siteId: status.siteId ?? null, name: status.name ?? null, type: status.type === 'KIOSK' ? 'KIOSK' : 'TV', token })
     }
     else setCode(status.code ?? null)
   }, [token, type, onPaired])
@@ -105,10 +105,11 @@ export function PairingScreen({ type, onPaired }: {
  * Après l'appairage : range le jeton sous le rôle choisi par le responsable et renvoie l'adresse à ouvrir.
  * Le rôle choisi l'emporte sur le lien ouvert sur l'appareil.
  */
-export function adoptDeviceRole({ orgId, type, token }: { orgId: string; type: DeviceType; token: string }) {
+export function adoptDeviceRole({ orgId, type, token, siteId }: { orgId: string; type: DeviceType; token: string; siteId?: string | null }) {
   try {
     for (const key of ['TV', 'KIOSK', 'ANY'] as const) if (key !== type) localStorage.removeItem(deviceTokenKey(key))
     localStorage.setItem(deviceTokenKey(type), token)
   } catch {}
-  return type === 'TV' ? `/tv/${orgId}` : '/kiosk'
+  // L'écran affiche la file de son site
+  return type === 'TV' ? `/tv/${orgId}${siteId ? `?site=${siteId}` : ''}` : '/kiosk'
 }

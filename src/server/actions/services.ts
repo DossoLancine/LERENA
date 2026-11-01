@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma"
 import { getManagerContext } from "@/lib/session"
+import { siteForWrite } from "@/lib/sites"
 import { notifyOrg } from "@/lib/realtime"
 import { revalidatePath } from "next/cache"
 
@@ -10,10 +11,13 @@ async function getManagerOrg() {
   const ctx = await getManagerContext()
   if (!ctx) return null
 
+  // Seul le site actif est chargé : les services sont créés et gérés site par site
+  const siteId = await siteForWrite(ctx.orgId)
   return prisma.organization.findUnique({
     where: { id: ctx.orgId },
     include: {
       branches: {
+        where: siteId ? { id: siteId } : undefined,
         include: {
           queues: true,
           services: true

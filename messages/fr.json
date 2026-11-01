@@ -79,11 +79,12 @@
       "tv": "Programme des écrans",
       "team": "Équipe & agents",
       "data": "Opérations & données",
-      "location": "Localisation & horaires",
+      "location": "Position & horaires du site",
       "devices": "Appareils",
       "guide": "Guide d’utilisation",
       "priorities": "Priorités",
-      "notifications": "Notifications"
+      "notifications": "Notifications",
+      "sites": "Sites"
     }
   },
   "guest": {
