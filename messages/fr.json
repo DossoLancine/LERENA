@@ -76,11 +76,12 @@
     "sections": {
       "site": "Établissement",
       "poster": "Affiche & QR code",
-      "tv": "Écran TV & publicités",
+      "tv": "Programme des écrans",
       "team": "Équipe & agents",
       "data": "Opérations & données",
       "location": "Localisation & horaires",
-      "devices": "Écrans & bornes"
+      "devices": "Appareils",
+      "guide": "Guide d’utilisation"
     }
   },
   "guest": {
@@ -345,15 +346,15 @@
   "pairing": {
     "titleTv": "Connecter cet écran",
     "titleKiosk": "Connecter cette borne",
-    "instructions": "Saisissez ce code dans le tableau de bord (Paramètres → Écrans et bornes) et choisissez son rôle. L’appareil se connecte ensuite tout seul.",
+    "instructions": "Saisissez ce code dans le tableau de bord (Paramètres → Appareils) et choisissez son rôle. L’appareil se connecte ensuite tout seul.",
     "codeLabel": "Code d’appairage",
-    "path": "Tableau de bord → Paramètres → Écrans & bornes",
+    "path": "Tableau de bord → Paramètres → Appareils",
     "waiting": "En attente de validation…",
     "titleAny": "Connecter cet appareil"
   },
   "devices": {
-    "title": "Écrans TV et bornes",
-    "subtitle": "Un écran affiche les numéros appelés, une borne permet aux clients de prendre un ticket. Chacun se connecte à l’établissement, indépendamment des autres.",
+    "title": "Appareils",
+    "subtitle": "Connectez ici chaque TV (écran d’affichage) et chaque tablette (borne de tickets) de l’établissement, une seule fois par appareil. Ce que les TV affichent se règle dans « Programme des écrans ».",
     "openOnTv": "Sur la TV :",
     "openOnKiosk": "Sur la borne :",
     "code": "Code affiché",
@@ -379,7 +380,9 @@
     "roleTv": "Écran d’affichage",
     "roleTvHint": "Numéros appelés, annonces vocales",
     "roleKiosk": "Borne de tickets",
-    "roleKioskHint": "Les clients prennent leur ticket"
+    "roleKioskHint": "Les clients prennent leur ticket",
+    "codeTitle": "TV : code à 6 chiffres",
+    "codeSubtitle": "Une TV ne scanne pas de QR code : on y ouvre une adresse courte, puis on tape ici le code qu’elle affiche."
   },
   "kiosk": {
     "back": "Retour",

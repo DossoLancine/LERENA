@@ -5,7 +5,7 @@ import { Tv, Tablet, Trash2, Link2 } from 'lucide-react'
 import { listDevices, pairDevice, removeDevice, renameDevice } from '@/server/actions/devices'
 import { Button, Card, CardHeader, EmptyState, TextInput, useToast } from '@/components/ui'
 import { usePolling } from '@/hooks/use-polling'
-import QRCode from 'qrcode'
+import { SetupLinkCard } from './_components/setup-link-card'
 import { cn } from '@/lib/cn'
 import { t } from '@/lib/i18n'
 
@@ -25,7 +25,6 @@ export default function DevicesSettingsPage() {
   const [name, setName] = useState('')
   const [pairing, setPairing] = useState(false)
   const [role, setRole] = useState<'TV' | 'KIOSK'>('TV')
-  const [qr, setQr] = useState<string | null>(null)
 
   const load = useCallback(() => listDevices().then(setDevices), [])
   useEffect(() => { load() }, [load])
@@ -53,15 +52,13 @@ export default function DevicesSettingsPage() {
 
   const host = typeof window !== 'undefined' ? window.location.host : ''
 
-  // QR code du lien unique, pour les tablettes (une TV ne scanne pas : on y tape l'adresse)
-  useEffect(() => {
-    QRCode.toDataURL(`${window.location.origin}/appareil`, { margin: 1, width: 224 }).then(setQr).catch(() => {})
-  }, [])
 
   return (
     <div className="space-y-4">
+      <p className="text-sm text-ink-muted">{t('devices.subtitle')}</p>
+      <SetupLinkCard onInstalled={load} />
       <Card>
-        <CardHeader title={t('devices.title')} subtitle={t('devices.subtitle')} />
+        <CardHeader title={t('devices.codeTitle')} subtitle={t('devices.codeSubtitle')} />
         <div className="space-y-4 p-5">
           {/* Un seul lien pour tous les appareils ; le rôle se choisit ici */}
           <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
@@ -79,12 +76,6 @@ export default function DevicesSettingsPage() {
                 <p className="pt-1 text-ink">{t('devices.step3')}</p>
               </li>
             </ol>
-            {qr && (
-              <div className="hidden flex-col items-center gap-1 sm:flex" aria-hidden="true">
-                <img src={qr} alt="" className="h-28 w-28 rounded-xl border border-surface-line" />
-                <span className="max-w-[140px] text-center text-[11px] text-ink-muted">{t('devices.scanHint')}</span>
-              </div>
-            )}
           </div>
 
           <form onSubmit={pair} className="space-y-4 rounded-2xl border border-surface-line p-4">

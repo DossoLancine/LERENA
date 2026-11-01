@@ -61,6 +61,7 @@ model Organization {
   promotions   Promotion[]
   appointments Appointment[]
   devices      Device[]
+  setupLinks   DeviceSetupLink[]
   network      Network?             @relation(fields: [networkId], references: [id], onDelete: SetNull)
   sector       Sector?              @relation(fields: [sectorId], references: [id], onDelete: SetNull)
 }
@@ -340,7 +341,7 @@ model Device {
   organizationId   String?
   type             String // TV | KIOSK
   name             String?
-  token            String    @unique
+  token            String    @unique // empreinte SHA-256 du jeton : le jeton lui-même ne reste que sur l'appareil
   pairingCode      String?   @unique
   pairingExpiresAt DateTime?
   pairedAt         DateTime?
@@ -348,6 +349,22 @@ model Device {
   createdAt        DateTime  @default(now())
 
   organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+// Lien d'installation d'appareils : à usage unique, valable peu de temps, seule l'empreinte est stockée
+model DeviceSetupLink {
+  id             String    @id @default(cuid())
+  organizationId String
+  tokenHash      String    @unique
+  expiresAt      DateTime
+  usedAt         DateTime?
+  deviceId       String?
+  createdById    String?
+  createdAt      DateTime  @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, createdAt])
 }
 
 // Réseau d'établissements piloté par un administrateur d'organisation

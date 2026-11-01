@@ -21,9 +21,9 @@ export default function TvSettingsPage() {
     <form onSubmit={handleSaveProfile} className="bg-white rounded-3xl border border-gray-100 p-6 space-y-6 shadow-sm">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-gray-100 pb-5">
         <div>
-          <h2 className="text-base font-bold text-gray-900">Écran Connecté & Régie Publicitaire (Smart TV)</h2>
+          <h2 className="text-base font-bold text-gray-900">Programme des écrans</h2>
           <p className="text-xs text-gray-500 mt-0.5">
-            Diffusez les appels de tickets et alternez avec vos vidéos d'entreprise ou offres promotionnelles.
+            Ce que montrent toutes les TV de l’établissement : numéros appelés, et vos vidéos ou publicités. Les TV elles-mêmes se connectent dans « Appareils ».
           </p>
         </div>
         <a
