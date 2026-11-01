@@ -3,6 +3,7 @@ import './globals.css'
 import { NextAuthProvider } from '@/components/providers'
 import { NavProgress } from '@/components/navigation/nav-progress'
 import { ClientNav } from '@/components/navigation/client-nav'
+import { ServiceWorkerRegister } from '@/components/pwa/install'
 
 export const metadata: Metadata = {
   title: 'ATTENDS — Ne perdez plus votre temps à attendre',
@@ -42,6 +43,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="min-h-screen bg-gray-50 antialiased">
         <NavProgress />
+        <ServiceWorkerRegister />
         <NextAuthProvider>
           {children}
           <ClientNav />
