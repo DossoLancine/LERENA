@@ -1,7 +1,7 @@
 // Service worker ATTENDS : application installable, écran hors ligne, et notifications push
 // même application fermée ou téléphone verrouillé.
 
-const VERSION = 'attends-v2'
+const VERSION = 'attends-v3'
 const STATIC_CACHE = `${VERSION}-static`
 const OFFLINE_URL = '/offline.html'
 const PRECACHE = [OFFLINE_URL, '/icons/icon-192.png', '/icons/icon-512.png', '/manifest.json']
@@ -25,9 +25,21 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url)
   if (url.origin !== self.location.origin) return
 
-  // Pages : toujours le réseau (données en temps réel) ; écran hors ligne si la connexion manque
+  // Pages : toujours le réseau (données en temps réel).
+  // L'écran hors ligne n'apparaît que si l'appareil est vraiment déconnecté ; sinon on réessaie la page,
+  // en transmettant une éventuelle redirection au navigateur.
   if (request.mode === 'navigate') {
-    event.respondWith(fetch(request).catch(() => caches.match(OFFLINE_URL)))
+    event.respondWith(
+      fetch(request).catch(async () => {
+        if (self.navigator.onLine !== false) {
+          try {
+            const retry = await fetch(request.url, { credentials: 'include' })
+            return retry.redirected ? Response.redirect(retry.url, 302) : retry
+          } catch {}
+        }
+        return caches.match(OFFLINE_URL)
+      })
+    )
     return
   }
 

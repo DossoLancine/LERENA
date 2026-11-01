@@ -18,6 +18,8 @@ export const metadata: Metadata = {
     statusBarStyle: 'default',
     title: 'ATTENDS',
   },
+  // Balise standard demandée par Chrome (la variante « apple- » seule est dépréciée)
+  other: { 'mobile-web-app-capable': 'yes' },
 }
 
 export const viewport: Viewport = {

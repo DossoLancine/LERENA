@@ -12,7 +12,8 @@ import { t, type MessageKey } from '@/lib/i18n'
 import { useDashboard } from './dashboard-context'
 import { useSlidingIndicator } from '@/hooks/use-sliding-indicator'
 
-const TABS: { href: string; label: MessageKey }[] = [
+// « to » : adresse ouverte au clic quand elle diffère de la section (les Paramètres ouvrent directement leur 1re page)
+const TABS: { href: string; label: MessageKey; to?: string }[] = [
   { href: '/dashboard', label: 'dashboard.tabs.overview' },
   { href: '/dashboard/queue', label: 'dashboard.tabs.queue' },
   { href: '/dashboard/agenda', label: 'dashboard.tabs.agenda' },
@@ -21,7 +22,7 @@ const TABS: { href: string; label: MessageKey }[] = [
   { href: '/dashboard/planning', label: 'dashboard.tabs.planning' },
   { href: '/dashboard/analytics', label: 'dashboard.tabs.analytics' },
   { href: '/dashboard/promotions', label: 'dashboard.tabs.promotions' },
-  { href: '/dashboard/settings', label: 'dashboard.tabs.settings' },
+  { href: '/dashboard/settings', label: 'dashboard.tabs.settings', to: '/dashboard/settings/site' },
 ]
 
 function isActive(pathname: string, href: string) {
@@ -61,7 +62,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
               <span className={cn('h-1.5 w-1.5 rounded-full animate-pulse', isOpen ? 'bg-success' : 'bg-danger')} />
               {isOpen ? t('common.open') : t('common.closed')}
             </button>
-            <Link href="/dashboard/settings" aria-label={t('dashboard.settingsShortcut')} title={t('dashboard.settingsShortcut')}
+            <Link href="/dashboard/settings/site" aria-label={t('dashboard.settingsShortcut')} title={t('dashboard.settingsShortcut')}
               className={cn('inline-flex h-10 w-10 items-center justify-center rounded-full transition-all',
                 pathname.startsWith('/dashboard/settings') ? 'bg-brand text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200')}>
               <Settings size={18} />
@@ -79,7 +80,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
             return (
               <Link
                 key={tab.href}
-                href={tab.href}
+                href={tab.to ?? tab.href}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
                   'relative z-10 shrink-0 rounded-xl px-4 py-2 text-sm font-medium transition-colors',
