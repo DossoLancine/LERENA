@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import { Home, Compass, Ticket, Heart, User as UserIcon } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { t, type MessageKey } from '@/lib/i18n'
+import { InstallBanner } from '@/components/pwa/install'
 
 const ITEMS: { href: string; label: MessageKey; icon: typeof Home }[] = [
   { href: '/home', label: 'nav.home', icon: Home },
@@ -33,6 +34,8 @@ export function ClientNav() {
   if (activeIndex < 0) return null
 
   return (
+    <>
+    <InstallBanner />
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-surface-line bg-white/90 backdrop-blur-lg safe-bottom print:hidden" aria-label="Navigation principale">
       <ul className="relative mx-auto grid max-w-lg grid-cols-5 px-2 py-1.5">
         <li aria-hidden="true" className="pointer-events-none absolute inset-y-1.5 left-2 w-[calc((100%-1rem)/5)] transition-transform duration-500 ease-spring"
@@ -61,5 +64,6 @@ export function ClientNav() {
         })}
       </ul>
     </nav>
+    </>
   )
 }

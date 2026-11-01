@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useSession, signOut } from 'next-auth/react'
+import { InstallAppButton } from '@/components/pwa/install'
 import { LogOut, Type, Contrast, Languages, Bell, Trash2, BarChart3, Headset, Pencil } from 'lucide-react'
 import UserProfileForm from '@/components/profile/user-profile-form'
 import { Button, Card, Dialog, BottomSheet, useToast } from '@/components/ui'
@@ -154,6 +155,8 @@ export default function ProfilePage() {
             )}
           </Card>
         )}
+
+        <InstallAppButton />
 
         {session?.user && (
           <div className="space-y-3">
