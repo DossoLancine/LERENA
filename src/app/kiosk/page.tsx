@@ -12,7 +12,6 @@ import { usePolling } from '@/hooks/use-polling'
 import { useOrgRealtime } from '@/hooks/use-org-realtime'
 import { useWakeLock } from '@/hooks/use-wake-lock'
 import { haptics } from '@/lib/haptics'
-import type { Priority } from '@/lib/constants'
 import { cn } from '@/lib/cn'
 import { iconFor } from '@/lib/icons'
 import { t } from '@/lib/i18n'
@@ -99,13 +98,13 @@ export default function KioskPage() {
     setStep('service')
   }
 
-  const issue = async (priority: Priority) => {
-    if (!token || !serviceId || busy) return
+  const issue = async (priorityId: string | null, sid: string | null = serviceId) => {
+    if (!token || !sid || busy) return
     haptics.tap()
     setBusy(true)
     setError(null)
     try {
-      const res = await issueKioskTicket(token, serviceId, priority)
+      const res = await issueKioskTicket(token, sid, priorityId)
       if (!res.success) {
         setError(res.error)
         return
@@ -198,7 +197,13 @@ export default function KioskPage() {
                 const Icon = iconFor(s.icon, 'ticket')
                 return (
                   <div key={s.id} className="relative">
-                    <button onClick={() => { haptics.tap(); setServiceId(s.id); setStep('priority') }}
+                    <button onClick={() => {
+                        haptics.tap()
+                        setServiceId(s.id)
+                        // Sans motif de priorité défini par l'établissement, le ticket sort directement
+                        if (board.priorities.length === 0) issue(null, s.id)
+                        else setStep('priority')
+                      }}
                       className="flex min-h-[200px] w-full flex-col items-center justify-center gap-4 rounded-3xl border-2 border-surface-line bg-white p-6 text-center shadow-card active:border-brand">
                       <Icon size={56} className="text-brand" />
                       <span className="text-2xl font-bold text-ink">{s.name}</span>
@@ -223,17 +228,21 @@ export default function KioskPage() {
             <h1 className="text-4xl font-black text-ink">{t('kiosk.priorityTitle')}</h1>
             <p className="mt-2 text-xl text-ink-muted">{service?.name}</p>
             <div className="mt-10 grid gap-5 sm:grid-cols-2">
-              <button onClick={() => issue('STANDARD')} disabled={busy}
-                className="flex min-h-[220px] flex-col items-center justify-center gap-4 rounded-3xl bg-brand p-8 text-white shadow-raised disabled:opacity-60">
+              <button onClick={() => issue(null)} disabled={busy}
+                className="flex min-h-[220px] flex-col items-center justify-center gap-4 rounded-3xl bg-brand p-8 text-white shadow-raised disabled:opacity-60 sm:row-span-2">
                 <UserRound size={64} />
                 <span className="text-3xl font-black">{t('kiosk.standard')}</span>
               </button>
-              <button onClick={() => issue('PRIORITY')} disabled={busy}
-                className="flex min-h-[220px] flex-col items-center justify-center gap-4 rounded-3xl border-4 border-info bg-white p-8 text-info-ink shadow-card disabled:opacity-60">
-                <Accessibility size={64} />
-                <span className="text-3xl font-black">{t('kiosk.priority')}</span>
-                <span className="text-lg">{t('kiosk.priorityText')}</span>
-              </button>
+              {/* Motifs de priorité définis par l'établissement */}
+              <div className="stagger grid gap-3">
+                {board.priorities.map(p => (
+                  <button key={p.id} onClick={() => issue(p.id)} disabled={busy}
+                    className="flex min-h-[88px] items-center gap-4 rounded-3xl border-4 border-info bg-white px-6 text-left text-info-ink shadow-card disabled:opacity-60">
+                    <Accessibility size={40} className="shrink-0" />
+                    <span className="text-2xl font-black">{p.label}</span>
+                  </button>
+                ))}
+              </div>
             </div>
             {error && <p role="alert" className="mt-6 rounded-2xl bg-danger-soft p-4 text-lg font-semibold text-danger-ink">{error}</p>}
           </div>

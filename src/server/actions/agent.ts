@@ -1,6 +1,7 @@
 'use server'
 
 import { prisma } from "@/lib/prisma"
+import { ticketRoutes } from '@/lib/ticket-route'
 import { revalidatePath } from "next/cache"
 import { getStaffContext, getOrgQueueIds } from "@/lib/session"
 import { ACTIVE_TICKET_STATUSES, startOfToday, type TicketStatus } from "@/lib/constants"
@@ -20,7 +21,7 @@ export async function getAgentQueue() {
     const queueIds = await getOrgQueueIds(ctx.orgId)
     if (queueIds.length === 0) return []
 
-    return await prisma.ticket.findMany({
+    const tickets = await prisma.ticket.findMany({
       where: {
         queueId: { in: queueIds },
         status: { in: ACTIVE_TICKET_STATUSES }
@@ -33,6 +34,9 @@ export async function getAgentQueue() {
         session: true
       }
     })
+    // Étapes déjà faites par chaque client (transferts entre services)
+    const routes = await ticketRoutes(tickets)
+    return tickets.map(t => ({ ...t, route: routes.get(t.id)! }))
   } catch (error) {
     console.error("Get agent queue error:", error)
     return []
@@ -229,9 +233,10 @@ export async function transferTicket(ticketId: string, toServiceId: string, note
     fromServiceId: ticket.serviceId, toServiceId: target.id, note: cleanNote
   })
   await notifyOrg(ctx.orgId)
+  const step = (await prisma.ticketEvent.count({ where: { ticketId, type: 'TRANSFERRED' } })) + 1
   await sendPushToTicket(ticketId, {
-    title: 'Étape suivante',
-    body: `Ticket ${ticket.displayNum} : vous êtes maintenant dans la file « ${target.name} ».`,
+    title: `Étape ${step} : ${target.name}`,
+    body: `Ticket ${ticket.displayNum} : rendez-vous au service « ${target.name} ». Vous êtes dans sa file d’attente.`,
     url: `/ticket/${ticketId}`,
     tag: `ticket-${ticketId}`
   })

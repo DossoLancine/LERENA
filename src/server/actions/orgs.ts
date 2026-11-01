@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma"
 import { distanceKm, formatDistance } from "@/lib/geo"
 import { sectorColor } from "@/lib/icons"
+import { priorityOptions } from "@/lib/priorities"
 
 export async function getOrganizations(search?: string, userLat?: number, userLng?: number) {
   try {
@@ -113,7 +114,7 @@ export async function getOrganizations(search?: string, userLat?: number, userLn
 
 export async function getOrganizationById(id: string, userLat?: number, userLng?: number) {
   try {
-    const [org, stats, waitingByService] = await Promise.all([
+    const [org, stats, waitingByService, priorities] = await Promise.all([
       prisma.organization.findUnique({
         where: { id },
         include: {
@@ -135,7 +136,9 @@ export async function getOrganizationById(id: string, userLat?: number, userLng?
         by: ['serviceId'],
         where: { status: 'WAITING', service: { branch: { organizationId: id } } },
         _count: { _all: true }
-      })
+      }),
+      // Motifs de priorité que le visiteur peut choisir lui-même
+      priorityOptions(id, 'visitor')
     ])
 
     if (!org) return null;
@@ -169,6 +172,7 @@ export async function getOrganizationById(id: string, userLat?: number, userLng?
     return {
       ...org,
       branches,
+      priorities,
       waitingCount,
       waitMin,
       isOpen: org.isActive,

@@ -6,7 +6,7 @@ import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { getManagerContext } from '@/lib/session'
 import { issueTicket, TicketError } from '@/lib/ticketing'
-import { PRIORITY_SCORES, type Priority } from '@/lib/constants'
+import { priorityOptions } from '@/lib/priorities'
 import { audit } from "@/lib/audit"
 
 // Écrans TV et bornes : appairage par code, sans compte utilisateur sur l'appareil.
@@ -164,7 +164,7 @@ export async function getKioskBoard(token: string) {
   await prisma.device.update({ where: { id: device.id }, data: { lastSeenAt: new Date() } })
 
   const orgId = device.organizationId!
-  const [org, services, waiting] = await Promise.all([
+  const [org, services, waiting, priorities] = await Promise.all([
     prisma.organization.findUnique({ where: { id: orgId }, select: { name: true, isActive: true, sector: { select: { icon: true } } } }),
     prisma.service.findMany({
       where: { isActive: true, branch: { organizationId: orgId } },
@@ -175,11 +175,14 @@ export async function getKioskBoard(token: string) {
       by: ['serviceId'],
       where: { status: 'WAITING', queue: { branch: { organizationId: orgId } } },
       _count: { _all: true }
-    })
+    }),
+    // Seuls les motifs que le visiteur peut choisir lui-même
+    priorityOptions(orgId, 'visitor')
   ])
   if (!org) return null
   return {
     orgId,
+    priorities,
     orgName: org.name,
     isOpen: org.isActive,
     services: services.map(s => {
@@ -190,16 +193,15 @@ export async function getKioskBoard(token: string) {
 }
 
 /** Ticket pris en libre-service à la borne. */
-export async function issueKioskTicket(token: string, serviceId: string, priority: Priority = 'STANDARD') {
+export async function issueKioskTicket(token: string, serviceId: string, priorityId: string | null = null) {
   const device = await kioskDevice(token)
   if (!device) return { success: false as const, error: 'Borne non reconnue' }
-  if (!PRIORITY_SCORES[priority]) return { success: false as const, error: 'Priorité invalide' }
 
   try {
     const ticket = await issueTicket({
       orgId: device.organizationId!,
       serviceId,
-      priority,
+      priorityId,
       owner: { userId: null, name: 'Borne', phone: null }
     })
     const [service, ahead] = await Promise.all([

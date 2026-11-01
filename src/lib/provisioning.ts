@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
 import { parseSectorServices } from '@/lib/platform'
 import { tempPassword } from '@/lib/passwords'
+import { DEFAULT_PRIORITIES } from '@/lib/priorities'
 
 // Création d'établissements à partir des modèles de secteur (services, préfixes, pictogrammes en base).
 // Utilisé par l'espace réseau (/org-admin) et l'administration de la plateforme (/admin).
@@ -44,7 +45,9 @@ export async function provisionOrganization(input: NewSiteInput) {
           name: 'Site principal',
           businessHours: { create: DEFAULT_HOURS }
         }
-      }
+      },
+      // Motifs de priorité de départ, modifiables dans Paramètres → Priorités
+      priorityCategories: { create: DEFAULT_PRIORITIES.map((p, i) => ({ ...p, sortOrder: i + 1 })) }
     },
     select: { id: true, name: true }
   })

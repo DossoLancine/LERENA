@@ -16,19 +16,7 @@ export type TicketStatus = 'WAITING' | 'CALLED' | 'SERVING' | 'ON_HOLD' | 'COMPL
 // ON_HOLD : client parti chercher un document ; il garde sa place auprès du même guichet
 export const ACTIVE_TICKET_STATUSES: TicketStatus[] = ['WAITING', 'CALLED', 'SERVING', 'ON_HOLD']
 
-export type Priority = 'STANDARD' | 'PRIORITY' | 'VIP'
-
-export const PRIORITY_SCORES: Record<Priority, number> = {
-  STANDARD: 1,
-  PRIORITY: 2,
-  VIP: 3
-}
-
-export function priorityLabel(score: number) {
-  if (score >= 3) return 'VIP'
-  if (score === 2) return 'PMR/Prioritaire'
-  return 'Standard'
-}
+// Priorités : motifs définis par chaque établissement, voir src/lib/priorities.ts
 
 export const APPOINTMENT_STATUSES = ['CONFIRMED', 'COMPLETED', 'CANCELLED', 'NO_SHOW'] as const
 

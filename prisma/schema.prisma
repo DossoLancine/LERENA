@@ -55,15 +55,16 @@ model Organization {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  members      OrganizationMember[]
-  branches     Branch[]
-  favorites    Favorite[]
-  promotions   Promotion[]
-  appointments Appointment[]
-  devices      Device[]
-  setupLinks   DeviceSetupLink[]
-  network      Network?             @relation(fields: [networkId], references: [id], onDelete: SetNull)
-  sector       Sector?              @relation(fields: [sectorId], references: [id], onDelete: SetNull)
+  members            OrganizationMember[]
+  branches           Branch[]
+  favorites          Favorite[]
+  promotions         Promotion[]
+  appointments       Appointment[]
+  devices            Device[]
+  setupLinks         DeviceSetupLink[]
+  priorityCategories PriorityCategory[]
+  network            Network?             @relation(fields: [networkId], references: [id], onDelete: SetNull)
+  sector             Sector?              @relation(fields: [sectorId], references: [id], onDelete: SetNull)
 }
 
 model OrganizationMember {
@@ -145,6 +146,7 @@ model Ticket {
   status            String    @default("WAITING")
   position          Int?
   priorityScore     Int       @default(1)
+  priorityReason    String? // motif de priorité choisi parmi ceux de l'établissement (ex. « Femme enceinte »)
   npsScore          Int? // 1-5 stars, null if not yet rated
   claimedPromoTitle String?
   claimedPromoPrice String?
@@ -349,6 +351,24 @@ model Device {
   createdAt        DateTime  @default(now())
 
   organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+// Motifs de priorité définis par chaque établissement (handicap, grossesse, urgence…).
+// level : 2 = prioritaire, 3 = très prioritaire. selfService : le visiteur peut le choisir lui-même
+// (application, borne) ; sinon seul l'accueil peut l'attribuer.
+model PriorityCategory {
+  id             String   @id @default(cuid())
+  organizationId String
+  label          String
+  level          Int      @default(2)
+  selfService    Boolean  @default(true)
+  isActive       Boolean  @default(true)
+  sortOrder      Int      @default(0)
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
 }
 
 // Lien d'installation d'appareils : à usage unique, valable peu de temps, seule l'empreinte est stockée

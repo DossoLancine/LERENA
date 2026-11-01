@@ -18,6 +18,7 @@ import { useOrgRealtime } from '@/hooks/use-org-realtime'
 import { haptics } from '@/lib/haptics'
 import { counterLabel, type TicketStatus } from '@/lib/constants'
 import { cn } from '@/lib/cn'
+import { priorityText } from '@/lib/priority-text'
 import { t } from '@/lib/i18n'
 
 type QueueTicket = Awaited<ReturnType<typeof getAgentQueue>>[number]
@@ -225,8 +226,11 @@ export default function AgentPage() {
     )
   }
 
-  const priorityBadge = (score: number) =>
-    score >= 3 ? <Badge tone="danger">{t('agent.vip')}</Badge> : score === 2 ? <Badge tone="info">{t('agent.priority')}</Badge> : null
+  // Le personnel voit le motif choisi par l'établissement (ex. « Femme enceinte »)
+  const priorityBadge = (score: number, reason?: string | null) => {
+    const text = priorityText(score, reason)
+    return text ? <Badge tone={score >= 3 ? 'danger' : 'info'}>{text}</Badge> : null
+  }
 
   const actionButton = ({ onClick, icon, label, shortcut, tone = 'neutral' }: {
     onClick: () => void; icon: React.ReactNode; label: string; shortcut: string; tone?: 'neutral' | 'good' | 'bad' | 'brand'
@@ -299,9 +303,13 @@ export default function AgentPage() {
                   <p className={cn('text-5xl font-black tracking-tight', strong)}>{current.displayNum}</p>
                   <p className={cn('mt-1 truncate font-semibold', strong)}>{current.guestName || current.user?.name || '—'}</p>
                   <p className={cn('text-sm', muted)}>{current.service.name}</p>
+                  {/* Où le client est déjà passé avant d'arriver ici */}
+                  {current.route.step > 1 && (
+                    <p className={cn('mt-1 text-xs font-semibold', muted)}>Étape {current.route.step} · déjà passé : {current.route.done.join(' → ')}</p>
+                  )}
                 </div>
                 <div className="text-right">
-                  {priorityBadge(current.priorityScore)}
+                  {priorityBadge(current.priorityScore, current.priorityReason)}
                   <p className={cn('mt-2 font-mono text-2xl font-bold tabular-nums', current.status === 'SERVING' ? 'text-info' : 'text-brand')}>
                     {elapsed(current.status === 'SERVING' ? current.startedAt : current.calledAt, now)}
                   </p>
@@ -373,7 +381,7 @@ export default function AgentPage() {
                     <p className={cn('truncate text-xs', muted)}>{tk.service.name} · {t('agent.since', { time: elapsed(tk.queuedAt, now) })}</p>
                   </div>
                 </div>
-                {priorityBadge(tk.priorityScore)}
+                {priorityBadge(tk.priorityScore, tk.priorityReason)}
               </li>
             ))}
           </ol>

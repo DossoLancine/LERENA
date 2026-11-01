@@ -1,13 +1,14 @@
 'use server'
 
 import { prisma } from "@/lib/prisma"
+import { ticketRoutes } from "@/lib/ticket-route"
 import { getSessionUser } from "@/lib/session"
 import { issueTicket } from "@/lib/ticketing"
 import { maskPhone } from "@/lib/phone"
 import { notifyOrg } from "@/lib/realtime"
 import { revalidatePath } from "next/cache"
 
-export async function joinQueue(serviceId: string, orgId: string, priority: string = 'STANDARD', userLat?: number, userLng?: number) {
+export async function joinQueue(serviceId: string, orgId: string, priorityId: string | null = null, userLat?: number, userLng?: number) {
   try {
     const sessionUser = await getSessionUser()
     if (!sessionUser) throw new Error("UNAUTHORIZED")
@@ -17,7 +18,7 @@ export async function joinQueue(serviceId: string, orgId: string, priority: stri
     if (!validUser) throw new Error("SESSION_EXPIRED")
 
     const ticket = await issueTicket({
-      orgId, serviceId, priority, lat: userLat, lng: userLng,
+      orgId, serviceId, priorityId, lat: userLat, lng: userLng,
       owner: { userId: sessionUser.id, name: sessionUser.name || 'Client', phone: validUser.phone }
     })
     return { success: true, ticketId: ticket.id }
@@ -77,6 +78,8 @@ export async function getTicketById(id: string) {
       realPosition = ahead + 1
     }
 
+    const route = (await ticketRoutes([ticket]))!.get(ticket.id)!
+
     // Ce lien est partageable : jamais de note interne ni de numéro complet
     const { notes: _internalNotes, guestPhone, ...publicTicket } = ticket
     return {
@@ -86,6 +89,7 @@ export async function getTicketById(id: string) {
       position: realPosition,           // Current dynamic position
       orgName: ticket.queue?.branch?.organization?.name || 'Établissement Inconnu',
       serviceName: ticket.service?.name || 'Service Inconnu',
+      route,
     }
   } catch (error) {
     console.error("Get ticket error:", error)

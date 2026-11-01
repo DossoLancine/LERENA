@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { TicketSkeleton } from '@/components/ui/skeletons'
 import { ArrowLeft, Clock, Users, CheckCircle2, XCircle, AlertCircle, Share2, Phone, Megaphone, Settings, AlertTriangle } from 'lucide-react'
 import Link from 'next/link'
+import { TicketRoute } from '@/components/ticket/ticket-route'
 import { useRouter } from 'next/navigation'
 
 const STATUSES: Record<string, { label: string; color: string; bg: string; icon: any }> = {
@@ -194,6 +195,7 @@ export default function TicketPage({ params }: { params: { id: string } }) {
                 {ticket.displayNum}
               </div>
               <p className="text-sm text-gray-500 mt-2">{ticket.orgName} · {ticket.serviceName}</p>
+              <TicketRoute route={ticket.route} current={ticket.serviceName} className="mt-3" />
             </div>
 
             {/* Position dans la file */}
