@@ -19,7 +19,7 @@ const CANDIDATES = [
 const executablePath = CANDIDATES.find(p => existsSync(p))
 
 const PUBLIC_PAGES = ['/', '/explore', '/auth/login', '/pro/login', '/auth/forgot', '/tickets']
-const MANAGER_PAGES = ['/dashboard', '/dashboard/queue', '/dashboard/agenda', '/dashboard/analytics', '/dashboard/settings/site', '/dashboard/settings/priorities', '/dashboard/settings/notifications', '/dashboard/settings/guide']
+const MANAGER_PAGES = ['/dashboard', '/dashboard/queue', '/dashboard/agenda', '/dashboard/analytics', '/dashboard/settings/site', '/dashboard/settings/priorities', '/dashboard/settings/notifications', '/dashboard/settings/appointments', '/dashboard/settings/sites', '/dashboard/settings/guide']
 const SECURITY_HEADERS = ['strict-transport-security', 'x-content-type-options', 'x-frame-options', 'referrer-policy']
 
 const failures = []
