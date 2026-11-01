@@ -3,14 +3,13 @@
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { getManagerContext } from '@/lib/session'
+import { branchFilter, siteForWrite } from '@/lib/sites'
 import { notifyOrg } from '@/lib/realtime'
 
 // Gestion des guichets par le responsable : nom, services traités, actif ou non
 
-async function mainBranchId(orgId: string) {
-  const branch = await prisma.branch.findFirst({ where: { organizationId: orgId }, orderBy: { createdAt: 'asc' }, select: { id: true } })
-  return branch?.id ?? null
-}
+// Site où créer les guichets : le site actif du responsable
+const mainBranchId = (orgId: string) => siteForWrite(orgId)
 
 export async function getCounters() {
   const ctx = await getManagerContext()
@@ -18,12 +17,12 @@ export async function getCounters() {
 
   const [counters, services] = await Promise.all([
     prisma.counter.findMany({
-      where: { branch: { organizationId: ctx.orgId } },
+      where: { branch: await branchFilter(ctx.orgId) },
       orderBy: [{ isActive: 'desc' }, { name: 'asc' }],
       select: { id: true, name: true, isActive: true, serviceIds: true }
     }),
     prisma.service.findMany({
-      where: { branch: { organizationId: ctx.orgId } },
+      where: { branch: await branchFilter(ctx.orgId) },
       orderBy: { name: 'asc' },
       select: { id: true, name: true, isActive: true }
     })

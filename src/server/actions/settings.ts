@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import bcrypt from "bcryptjs"
 import { getManagerContext, getOrgQueueIds } from "@/lib/session"
+import { siteQueueIds, siteScope } from "@/lib/sites"
 import { ACTIVE_TICKET_STATUSES } from "@/lib/constants"
 import { priorityText } from "@/lib/priority-text"
 import { audit } from "@/lib/audit"
@@ -262,7 +263,7 @@ export async function resetDailyQueue(orgId: string) {
     const ctx = await requireOwnOrg(orgId)
     if (!ctx) return DENIED
 
-    const queueIds = await getOrgQueueIds(ctx.orgId)
+    const queueIds = await siteQueueIds(ctx.orgId, await siteScope(ctx.orgId))
 
     const res = await prisma.ticket.updateMany({
       where: {

@@ -37,7 +37,7 @@ export default function SetupLinkPage({ params }: { params: { token: string } })
     try {
       const res = await redeemSetupLink(params.token, role)
       if (!res.success) return setState({ step: 'error', message: res.error })
-      window.location.replace(adoptDeviceRole({ orgId: res.orgId, type: res.type, token: res.token }))
+      window.location.replace(adoptDeviceRole({ orgId: res.orgId, siteId: res.siteId, type: res.type, token: res.token }))
     } catch {
       setState({ step: 'error', message: 'Connexion impossible. Vérifiez le réseau puis rouvrez le lien.' })
     }

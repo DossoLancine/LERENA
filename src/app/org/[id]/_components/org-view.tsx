@@ -27,6 +27,7 @@ export default function OrgView({ params, initialOrg, initialIsFavorite }: {
   const [selectedService, setSelectedService] = useState<string | null>(null)
   // Motif de priorité (proposé seulement si l'établissement l'autorise dans l'application)
   const [priorityId, setPriorityId] = useState<string | null>(null)
+  const [siteId, setSiteId] = useState<string | null>(null)
   const [isJoining, setIsJoining] = useState(false)
   const [isFavorite, setIsFavorite] = useState(initialIsFavorite)
   const org: any = initialOrg
@@ -127,7 +128,10 @@ export default function OrgView({ params, initialOrg, initialIsFavorite }: {
   // Attente réelle calculée par le serveur (personnes en file × durée du service)
   const totalWait = org.waitMin || 0
   const emoji = <DynamicIcon name={org.sectorIcon} size={48} className="text-white opacity-90" />
-  const services = org.branches?.[0]?.services || [];
+  // Plusieurs sites : le visiteur choisit le sien (sites ouverts ayant des services)
+  const sites = (org.branches || []).filter((b: any) => b.isActive !== false && b.services?.some((sv: any) => sv.isActive))
+  const site = sites.find((b: any) => b.id === siteId) ?? sites[0]
+  const services = (site?.services || []).filter((sv: any) => sv.isActive);
 
   const service = services.find((s: any) => s.id === selectedService)
 
@@ -220,6 +224,21 @@ export default function OrgView({ params, initialOrg, initialIsFavorite }: {
 
         {/* Services */}
         <div className="bg-white rounded-2xl border border-gray-100 p-4 mb-4">
+          {sites.length > 1 && (
+            <div className="mb-4">
+              <h2 className="font-semibold text-gray-900 mb-2">Choisissez votre site</h2>
+              <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar" role="radiogroup" aria-label="Site">
+                {sites.map((b: any) => (
+                  <button key={b.id} type="button" role="radio" aria-checked={b.id === site?.id}
+                    onClick={() => { setSiteId(b.id); setSelectedService(null) }}
+                    className={`shrink-0 rounded-2xl border-2 px-3 py-2 text-left text-sm ${b.id === site?.id ? 'border-brand bg-orange-50' : 'border-gray-100 bg-gray-50'}`}>
+                    <span className="block font-semibold text-gray-900">{b.name}</span>
+                    {(b.address || b.city) && <span className="block text-xs text-gray-500">{[b.address, b.city].filter(Boolean).join(', ')}</span>}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           <h2 className="font-semibold text-gray-900 mb-3">Choisissez un service</h2>
           <div className="stagger space-y-2">
             {services.map((svc: any) => (

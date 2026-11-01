@@ -11,6 +11,7 @@ import { cn } from '@/lib/cn'
 import { t, type MessageKey } from '@/lib/i18n'
 import { useDashboard } from './dashboard-context'
 import { useSlidingIndicator } from '@/hooks/use-sliding-indicator'
+import { SiteSwitcher } from '@/components/sites/site-switcher'
 
 // « to » : adresse ouverte au clic quand elle diffère de la section (les Paramètres ouvrent directement leur 1re page)
 const TABS: { href: string; label: MessageKey; to?: string }[] = [
@@ -48,6 +49,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
           <div className="min-w-0">
             <p className="text-xs font-medium text-ink-muted">{t('dashboard.eyebrow')}</p>
             <h1 className="truncate text-lg font-bold text-ink">{stats?.orgName ?? '—'}</h1>
+            <SiteSwitcher className="mt-1" />
           </div>
           <div className="flex items-center gap-2">
             <button

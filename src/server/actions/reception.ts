@@ -2,6 +2,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { getReceptionContext } from '@/lib/session'
+import { branchFilter } from '@/lib/sites'
 import { issueTicket, TicketError } from '@/lib/ticketing'
 import { normalizePhone } from '@/lib/phone'
 import { notifyOrg } from '@/lib/realtime'
@@ -19,13 +20,13 @@ export async function getReceptionBoard() {
   const [org, services, waiting, priorities] = await Promise.all([
     prisma.organization.findUnique({ where: { id: ctx.orgId }, select: { id: true, name: true, isActive: true } }),
     prisma.service.findMany({
-      where: { isActive: true, branch: { organizationId: ctx.orgId } },
+      where: { isActive: true, branch: await branchFilter(ctx.orgId) },
       orderBy: { name: 'asc' },
       select: { id: true, name: true, description: true, avgDurationMin: true }
     }),
     prisma.ticket.groupBy({
       by: ['serviceId'],
-      where: { status: 'WAITING', queue: { branch: { organizationId: ctx.orgId } } },
+      where: { status: 'WAITING', queue: { branch: await branchFilter(ctx.orgId) } },
       _count: { _all: true }
     }),
     // L'accueil peut attribuer tous les motifs, y compris ceux réservés au personnel
@@ -50,7 +51,7 @@ export async function getRecentTickets() {
   const start = new Date()
   start.setHours(0, 0, 0, 0)
   return prisma.ticket.findMany({
-    where: { queue: { branch: { organizationId: ctx.orgId } }, createdAt: { gte: start } },
+    where: { queue: { branch: await branchFilter(ctx.orgId) }, createdAt: { gte: start } },
     orderBy: { createdAt: 'desc' },
     take: 30,
     select: {

@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { getManagerContext } from '@/lib/session'
+import { branchFilter, siteForWrite } from '@/lib/sites'
 
 // Planning hebdomadaire des agents : qui tient quel guichet, et quand
 
@@ -24,12 +25,12 @@ export async function getWeekPlanning(monday: string) {
       orderBy: { createdAt: 'asc' }
     }),
     prisma.counter.findMany({
-      where: { branch: { organizationId: ctx.orgId } },
+      where: { branch: await branchFilter(ctx.orgId) },
       orderBy: { name: 'asc' },
       select: { id: true, name: true }
     }),
     prisma.shift.findMany({
-      where: { branch: { organizationId: ctx.orgId }, date: { gte: start, lt: end } },
+      where: { branch: await branchFilter(ctx.orgId), date: { gte: start, lt: end } },
       orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
       select: { id: true, date: true, startTime: true, endTime: true, userId: true, counterId: true }
     })
@@ -53,7 +54,8 @@ export async function addShift(input: { userId: string; counterId?: string | nul
   const [member, counter, branch] = await Promise.all([
     prisma.organizationMember.findFirst({ where: { organizationId: ctx.orgId, userId: input.userId } }),
     input.counterId ? prisma.counter.findFirst({ where: { id: input.counterId, branch: { organizationId: ctx.orgId } } }) : Promise.resolve(null),
-    prisma.branch.findFirst({ where: { organizationId: ctx.orgId }, orderBy: { createdAt: 'asc' }, select: { id: true } })
+    // Site du créneau : celui du guichet choisi, sinon le site actif
+    siteForWrite(ctx.orgId).then(id => (id ? { id } : null))
   ])
   if (!member) return { success: false, error: 'Agent introuvable dans votre équipe' }
   if (input.counterId && !counter) return { success: false, error: 'Guichet introuvable' }
@@ -67,7 +69,7 @@ export async function addShift(input: { userId: string; counterId?: string | nul
   if (overlap) return { success: false, error: 'Cet agent a déjà un créneau sur ces heures.' }
 
   await prisma.shift.create({
-    data: { branchId: branch.id, userId: input.userId, counterId: counter?.id ?? null, date, startTime: input.startTime, endTime: input.endTime }
+    data: { branchId: counter?.branchId ?? branch.id, userId: input.userId, counterId: counter?.id ?? null, date, startTime: input.startTime, endTime: input.endTime }
   })
   revalidatePath('/dashboard/planning')
   return { success: true }
@@ -89,8 +91,8 @@ export async function copyPreviousWeek(monday: string) {
   const start = new Date(`${monday}T00:00:00Z`)
   const prevStart = new Date(start.getTime() - 7 * 86400_000)
   const [previous, existing] = await Promise.all([
-    prisma.shift.findMany({ where: { branch: { organizationId: ctx.orgId }, date: { gte: prevStart, lt: start } } }),
-    prisma.shift.count({ where: { branch: { organizationId: ctx.orgId }, date: { gte: start, lt: new Date(start.getTime() + 7 * 86400_000) } } })
+    prisma.shift.findMany({ where: { branch: await branchFilter(ctx.orgId), date: { gte: prevStart, lt: start } } }),
+    prisma.shift.count({ where: { branch: await branchFilter(ctx.orgId), date: { gte: start, lt: new Date(start.getTime() + 7 * 86400_000) } } })
   ])
   if (existing > 0) return { success: false, count: 0, error: 'La semaine contient déjà des créneaux.' }
 

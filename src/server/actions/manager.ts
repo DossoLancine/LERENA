@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { getManagerContext, getOrgQueueIds } from "@/lib/session"
+import { branchFilter, siteQueueIds, siteScope } from '@/lib/sites'
 import { counterLabel, startOfToday } from "@/lib/constants"
 import { notifyOrg } from "@/lib/realtime"
 
@@ -12,7 +13,7 @@ export async function getManagerStats() {
     if (!ctx) return null
 
     const today = startOfToday()
-    const ticketScope = { queue: { branch: { organizationId: ctx.orgId } }, createdAt: { gte: today } }
+    const ticketScope = { queue: { branch: await branchFilter(ctx.orgId) }, createdAt: { gte: today } }
 
     const [org, byStatus] = await Promise.all([
       prisma.organization.findUnique({ where: { id: ctx.orgId }, select: { id: true, name: true, isActive: true } }),
@@ -64,7 +65,7 @@ export async function getLiveQueue() {
     const ctx = await getManagerContext()
     if (!ctx) return []
 
-    const queueIds = await getOrgQueueIds(ctx.orgId)
+    const queueIds = await siteQueueIds(ctx.orgId, await siteScope(ctx.orgId))
 
     const tickets = await prisma.ticket.findMany({
       where: { queueId: { in: queueIds } },
@@ -102,7 +103,7 @@ export async function getOrganizationServices() {
     if (!ctx) return []
 
     const services = await prisma.service.findMany({
-      where: { branch: { organizationId: ctx.orgId } },
+      where: { branch: await branchFilter(ctx.orgId) },
       orderBy: { createdAt: 'asc' }
     })
     const serviceIds = services.map(s => s.id)
@@ -153,12 +154,12 @@ export async function getCounterBoard() {
     const today = startOfToday()
     const [counters, active, served] = await Promise.all([
       prisma.counter.findMany({
-        where: { branch: { organizationId: ctx.orgId } },
+        where: { branch: await branchFilter(ctx.orgId) },
         orderBy: [{ isActive: 'desc' }, { name: 'asc' }],
         select: { id: true, name: true, isActive: true }
       }),
       prisma.ticket.findMany({
-        where: { status: { in: ['CALLED', 'SERVING', 'ON_HOLD'] }, queue: { branch: { organizationId: ctx.orgId } } },
+        where: { status: { in: ['CALLED', 'SERVING', 'ON_HOLD'] }, queue: { branch: await branchFilter(ctx.orgId) } },
         select: {
           id: true, displayNum: true, status: true, counterName: true, calledAt: true, startedAt: true,
           service: { select: { name: true } },
@@ -167,7 +168,7 @@ export async function getCounterBoard() {
       }),
       prisma.ticket.groupBy({
         by: ['counterName'],
-        where: { status: 'COMPLETED', completedAt: { gte: today }, queue: { branch: { organizationId: ctx.orgId } } },
+        where: { status: 'COMPLETED', completedAt: { gte: today }, queue: { branch: await branchFilter(ctx.orgId) } },
         _count: { _all: true }
       })
     ])

@@ -3,14 +3,22 @@
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { getManagerContext } from '@/lib/session'
+import { siteForWrite } from '@/lib/sites'
 import { notifyOrg } from '@/lib/realtime'
 
 // Position GPS, protection anti-abus et horaires d'ouverture de l'établissement du responsable
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/
 
+// Site concerné : le site actif du responsable
 async function mainBranch(orgId: string) {
-  return prisma.branch.findFirst({ where: { organizationId: orgId }, orderBy: { createdAt: 'asc' }, select: { id: true } })
+  const id = await siteForWrite(orgId)
+  return id ? { id } : null
+}
+
+async function isFirstSite(orgId: string, branchId: string) {
+  const first = await prisma.branch.findFirst({ where: { organizationId: orgId }, orderBy: { createdAt: 'asc' }, select: { id: true } })
+  return first?.id === branchId
 }
 
 export async function getSiteLocation() {
@@ -27,7 +35,9 @@ export async function getSiteLocation() {
   if (!org || !branch) return null
 
   const hours = await prisma.businessHour.findMany({ where: { branchId: branch.id }, orderBy: { dayOfWeek: 'asc' } })
-  return { ...org, hours: hours.map(h => ({ dayOfWeek: h.dayOfWeek, openTime: h.openTime, closeTime: h.closeTime, isClosed: h.isClosed })) }
+  // Position et adresse propres au site (à défaut, celles de l'établissement)
+  const site = await prisma.branch.findUnique({ where: { id: branch.id }, select: { lat: true, lng: true, address: true, city: true } })
+  return { ...org, lat: site?.lat ?? org.lat, lng: site?.lng ?? org.lng, address: site?.address ?? org.address, city: site?.city ?? org.city, hours: hours.map(h => ({ dayOfWeek: h.dayOfWeek, openTime: h.openTime, closeTime: h.closeTime, isClosed: h.isClosed })) }
 }
 
 export async function updateSiteLocation(data: { lat: number; lng: number; requireGps: boolean; maxRadiusKm: number }) {
@@ -38,9 +48,13 @@ export async function updateSiteLocation(data: { lat: number; lng: number; requi
   if (!valid) return { success: false, error: 'Position invalide' }
   const radius = Math.min(50, Math.max(0.1, Number(data.maxRadiusKm) || 10))
 
+  const branch = await mainBranch(ctx.orgId)
+  if (branch) await prisma.branch.update({ where: { id: branch.id }, data: { lat: data.lat, lng: data.lng } })
+  // Le premier site donne la position de l'établissement sur la carte ; la protection anti-abus vaut pour tous les sites
+  const first = branch ? await isFirstSite(ctx.orgId, branch.id) : true
   await prisma.organization.update({
     where: { id: ctx.orgId },
-    data: { lat: data.lat, lng: data.lng, requireGps: !!data.requireGps, maxRadiusKm: radius }
+    data: { ...(first ? { lat: data.lat, lng: data.lng } : {}), requireGps: !!data.requireGps, maxRadiusKm: radius }
   })
   await notifyOrg(ctx.orgId)
   revalidatePath('/explore')
