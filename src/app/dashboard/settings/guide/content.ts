@@ -1,7 +1,7 @@
 // Guide d'utilisation affiché dans Paramètres → Guide d'utilisation.
 // À METTRE À JOUR à chaque évolution de l'application (nouvel écran, nouvelle étape, changement de nom).
 
-export const GUIDE_UPDATED_AT = '1er novembre 2026'
+export const GUIDE_UPDATED_AT = '1er novembre 2026 (priorités et parcours)'
 
 export interface GuideSection {
   id: string
@@ -69,9 +69,36 @@ export const GUIDE: GuideSection[] = [
     title: 'Au guichet et à l’accueil',
     steps: [
       'Agent : il se connecte (espace professionnel), choisit son guichet puis touche « Appeler le suivant ». Le numéro s’affiche et s’annonce sur la TV.',
-      'Il peut rappeler un client, le marquer absent, le mettre en attente (document manquant) ou le transférer vers un autre service.',
+      'Il peut rappeler un client, le marquer absent ou le mettre en attente (document manquant).',
       'Agent d’accueil : il crée des tickets pour les visiteurs, oriente vers le bon service et voit l’affluence de tous les guichets.',
-      'Priorités : Standard, Prioritaire (personnes à mobilité réduite, femmes enceintes…) et VIP passent avant dans la file.'
+      'Priorités : les motifs définis dans Paramètres → Priorités passent avant dans la file (voir la rubrique « Priorités »).'
+    ]
+  },
+  {
+    id: 'parcours',
+    title: 'Un visiteur qui passe par plusieurs services',
+    intro: 'Le parcours n’est pas prévu à l’avance : chaque personne qui reçoit le visiteur décide où il doit aller ensuite.',
+    steps: [
+      'Le visiteur garde le même numéro de ticket du début à la fin.',
+      'Quand il a fini à un guichet (ou s’il n’est pas au bon endroit), l’agent touche « Transférer » (touche X), choisit le service suivant et peut laisser une note au collègue.',
+      'Le visiteur reçoit une notification « Étape 2 : Caisse » et sa page de suivi affiche les étapes déjà faites puis l’étape en cours.',
+      'Dans le nouveau service, il se place derrière la dernière personne arrivée, comme tout le monde — sauf s’il a une priorité.',
+      'L’agent suivant voit l’étape et les services déjà passés, ainsi que la note. Le dernier agent touche « Terminé ».'
+    ]
+  },
+  {
+    id: 'priorites',
+    title: 'Priorités',
+    intro: 'Chaque établissement décide qui passe devant : Paramètres → Priorités.',
+    steps: [
+      'Créez vos motifs (ex. « Personne en situation de handicap », « Femme enceinte », « Urgence ») et choisissez leur niveau : Prioritaire ou Très prioritaire.',
+      'Dans une file : les très prioritaires d’abord, puis les prioritaires, puis tous les autres dans l’ordre d’arrivée.',
+      '« Le visiteur peut le choisir » : le motif est proposé dans l’application et sur la borne. Sinon, seul l’agent d’accueil peut l’attribuer (utile pour « Urgence »).',
+      'À l’accueil, une priorité peut aussi être ajoutée ou retirée sur un ticket déjà émis.'
+    ],
+    tips: [
+      'Discrétion : le motif est visible du personnel uniquement ; la TV affiche seulement « Prioritaire ».',
+      'Sans aucun motif actif, tout le monde est servi dans l’ordre d’arrivée et la borne ne pose pas la question.'
     ]
   },
   {

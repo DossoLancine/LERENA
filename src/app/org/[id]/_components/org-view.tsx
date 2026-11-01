@@ -29,7 +29,8 @@ export default function OrgView({ params, initialOrg, initialIsFavorite }: {
   const [isFavorite, setIsFavorite] = useState(initialIsFavorite)
   const org: any = initialOrg
   const [error, setError] = useState<string | null>(null)
-  const [priorityLevel, setPriorityLevel] = useState<string>('STANDARD')
+  // Motif de priorité choisi parmi ceux de l'établissement (null = attente classique)
+  const [priorityId, setPriorityId] = useState<string | null>(null)
   const [bookingType, setBookingType] = useState<'TICKET' | 'APPOINTMENT'>('TICKET')
   // Position GPS demandée dès le choix du service, pour que la prise de ticket soit immédiate
   const coordsRef = useRef<{ lat: number; lng: number } | null>(null)
@@ -86,7 +87,7 @@ export default function OrgView({ params, initialOrg, initialIsFavorite }: {
 
     // Position déjà connue (demandée au choix du service) ; sinon on ne l'attend que si elle est exigée
     const coords = coordsRef.current ?? (org?.requireGps ? await getPosition(6000) : null)
-    const res = await joinQueue(selectedService, params.id, priorityLevel, coords?.lat, coords?.lng)
+    const res = await joinQueue(selectedService, params.id, priorityId, coords?.lat, coords?.lng)
 
     if (res.success && res.ticketId) {
       haptics.success()
@@ -290,21 +291,22 @@ export default function OrgView({ params, initialOrg, initialIsFavorite }: {
         <>
           {/* Options de file d'attente (EPIC 4 VIP) */}
           <div className="max-w-lg mx-auto px-4 pb-32">
-            <div className="bg-white rounded-2xl border border-gray-100 p-4 mb-4">
+            {/* Motifs définis par l'établissement ; rien à choisir s'il n'en propose aucun */}
+            {org.priorities.length > 0 && <div className="bg-white rounded-2xl border border-gray-100 p-4 mb-4">
               <h2 className="font-semibold text-gray-900 mb-3">Besoin spécifique ?</h2>
-              <select 
-                value={priorityLevel}
-                onChange={(e) => setPriorityLevel(e.target.value)}
+              <select
+                aria-label="Besoin spécifique"
+                value={priorityId ?? ''}
+                onChange={(e) => setPriorityId(e.target.value || null)}
                 className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-orange-500 focus:border-orange-500 block p-3"
               >
-                <option value="STANDARD">Non, attente classique</option>
-                <option value="PRIORITY">PMR / Personne âgée / Enceinte (Prioritaire)</option>
-                <option value="VIP">Client VIP / Urgence</option>
+                <option value="">Non, attente classique</option>
+                {org.priorities.map((p: { id: string; label: string }) => <option key={p.id} value={p.id}>{p.label}</option>)}
               </select>
               <p className="text-xs text-gray-500 mt-2">
                 Les tickets prioritaires passent automatiquement devant les autres.
               </p>
-            </div>
+            </div>}
           </div>
 
           {/* CTA TICKET */}
@@ -369,7 +371,7 @@ export default function OrgView({ params, initialOrg, initialIsFavorite }: {
           orgId={params.id}
           serviceId={selectedService}
           serviceName={service?.name}
-          priority={priorityLevel}
+          priorityId={priorityId}
           getPosition={() => (org?.requireGps ? getPosition(6000) : Promise.resolve(coordsRef.current))}
         />
       )}

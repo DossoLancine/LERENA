@@ -4,7 +4,8 @@ import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import bcrypt from "bcryptjs"
 import { getManagerContext, getOrgQueueIds } from "@/lib/session"
-import { ACTIVE_TICKET_STATUSES, priorityLabel } from "@/lib/constants"
+import { ACTIVE_TICKET_STATUSES } from "@/lib/constants"
+import { priorityText } from "@/lib/priority-text"
 import { audit } from "@/lib/audit"
 import { notifyOrg } from "@/lib/realtime"
 import { tempPassword } from "@/lib/passwords"
@@ -309,7 +310,7 @@ export async function exportTicketsHistory(orgId: string) {
         client: t.guestName || t.user?.name || 'Anonyme',
         phone: t.user?.phone || 'N/A',
         status: t.status,
-        priority: priorityLabel(t.priorityScore),
+        priority: priorityText(t.priorityScore, t.priorityReason) ?? 'Standard',
         nps: t.npsScore ? `${t.npsScore}/5` : 'Non noté',
         date: t.createdAt.toISOString()
       }))

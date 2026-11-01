@@ -618,12 +618,12 @@ function QueueDisplay({ data }: { data: any }) {
                     <p className="text-xs font-mono font-bold text-gray-400 uppercase tracking-wider">Ticket Client</p>
                     {ticket.priorityScore === 3 && (
                       <span className="bg-red-500/20 border border-red-500/30 text-red-400 text-xs font-mono font-black px-2 py-0.5 rounded-md">
-                        VIP PRIORITAIRE
+                        TRÈS PRIORITAIRE
                       </span>
                     )}
                     {ticket.priorityScore === 2 && (
                       <span className="bg-amber-500/20 border border-amber-500/30 text-amber-400 text-xs font-mono font-black px-2 py-0.5 rounded-md">
-                        PMR
+                        PRIORITAIRE
                       </span>
                     )}
                   </div>
@@ -682,12 +682,12 @@ function QueueDisplay({ data }: { data: any }) {
                   </span>
                   {ticket.priorityScore === 3 && (
                     <span className="bg-red-500/20 text-red-400 text-[10px] font-mono font-black px-1.5 py-0.5 rounded">
-                      VIP
+                      PRIORITÉ+
                     </span>
                   )}
                   {ticket.priorityScore === 2 && (
                     <span className="bg-amber-500/20 text-amber-400 text-[10px] font-mono font-black px-1.5 py-0.5 rounded">
-                      PMR
+                      PRIORITÉ
                     </span>
                   )}
                 </div>

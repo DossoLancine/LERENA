@@ -11,7 +11,6 @@ import { DashboardSkeleton } from '@/components/ui/skeletons'
 import { usePolling } from '@/hooks/use-polling'
 import { useOrgRealtime } from '@/hooks/use-org-realtime'
 import { haptics } from '@/lib/haptics'
-import type { Priority } from '@/lib/constants'
 import { cn } from '@/lib/cn'
 import { t, type MessageKey } from '@/lib/i18n'
 
@@ -19,11 +18,6 @@ type Board = NonNullable<Awaited<ReturnType<typeof getReceptionBoard>>>
 type Recent = Awaited<ReturnType<typeof getRecentTickets>>
 type Issued = Extract<Awaited<ReturnType<typeof issueReceptionTicket>>, { success: true }>['ticket']
 
-const PRIORITIES: { value: Priority; label: MessageKey; icon: React.ReactNode }[] = [
-  { value: 'STANDARD', label: 'reception.prioStandard', icon: <UserRound size={18} /> },
-  { value: 'PRIORITY', label: 'reception.prioPriority', icon: <Accessibility size={18} /> },
-  { value: 'VIP', label: 'reception.prioUrgent', icon: <Siren size={18} /> },
-]
 
 // Délai avant de revenir à l'écran d'émission après un ticket
 const AUTO_RESET_MS = 25_000
@@ -33,7 +27,8 @@ export default function ReceptionPage() {
   const toast = useToast()
   const [board, setBoard] = useState<Board | null>(null)
   const [recent, setRecent] = useState<Recent>([])
-  const [priority, setPriority] = useState<Priority>('STANDARD')
+  // Motif de priorité choisi (null = sans priorité) parmi ceux définis par l'établissement
+  const [priorityId, setPriorityId] = useState<string | null>(null)
   const [showContact, setShowContact] = useState(false)
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
@@ -54,7 +49,7 @@ export default function ReceptionPage() {
   const reset = useCallback(() => {
     clearTimeout(resetTimer.current)
     setIssued(null)
-    setPriority('STANDARD')
+    setPriorityId(null)
     setName('')
     setPhone('')
     setShowContact(false)
@@ -66,7 +61,7 @@ export default function ReceptionPage() {
     if (busyService) return
     haptics.tap()
     setBusyService(serviceId)
-    const res = await issueReceptionTicket({ serviceId, priority, name: name || undefined, phone: phone || undefined })
+    const res = await issueReceptionTicket({ serviceId, priorityId, name: name || undefined, phone: phone || undefined })
     setBusyService(null)
     if (!res.success) return toast(res.error, 'error')
 
@@ -77,7 +72,7 @@ export default function ReceptionPage() {
     load()
   }
 
-  const changePriority = async (ticketId: string, value: Priority) => {
+  const changePriority = async (ticketId: string, value: string | null) => {
     const res = await setTicketPriority(ticketId, value)
     toast(res.success ? t('reception.priorityChanged') : t('agent.actionFailed'), res.success ? 'success' : 'error')
     load()
@@ -144,16 +139,19 @@ export default function ReceptionPage() {
                 {/* 1. Priorité */}
                 <section className="rounded-card border border-surface-line bg-white p-4 shadow-card">
                   <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-ink-muted">1. {t('reception.priority')}</p>
-                  <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label={t('reception.priority')}>
-                    {PRIORITIES.map(p => (
-                      <button key={p.value} role="radio" aria-checked={priority === p.value} onClick={() => { haptics.tap(); setPriority(p.value) }}
-                        className={cn('flex min-h-touch items-center justify-center gap-2 rounded-2xl border-2 px-3 py-3 text-sm font-bold transition-all',
-                          priority === p.value
-                            ? p.value === 'VIP' ? 'border-danger bg-danger-soft text-danger-ink' : p.value === 'PRIORITY' ? 'border-info bg-info-soft text-info-ink' : 'border-brand bg-brand-50 text-brand-700'
-                            : 'border-surface-line text-ink-muted')}>
-                        {p.icon} {t(p.label)}
-                      </button>
-                    ))}
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3" role="radiogroup" aria-label={t('reception.priority')}>
+                    {[{ id: null as string | null, label: t('reception.prioStandard'), level: 1 }, ...board.priorities].map(p => {
+                      const selected = priorityId === p.id
+                      return (
+                        <button key={p.id ?? 'none'} role="radio" aria-checked={selected} onClick={() => { haptics.tap(); setPriorityId(p.id) }}
+                          className={cn('flex min-h-touch items-center justify-center gap-2 rounded-2xl border-2 px-3 py-3 text-sm font-bold transition-all',
+                            selected
+                              ? p.level >= 3 ? 'border-danger bg-danger-soft text-danger-ink' : p.level === 2 ? 'border-info bg-info-soft text-info-ink' : 'border-brand bg-brand-50 text-brand-700'
+                              : 'border-surface-line text-ink-muted')}>
+                          {p.level >= 3 ? <Siren size={18} /> : p.level === 2 ? <Accessibility size={18} /> : <UserRound size={18} />} {p.label}
+                        </button>
+                      )
+                    })}
                   </div>
                   <button onClick={() => setShowContact(v => !v)} className="mt-3 flex items-center gap-1 text-sm font-medium text-ink-muted">
                     <ChevronDown size={16} className={cn('transition-transform', showContact && 'rotate-180')} /> {t('reception.addContact')}
@@ -206,10 +204,11 @@ export default function ReceptionPage() {
                     <p className="truncate text-xs text-ink-subtle">{tk.service.name} · {new Date(tk.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</p>
                   </div>
                   {tk.status === 'WAITING' ? (
-                    <select aria-label={t('reception.priority')} value={tk.priorityScore >= 3 ? 'VIP' : tk.priorityScore === 2 ? 'PRIORITY' : 'STANDARD'}
-                      onChange={e => changePriority(tk.id, e.target.value as Priority)}
-                      className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs">
-                      {PRIORITIES.map(p => <option key={p.value} value={p.value}>{t(p.label)}</option>)}
+                    <select aria-label={t('reception.priority')} value={board.priorities.find(p => p.label === tk.priorityReason)?.id ?? ''}
+                      onChange={e => changePriority(tk.id, e.target.value || null)}
+                      className="max-w-[150px] rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs">
+                      <option value="">{t('reception.prioStandard')}</option>
+                      {board.priorities.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
                     </select>
                   ) : (
                     <TicketStatusBadge status={tk.status} />

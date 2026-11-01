@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { distanceKm } from '@/lib/geo'
-import { PRIORITY_SCORES, type Priority } from '@/lib/constants'
+import { resolvePriority, PriorityError } from '@/lib/priorities'
 import { notifyOrg } from '@/lib/realtime'
 import { revalidatePath } from 'next/cache'
 import { logTicketEvent } from '@/lib/ticket-events'
@@ -19,7 +19,10 @@ export interface TicketOwner {
 export interface IssueTicketInput {
   orgId: string
   serviceId: string
-  priority?: string
+  // Motif de priorité choisi parmi ceux de l'établissement (null = sans priorité)
+  priorityId?: string | null
+  // Accueil ou agent : peut attribuer tous les motifs, y compris ceux réservés au personnel
+  staff?: boolean
   lat?: number
   lng?: number
   owner: TicketOwner
@@ -36,7 +39,7 @@ export function queueForService<Q extends { name: string; prefix: string }>(serv
   ) || service.branch.queues[0]
 }
 
-export async function issueTicket({ orgId, serviceId, priority = 'STANDARD', lat, lng, owner }: IssueTicketInput) {
+export async function issueTicket({ orgId, serviceId, priorityId, staff = false, lat, lng, owner }: IssueTicketInput) {
   const org = await prisma.organization.findUnique({ where: { id: orgId } })
   if (!org) throw new TicketError('Établissement introuvable')
   if (!org.isActive) throw new TicketError('Cet établissement est fermé pour le moment')
@@ -70,7 +73,13 @@ export async function issueTicket({ orgId, serviceId, priority = 'STANDARD', lat
     await prisma.queue.update({ where: { id: queue.id }, data: { currentNum: lastTicket.number } })
   }
 
-  const priorityScore = PRIORITY_SCORES[priority as Priority] ?? PRIORITY_SCORES.STANDARD
+  let priority: Awaited<ReturnType<typeof resolvePriority>>
+  try {
+    priority = await resolvePriority(orgId, priorityId, staff)
+  } catch (error) {
+    if (error instanceof PriorityError) throw new TicketError(error.message)
+    throw error
+  }
 
   const ticket = await prisma.$transaction(async (tx) => {
     const { currentNum: newNumber } = await tx.queue.update({
@@ -89,7 +98,8 @@ export async function issueTicket({ orgId, serviceId, priority = 'STANDARD', lat
         guestPhone: owner.phone,
         number: newNumber,
         displayNum: `${queue.prefix}${newNumber.toString().padStart(3, '0')}`,
-        priorityScore,
+        priorityScore: priority.score,
+        priorityReason: priority.reason,
         status: 'WAITING',
         position: waiting + 1
       }

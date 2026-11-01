@@ -17,13 +17,13 @@ const NAME_KEY = 'attends_guest_name'
 const PHONE_KEY = 'attends_guest_phone'
 
 /** Ticket sans compte : prénom, téléphone, puis code SMS si l'établissement l'exige. */
-export function GuestTicketSheet({ open, onClose, orgId, serviceId, serviceName, priority, getPosition }: {
+export function GuestTicketSheet({ open, onClose, orgId, serviceId, serviceName, priorityId, getPosition }: {
   open: boolean
   onClose: () => void
   orgId: string
   serviceId: string
   serviceName?: string
-  priority: string
+  priorityId: string | null
   getPosition: () => Promise<{ lat: number; lng: number } | null>
 }) {
   const router = useRouter()
@@ -51,7 +51,7 @@ export function GuestTicketSheet({ open, onClose, orgId, serviceId, serviceName,
     setError(null)
     const coords = await getPosition()
     const res = await joinQueueAsGuest({
-      orgId, serviceId, priority, name, phone, code: verificationCode,
+      orgId, serviceId, priorityId, name, phone, code: verificationCode,
       lat: coords?.lat, lng: coords?.lng
     })
     if (res.success && res.ticketId) {

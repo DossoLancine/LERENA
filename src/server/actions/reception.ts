@@ -6,7 +6,7 @@ import { issueTicket, TicketError } from '@/lib/ticketing'
 import { normalizePhone } from '@/lib/phone'
 import { notifyOrg } from '@/lib/realtime'
 import { logTicketEvent } from '@/lib/ticket-events'
-import { PRIORITY_SCORES, type Priority } from '@/lib/constants'
+import { resolvePriority, priorityOptions } from '@/lib/priorities'
 
 // Accueil : émettre un ticket pour une personne présente (sans smartphone ou sans compte),
 // l'orienter selon l'affluence, corriger une priorité ou un service.
@@ -16,7 +16,7 @@ export async function getReceptionBoard() {
   const ctx = await getReceptionContext()
   if (!ctx) return null
 
-  const [org, services, waiting] = await Promise.all([
+  const [org, services, waiting, priorities] = await Promise.all([
     prisma.organization.findUnique({ where: { id: ctx.orgId }, select: { id: true, name: true, isActive: true } }),
     prisma.service.findMany({
       where: { isActive: true, branch: { organizationId: ctx.orgId } },
@@ -27,12 +27,15 @@ export async function getReceptionBoard() {
       by: ['serviceId'],
       where: { status: 'WAITING', queue: { branch: { organizationId: ctx.orgId } } },
       _count: { _all: true }
-    })
+    }),
+    // L'accueil peut attribuer tous les motifs, y compris ceux réservés au personnel
+    priorityOptions(ctx.orgId, 'staff')
   ])
   if (!org) return null
 
   return {
     org,
+    priorities,
     services: services.map(s => {
       const count = waiting.find(w => w.serviceId === s.id)?._count._all ?? 0
       return { ...s, waiting: count, waitMin: count * s.avgDurationMin }
@@ -51,7 +54,7 @@ export async function getRecentTickets() {
     orderBy: { createdAt: 'desc' },
     take: 30,
     select: {
-      id: true, displayNum: true, status: true, guestName: true, priorityScore: true, createdAt: true,
+      id: true, displayNum: true, status: true, guestName: true, priorityScore: true, priorityReason: true, createdAt: true,
       service: { select: { id: true, name: true } },
       user: { select: { name: true } }
     }
@@ -59,7 +62,7 @@ export async function getRecentTickets() {
 }
 
 /** Émet un ticket au comptoir et renvoie ce qu'il faut imprimer. */
-export async function issueReceptionTicket(input: { serviceId: string; priority?: Priority; name?: string; phone?: string }) {
+export async function issueReceptionTicket(input: { serviceId: string; priorityId?: string | null; name?: string; phone?: string }) {
   const ctx = await getReceptionContext()
   if (!ctx) return { success: false as const, error: 'Non autorisé' }
 
@@ -70,7 +73,8 @@ export async function issueReceptionTicket(input: { serviceId: string; priority?
     const ticket = await issueTicket({
       orgId: ctx.orgId,
       serviceId: input.serviceId,
-      priority: input.priority ?? 'STANDARD',
+      priorityId: input.priorityId ?? null,
+      staff: true,
       owner: { userId: null, name: input.name?.trim().slice(0, 60) || 'Accueil', phone, actorId: ctx.userId }
     })
 
@@ -107,19 +111,23 @@ export async function issueReceptionTicket(input: { serviceId: string; priority?
   }
 }
 
-/** Change la priorité d'un ticket en attente (personne âgée, enceinte, handicap repérée à l'accueil). */
-export async function setTicketPriority(ticketId: string, priority: Priority) {
+/** Change la priorité d'un ticket en attente (motif repéré à l'accueil) ; null = sans priorité. */
+export async function setTicketPriority(ticketId: string, priorityId: string | null) {
   const ctx = await getReceptionContext()
   if (!ctx) return { success: false }
-  const score = PRIORITY_SCORES[priority]
-  if (!score) return { success: false }
+  let priority: Awaited<ReturnType<typeof resolvePriority>>
+  try {
+    priority = await resolvePriority(ctx.orgId, priorityId, true)
+  } catch {
+    return { success: false }
+  }
 
   const res = await prisma.ticket.updateMany({
     where: { id: ticketId, status: 'WAITING', queue: { branch: { organizationId: ctx.orgId } } },
-    data: { priorityScore: score }
+    data: { priorityScore: priority.score, priorityReason: priority.reason }
   })
   if (res.count === 0) return { success: false }
-  await logTicketEvent({ ticketId, type: 'PRIORITY', actorId: ctx.userId, note: priority })
+  await logTicketEvent({ ticketId, type: 'PRIORITY', actorId: ctx.userId, note: priority.reason ?? 'Sans priorité' })
   await notifyOrg(ctx.orgId)
   return { success: true }
 }
