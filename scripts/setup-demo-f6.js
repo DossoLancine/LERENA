@@ -1,3 +1,4 @@
+require('./lib/not-production').assertNotProduction('scripts/setup-demo-f6.js')
 // Données de démonstration du sprint F6 : un réseau de santé, son administrateur, un lecteur,
 // et le compte d'administration de la plateforme.
 // Idempotent : peut être relancé sans créer de doublons.

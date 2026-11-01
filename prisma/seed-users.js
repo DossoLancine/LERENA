@@ -1,3 +1,4 @@
+require('../scripts/lib/not-production').assertNotProduction('prisma/seed-users.js')
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 

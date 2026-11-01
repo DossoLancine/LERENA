@@ -9,7 +9,11 @@
     "lint": "next lint",
     "db:push": "npx prisma db push",
     "db:seed": "npx ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "typecheck": "tsc --noEmit -p .",
+    "test": "vitest run",
+    "test:smoke": "node tests/e2e/smoke.mjs",
+    "db:seed:staging": "node scripts/seed-staging.js"
   },
   "dependencies": {
     "@prisma/client": "^5.17.0",
@@ -46,6 +50,7 @@
     "puppeteer-core": "^25.11.0",
     "tailwindcss": "^3.4.1",
     "ts-node": "^10.9.2",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^2.1.9"
   }
 }

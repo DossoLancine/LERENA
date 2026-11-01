@@ -1,0 +1,72 @@
+# Intégration continue ATTENDS : à chaque push ou pull request
+# 1. typage + tests unitaires (toujours)
+# 2. build complet (si une base de test est configurée dans les secrets GitHub)
+# 3. test de fumée sur le site de test (si son adresse est configurée)
+name: CI
+
+on:
+  push:
+    branches: [main, staging]
+  pull_request:
+
+jobs:
+  verifier:
+    name: Typage et tests unitaires
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+
+  build:
+    name: Build de production
+    needs: verifier
+    runs-on: ubuntu-latest
+    env:
+      # Base de TEST uniquement (jamais la production) : certaines pages sont pré-calculées au build
+      DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+      DIRECT_URL: ${{ secrets.STAGING_DIRECT_URL }}
+      NEXTAUTH_SECRET: ci-build-only-not-a-real-secret
+      NEXTAUTH_URL: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+        if: env.DATABASE_URL != ''
+      - uses: actions/setup-node@v4
+        if: env.DATABASE_URL != ''
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+        if: env.DATABASE_URL != ''
+      - run: npm run build
+        if: env.DATABASE_URL != ''
+      - run: echo "Build ignoré : ajoutez le secret STAGING_DATABASE_URL pour l'activer."
+        if: env.DATABASE_URL == ''
+
+  fumee:
+    name: Test de fumée (site de test)
+    needs: build
+    if: github.ref == 'refs/heads/staging'
+    runs-on: ubuntu-latest
+    env:
+      BASE_URL: ${{ secrets.STAGING_URL }}
+      SMOKE_EMAIL: ${{ secrets.SMOKE_EMAIL }}
+      SMOKE_PASSWORD: ${{ secrets.SMOKE_PASSWORD }}
+      CHROME_PATH: /usr/bin/google-chrome
+    steps:
+      - uses: actions/checkout@v4
+        if: env.BASE_URL != ''
+      - uses: actions/setup-node@v4
+        if: env.BASE_URL != ''
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+        if: env.BASE_URL != ''
+      - run: npm run test:smoke
+        if: env.BASE_URL != ''
