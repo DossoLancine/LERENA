@@ -374,6 +374,15 @@ model PriorityCategory {
   @@index([organizationId])
 }
 
+// Échecs de connexion récents, par identifiant et par adresse IP (blocage temporaire anti-force brute)
+model LoginAttempt {
+  id        String   @id @default(cuid())
+  key       String // « id:<email ou téléphone> » ou « ip:<adresse> »
+  createdAt DateTime @default(now())
+
+  @@index([key, createdAt])
+}
+
 // Lien d'installation d'appareils : à usage unique, valable peu de temps, seule l'empreinte est stockée
 model DeviceSetupLink {
   id             String    @id @default(cuid())
