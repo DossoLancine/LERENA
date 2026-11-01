@@ -50,8 +50,8 @@ export async function requestPasswordReset(identifier: string) {
         await prisma.passwordReset.create({ data: { userId: user.id, tokenHash: hashSecret(token), expiresAt: new Date(Date.now() + RESET_TTL_MIN * 60_000) } })
         await sendEmail({
           to: user.email,
-          subject: 'Choisir un nouveau mot de passe — ATTENDS',
-          text: `Bonjour${user.name ? ' ' + user.name : ''},\n\nPour choisir un nouveau mot de passe, ouvrez ce lien (valable 1 heure, une seule fois) :\n${appUrl()}/auth/reset?token=${token}\n\nSi vous n’êtes pas à l’origine de cette demande, ignorez ce message : votre mot de passe reste inchangé.\n\nL’équipe ATTENDS`,
+          subject: 'Choisir un nouveau mot de passe — Lerena',
+          text: `Bonjour${user.name ? ' ' + user.name : ''},\n\nPour choisir un nouveau mot de passe, ouvrez ce lien (valable 1 heure, une seule fois) :\n${appUrl()}/auth/reset?token=${token}\n\nSi vous n’êtes pas à l’origine de cette demande, ignorez ce message : votre mot de passe reste inchangé.\n\nL’équipe Lerena`,
           purpose: 'RESET_PASSWORD'
         })
       }

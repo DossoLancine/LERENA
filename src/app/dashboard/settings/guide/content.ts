@@ -36,7 +36,7 @@ export const GUIDE: GuideSection[] = [
       'Chaque appareil se connecte une seule fois : il reste connecté après une coupure de courant, tant qu’on n’efface pas les données de son navigateur.'
     ],
     tips: [
-      'Sécurité : le QR code ne sert qu’une fois et expire au bout de 30 minutes. Il disparaît de la barre d’adresse dès son ouverture. Seule une empreinte chiffrée est conservée par ATTENDS.',
+      'Sécurité : le QR code ne sert qu’une fois et expire au bout de 30 minutes. Il disparaît de la barre d’adresse dès son ouverture. Seule une empreinte chiffrée est conservée par Lerena.',
       'Un appareil en trop ou perdu ? « Retirer » dans la liste : il perd immédiatement l’accès.',
       'Le point vert « En ligne » indique que l’appareil a donné signe de vie depuis moins de 2 minutes.',
       'Pour les annonces vocales, touchez une fois l’écran de la TV au démarrage (les navigateurs bloquent le son sans geste de l’utilisateur).'
@@ -179,7 +179,7 @@ export const GUIDE: GuideSection[] = [
     id: 'problemes',
     title: 'En cas de problème',
     steps: [
-      'Une TV ou une borne affiche un vieux code, ou ne bouge plus : rechargez sa page. Les appareils se mettent aussi à jour tout seuls après chaque nouvelle version d’ATTENDS.',
+      'Une TV ou une borne affiche un vieux code, ou ne bouge plus : rechargez sa page. Les appareils se mettent aussi à jour tout seuls après chaque nouvelle version d’Lerena.',
       '« Code inconnu ou expiré » : le code a plus de 15 minutes ; rechargez la page sur l’appareil et tapez le nouveau code.',
       '« Lien expiré ou déjà utilisé » : affichez un nouveau QR code dans Paramètres → Appareils.',
       'Un appareil apparaît deux fois : retirez la ligne en trop.',

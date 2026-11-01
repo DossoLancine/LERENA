@@ -144,7 +144,7 @@ export default function TicketPage({ params }: { params: { id: string } }) {
     const text = `Mon ticket ${ticket.displayNum} chez ${ticket.orgName} : suivez ma position en direct`
     try {
       if (navigator.share) {
-        await navigator.share({ title: 'Mon ticket ATTENDS', text, url })
+        await navigator.share({ title: 'Mon ticket Lerena', text, url })
         return
       }
       await navigator.clipboard.writeText(url)

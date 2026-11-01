@@ -86,7 +86,7 @@ function LoginForm() {
           <ArrowLeft size={20} />
         </Link>
         <div className="text-orange-700 font-bold flex items-center gap-1">
-          <Clock size={20} /> ATTENDS
+          <Clock size={20} /> Lerena
         </div>
       </div>
       
@@ -167,7 +167,7 @@ function LoginForm() {
         </form>
 
         <p className="text-center mt-8 text-sm text-gray-500">
-          Nouveau sur ATTENDS ?{' '}
+          Nouveau sur Lerena ?{' '}
           <Link href="/auth/register" className="font-bold text-orange-700">Créer un compte</Link>
         </p>
 

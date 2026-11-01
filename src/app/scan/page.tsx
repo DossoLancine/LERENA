@@ -15,7 +15,7 @@ declare global {
   interface Window { BarcodeDetector?: new (opts: { formats: string[] }) => BarcodeDetectorLike }
 }
 
-// Accepte les QR codes ATTENDS : lien vers un établissement ou vers un ticket
+// Accepte les QR codes Lerena : lien vers un établissement ou vers un ticket
 function routeFromQr(value: string) {
   try {
     const url = new URL(value, window.location.origin)

@@ -25,7 +25,7 @@ export function PushOptIn({ ticketId }: { ticketId: string }) {
         <p className="font-semibold text-gray-900">Être prévenu quand c&apos;est votre tour</p>
         <p className="mt-1">
           Sur iPhone, touchez <Share size={14} className="inline -mt-0.5" /> puis « Sur l&apos;écran d&apos;accueil »,
-          rouvrez ATTENDS depuis l&apos;icône, puis activez les alertes.
+          rouvrez Lerena depuis l&apos;icône, puis activez les alertes.
         </p>
       </div>
     )

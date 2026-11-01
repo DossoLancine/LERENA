@@ -26,7 +26,7 @@ export async function sendOtp(phone: string, purpose: OtpPurpose) {
     data: { phone, purpose, codeHash: hash(phone, code), expiresAt: new Date(Date.now() + TTL_MIN * 60_000) }
   })
 
-  const sent = await sendSmsMessage({ to: phone, text: `ATTENDS : votre code est ${code}. Il expire dans ${TTL_MIN} minutes.`, purpose: 'OTP' })
+  const sent = await sendSmsMessage({ to: phone, text: `Lerena : votre code est ${code}. Il expire dans ${TTL_MIN} minutes.`, purpose: 'OTP' })
   // Environnement de test sans fournisseur : le SMS est simulé et lisible dans l'administration (Messages)
   const simulated = !process.env.SMS_PROVIDER && process.env.ATTENDS_ENV !== 'production'
   return sent || simulated ? { ok: true as const } : { ok: false as const, error: "Le SMS n'a pas pu être envoyé." }

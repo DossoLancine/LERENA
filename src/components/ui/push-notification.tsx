@@ -22,7 +22,7 @@ export function PushNotification({ message, isVisible, onClose }: { message: str
           <Bell size={16} className="text-white animate-pulse" />
         </div>
         <div className="flex-1">
-          <p className="font-bold text-sm">Notification ATTENDS</p>
+          <p className="font-bold text-sm">Notification Lerena</p>
           <p className="text-sm opacity-90 mt-0.5">{message}</p>
         </div>
         <button onClick={onClose} className="text-gray-400 hover:text-white">

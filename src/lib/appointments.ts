@@ -76,7 +76,7 @@ export async function bookAppointment(input: BookingInput) {
   })
 
   const manageUrl = `${appUrl()}/rdv/${token}`
-  const text = `ATTENDS : RDV ${service.name} chez ${org.name}${service.branch.name ? ` (${service.branch.name})` : ''}, ${fmt(date)}. Code d'arrivée : ${code}. Gérer : ${manageUrl}`
+  const text = `Lerena : RDV ${service.name} chez ${org.name}${service.branch.name ? ` (${service.branch.name})` : ''}, ${fmt(date)}. Code d'arrivée : ${code}. Gérer : ${manageUrl}`
   const phone = input.guestPhone ?? (input.userId ? (await prisma.user.findUnique({ where: { id: input.userId }, select: { phone: true } }))?.phone : null)
   if (phone) await sendSmsMessage({ to: phone, text, purpose: 'APPOINTMENT_CONFIRMED', organizationId: input.orgId })
   if (input.email) await sendEmail({ to: input.email, subject: `Rendez-vous confirmé — ${org.name}`, text, purpose: 'APPOINTMENT_CONFIRMED', organizationId: input.orgId })
@@ -141,7 +141,7 @@ export async function runAppointmentJobs(force = false) {
       if (phone) {
         await sendSmsMessage({
           to: phone,
-          text: `ATTENDS : rappel, RDV ${a.service?.name ?? ''} chez ${a.organization.name} ${label === 'demain' ? 'demain' : 'à'} ${a.scheduledDate.toISOString().slice(11, 16)}. Code d'arrivée : ${a.code ?? ''}.`,
+          text: `Lerena : rappel, RDV ${a.service?.name ?? ''} chez ${a.organization.name} ${label === 'demain' ? 'demain' : 'à'} ${a.scheduledDate.toISOString().slice(11, 16)}. Code d'arrivée : ${a.code ?? ''}.`,
           purpose: 'APPOINTMENT_REMINDER',
           organizationId: a.organizationId
         })

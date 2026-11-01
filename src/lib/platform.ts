@@ -12,7 +12,7 @@ export interface SectorService {
 
 export const getPlatformConfig = cache(async () => {
   const config = await prisma.platformConfig.findUnique({ where: { id: 'default' } })
-  return config ?? { id: 'default', appName: 'ATTENDS', defaultCountryCode: '+225', defaultCity: null, defaultLat: null, defaultLng: null, demoMode: false, updatedAt: new Date() }
+  return config ?? { id: 'default', appName: 'Lerena', defaultCountryCode: '+225', defaultCity: null, defaultLat: null, defaultLng: null, demoMode: false, updatedAt: new Date() }
 })
 
 export const getActiveSectors = cache(async () => {

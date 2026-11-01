@@ -26,7 +26,7 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   fullWidth?: boolean
 }
 
-/** Bouton standard d'ATTENDS : retour tactile, état de chargement et focus visible inclus. */
+/** Bouton standard d'Lerena : retour tactile, état de chargement et focus visible inclus. */
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
   { variant = 'primary', size = 'md', loading, icon, fullWidth, className, children, disabled, type = 'button', ...props },
   ref

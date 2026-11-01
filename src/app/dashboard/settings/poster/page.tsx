@@ -42,7 +42,7 @@ export default function PosterSettingsPage() {
               <p>2. Choisissez votre service</p>
               <p>3. Suivez votre tour en temps réel</p>
             </div>
-            <p className="text-[10px] text-gray-400 mt-4 tracking-widest uppercase">Propulsé par ATTENDS</p>
+            <p className="text-[10px] text-gray-400 mt-4 tracking-widest uppercase">Propulsé par Lerena</p>
           </div>
 
           {/* Actions & Instructions */}

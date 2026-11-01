@@ -183,7 +183,7 @@ export default function KioskPage() {
       <header className="flex shrink-0 items-center justify-between bg-white px-5 py-4 shadow-card md:px-8 md:py-5 print:hidden">
         <span className="flex items-center gap-3 text-2xl font-black text-ink">
           <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand text-white"><Ticket size={24} /></span>
-          {board?.orgName ?? 'ATTENDS'}
+          {board?.orgName ?? 'Lerena'}
         </span>
         {step !== 'welcome' && step !== 'ticket' && (
           <button onClick={() => (step === 'priority' || step === 'appointment' ? setStep('service') : reset())}

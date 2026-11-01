@@ -172,7 +172,7 @@ export default function ProfilePage() {
           </div>
         )}
 
-        <p className="text-center text-xs text-ink-subtle">ATTENDS · {t('landing.title')}</p>
+        <p className="text-center text-xs text-ink-subtle">Lerena · {t('landing.title')}</p>
       </main>
 
       <Dialog open={editing} onClose={() => setEditing(false)} title={t('profile.edit')}>

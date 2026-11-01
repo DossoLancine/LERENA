@@ -6,7 +6,7 @@ export default function GlobalError({ reset }: { error: Error; reset: () => void
     <html lang="fr">
       <body style={{ margin: 0, fontFamily: 'system-ui, sans-serif', background: '#f9fafb', color: '#111827' }}>
         <main style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, textAlign: 'center' }}>
-          <h1 style={{ fontSize: 24, fontWeight: 900, margin: 0 }}>ATTENDS a rencontré un problème</h1>
+          <h1 style={{ fontSize: 24, fontWeight: 900, margin: 0 }}>Lerena a rencontré un problème</h1>
           <p style={{ color: '#6b7280', maxWidth: 360, marginTop: 8 }}>
             Votre ticket n&apos;est pas perdu. Réessayez dans un instant.
           </p>

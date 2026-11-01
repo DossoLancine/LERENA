@@ -6,7 +6,7 @@ import { getOrganizations } from '@/server/actions/orgs'
 import { t } from '@/lib/i18n'
 import { homeForRole } from '@/lib/constants'
 
-// Accueil public : comprendre ATTENDS en quelques secondes et prendre un ticket sans compte
+// Accueil public : comprendre Lerena en quelques secondes et prendre un ticket sans compte
 export default async function LandingPage() {
   const user = await getSessionUser()
   if (user) redirect(homeForRole(user.role))
@@ -28,7 +28,7 @@ export default async function LandingPage() {
           <div className="mb-8 flex items-center justify-between">
             <span className="flex items-center gap-2 text-lg font-black tracking-tight">
               <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-brand"><Ticket size={20} /></span>
-              ATTENDS
+              Lerena
             </span>
             <Link href="/auth/login" className="rounded-full bg-white/15 px-4 py-2 text-sm font-semibold backdrop-blur hover:bg-white/25">
               {t('landing.login')}

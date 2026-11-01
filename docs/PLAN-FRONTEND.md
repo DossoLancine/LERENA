@@ -1,13 +1,13 @@
-# ATTENDS — Plan de finalisation du frontend
+# Lerena — Plan de finalisation du frontend
 
 > Version 1.0 — 31 octobre 2026
-> Objectif : terminer toutes les interfaces d'ATTENDS, pour chaque type d'utilisateur, avec une fluidité de niveau « Uber » et une accessibilité adaptée au service public.
+> Objectif : terminer toutes les interfaces d'Lerena, pour chaque type d'utilisateur, avec une fluidité de niveau « Uber » et une accessibilité adaptée au service public.
 
 ---
 
 ## 1. Résumé
 
-ATTENDS compte aujourd'hui **3 rôles** (client, agent, manager) et **1 écran public** (TV). C'est suffisant pour une clinique ou une agence isolée, pas pour une banque à 40 agences, un hôpital public avec un accueil d'orientation, ou un ministère.
+Lerena compte aujourd'hui **3 rôles** (client, agent, manager) et **1 écran public** (TV). C'est suffisant pour une clinique ou une agence isolée, pas pour une banque à 40 agences, un hôpital public avec un accueil d'orientation, ou un ministère.
 
 Ce plan définit **9 types d'utilisateurs** : 7 personnes et 2 appareils. Pour chacun, il précise son rôle, pourquoi il existe et comment son interface doit être optimisée. Il découpe ensuite le travail restant en **6 sprints frontend (≈ 12 semaines)**.
 
@@ -72,7 +72,7 @@ Ce plan définit **9 types d'utilisateurs** : 7 personnes et 2 appareils. Pour c
 | 4 | Agent de guichet | `AGENT` | PC du guichet | Oui |
 | 5 | Responsable de site | `MANAGER` | PC et téléphone | Oui |
 | 6 | Administrateur d'organisation | `ORG_ADMIN` | PC | **Non** |
-| 7 | Super-administrateur ATTENDS | `SUPER_ADMIN` | PC | **Non** |
+| 7 | Super-administrateur Lerena | `SUPER_ADMIN` | PC | **Non** |
 | 8 | Écran de salle d'attente | appareil | TV | Oui |
 | 9 | Borne d'accueil | appareil | Tablette ou borne avec imprimante | **Non** |
 
@@ -82,13 +82,13 @@ Ce plan définit **9 types d'utilisateurs** : 7 personnes et 2 appareils. Pour c
 
 - **Séparer qui sert de qui pilote.** L'agent sert, le responsable pilote un site, l'administrateur pilote un réseau. Chacun ne voit que ce qui l'aide à faire son travail.
 - **Ne laisser personne de côté.** Le visiteur, l'agent d'accueil et la borne existent pour ceux qui n'ont pas de smartphone, pas de compte ou pas de connexion. C'est indispensable dans un service public.
-- **Faire grandir ATTENDS.** L'administrateur d'organisation permet de vendre à des réseaux (banques, ministères). Le super-administrateur permet de gérer des centaines d'établissements sans intervenir dans la base à la main.
+- **Faire grandir Lerena.** L'administrateur d'organisation permet de vendre à des réseaux (banques, ministères). Le super-administrateur permet de gérer des centaines d'établissements sans intervenir dans la base à la main.
 
 ---
 
 ### 3.3 Visiteur (non connecté)
 
-**Rôle :** découvrir ATTENDS et un établissement, puis prendre un ticket **sans créer de compte**.
+**Rôle :** découvrir Lerena et un établissement, puis prendre un ticket **sans créer de compte**.
 
 **Pourquoi :** chaque étape avant le ticket fait perdre des usagers. Quelqu'un qui scanne le QR code affiché à l'entrée veut son ticket en 10 secondes, pas un formulaire d'inscription.
 
@@ -98,7 +98,7 @@ Ce plan définit **9 types d'utilisateurs** : 7 personnes et 2 appareils. Pour c
 - Arrivée par QR code directement sur la fiche de l'établissement, déjà remplie par le serveur.
 - Ticket « invité » : prénom et numéro de téléphone, confirmés par un code SMS à 4 chiffres. Aucun mot de passe.
 - Après le ticket, proposition discrète de garder un compte : « Retrouvez vos tickets : créez un code PIN ».
-- Page d'accueil `/` réécrite : ce que fait ATTENDS en 3 lignes, établissements à proximité, bouton « Scanner un QR code ».
+- Page d'accueil `/` réécrite : ce que fait Lerena en 3 lignes, établissements à proximité, bouton « Scanner un QR code ».
 
 **Écrans :** `/`, `/org/[id]`, `/ticket/[id]` (lien partageable), `/scan`.
 
@@ -110,7 +110,7 @@ Ce plan définit **9 types d'utilisateurs** : 7 personnes et 2 appareils. Pour c
 
 **Rôle :** prendre un ticket ou un rendez-vous, suivre sa position, être prévenu, noter le service.
 
-**Pourquoi :** c'est la promesse d'ATTENDS, « ne perdez plus votre temps à attendre ». Si cette interface déçoit, rien d'autre ne compte.
+**Pourquoi :** c'est la promesse d'Lerena, « ne perdez plus votre temps à attendre ». Si cette interface déçoit, rien d'autre ne compte.
 
 **Contexte :** attente de 15 min à 3 h, souvent hors de l'établissement. Batterie et forfait limités. Peut être âgé, peu lettré ou malvoyant.
 
@@ -138,7 +138,7 @@ Ce plan définit **9 types d'utilisateurs** : 7 personnes et 2 appareils. Pour c
 
 **Rôle :** accueillir les personnes à l'entrée, émettre un ticket pour celles qui n'ont pas de smartphone, les orienter vers le bon service, et appliquer les priorités (femme enceinte, personne âgée, handicap, urgence).
 
-**Pourquoi :** dans un hôpital public, une mairie ou une préfecture, une part importante du public ne prendra jamais un ticket sur son téléphone. Sans cet agent, ATTENDS ne sert qu'aux usagers connectés, et l'établissement garde deux files parallèles.
+**Pourquoi :** dans un hôpital public, une mairie ou une préfecture, une part importante du public ne prendra jamais un ticket sur son téléphone. Sans cet agent, Lerena ne sert qu'aux usagers connectés, et l'établissement garde deux files parallèles.
 
 **Contexte :** debout derrière un comptoir, une personne toutes les 20 à 60 s aux heures de pointe, tablette ou PC, imprimante thermique.
 
@@ -225,9 +225,9 @@ Ce plan définit **9 types d'utilisateurs** : 7 personnes et 2 appareils. Pour c
 
 ---
 
-### 3.9 Super-administrateur ATTENDS — nouveau
+### 3.9 Super-administrateur Lerena — nouveau
 
-**Rôle :** équipe ATTENDS. Elle inscrit de nouveaux établissements, gère les abonnements, aide un client en cas de problème, surveille la santé de la plateforme.
+**Rôle :** équipe Lerena. Elle inscrit de nouveaux établissements, gère les abonnements, aide un client en cas de problème, surveille la santé de la plateforme.
 
 **Pourquoi :** aujourd'hui, créer un établissement passe par un script lancé à la main (`scripts/create-demo-orgs.js`). Ça ne tient pas au-delà de quelques clients.
 

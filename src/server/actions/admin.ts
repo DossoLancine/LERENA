@@ -10,7 +10,7 @@ import { ICONS, SECTOR_COLORS } from '@/lib/icons'
 import { provisionOrganization, createStaffAccount, createNetworkAccount } from '@/lib/provisioning'
 import { ACTIVE_TICKET_STATUSES, startOfToday } from '@/lib/constants'
 
-// Administration de la plateforme (/admin), réservée à l'équipe ATTENDS (SUPER_ADMIN).
+// Administration de la plateforme (/admin), réservée à l'équipe Lerena (SUPER_ADMIN).
 // Tout ce qui varie d'un pays ou d'un secteur à l'autre se règle ici, en base, pas dans le code.
 
 const DENIED = { success: false as const, error: 'Accès réservé à l’administration de la plateforme' }
@@ -228,7 +228,7 @@ export async function updatePlatformSettings(data: {
   if ((lat != null && Math.abs(lat) > 90) || (lng != null && Math.abs(lng) > 180)) return { success: false as const, error: 'Coordonnées invalides' }
 
   try {
-    const values = { appName: data.appName?.trim().slice(0, 40) || 'ATTENDS', defaultCountryCode: code, defaultCity: data.defaultCity?.trim() || null, defaultLat: lat, defaultLng: lng, demoMode: !!data.demoMode }
+    const values = { appName: data.appName?.trim().slice(0, 40) || 'Lerena', defaultCountryCode: code, defaultCity: data.defaultCity?.trim() || null, defaultLat: lat, defaultLng: lng, demoMode: !!data.demoMode }
     await prisma.platformConfig.upsert({ where: { id: 'default' }, update: values, create: { id: 'default', ...values } })
     await audit({ action: 'PLATFORM_SETTINGS_UPDATED', targetType: 'PlatformConfig', details: `mode démo ${values.demoMode ? 'activé' : 'désactivé'}` })
     revalidatePath('/', 'layout')
