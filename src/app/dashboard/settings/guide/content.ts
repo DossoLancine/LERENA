@@ -1,7 +1,7 @@
 // Guide d'utilisation affiché dans Paramètres → Guide d'utilisation.
 // À METTRE À JOUR à chaque évolution de l'application (nouvel écran, nouvelle étape, changement de nom).
 
-export const GUIDE_UPDATED_AT = '1er novembre 2026 (sécurité du compte, notifications)'
+export const GUIDE_UPDATED_AT = '1er novembre 2026 (rendez-vous complets, plusieurs sites)'
 
 export interface GuideSection {
   id: string
@@ -65,6 +65,19 @@ export const GUIDE: GuideSection[] = [
     ]
   },
   {
+    id: 'rendez-vous',
+    title: 'Rendez-vous',
+    intro: 'Paramètres → Rendez-vous : mode de l’établissement (file, rendez-vous ou les deux), règles, réglages par service et jours de fermeture.',
+    steps: [
+      'Le visiteur réserve depuis la fiche de l’établissement, avec ou sans compte (prénom et téléphone). Il reçoit un code d’arrivée à 6 chiffres et un lien pour voir, reporter ou annuler son rendez-vous.',
+      'Rappels automatiques par SMS la veille et 2 heures avant.',
+      'À l’arrivée : le visiteur tape son code sur la borne (« J’ai un rendez-vous »), ou l’accueil le signale dans « Rendez-vous du jour ». Un ticket est créé et placé à l’heure du rendez-vous : il ne repasse pas derrière la file.',
+      'Sans arrivée après le délai fixé (15 minutes par défaut), le rendez-vous est noté « absent ». Vous pouvez bloquer la réservation en ligne après plusieurs absences.',
+      'Par service : nombre de personnes reçues sur un même créneau, délai minimum avant un rendez-vous, et jusqu’à combien de jours à l’avance.',
+      'Jours fériés et fermetures exceptionnelles : ajoutez-les pour qu’aucun rendez-vous ne soit possible ces jours-là, pour un site ou pour tous.'
+    ]
+  },
+  {
     id: 'agents',
     title: 'Au guichet et à l’accueil',
     steps: [
@@ -116,6 +129,16 @@ export const GUIDE: GuideSection[] = [
       'Planning : qui travaille à quel guichet, semaine par semaine.',
       'Statistiques : affluence par heure et par jour, durées d’attente et de service, comparaison avec la période précédente, rapport imprimable.',
       'Paramètres → Opérations & données : remise à zéro de la file en fin de journée, export des tickets.'
+    ]
+  },
+  {
+    id: 'sites',
+    title: 'Plusieurs sites dans un établissement',
+    steps: [
+      'Paramètres → Sites : ajoutez vos agences ou antennes. Un nouveau site peut reprendre les services du site actif.',
+      'En haut du tableau de bord, choisissez le site sur lequel vous travaillez ; « Tous les sites » donne la vue d’ensemble.',
+      'Services, guichets, horaires, planning, écrans et bornes se règlent site par site. Chaque site a sa propre file d’attente.',
+      'L’agent travaille sur le site de son guichet ; la TV et la borne affichent leur site. Le visiteur choisit son site sur la fiche de l’établissement.'
     ]
   },
   {

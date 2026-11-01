@@ -64,6 +64,10 @@ model Organization {
   visitorPriorityKiosk Boolean  @default(false)
   // SMS « bientôt votre tour » aux visiteurs sans notification push (coût par SMS : désactivé par défaut)
   smsTurnAlerts        Boolean  @default(false)
+  apptMaxActive        Int      @default(2) // RDV à venir par personne
+  apptCancelHours      Int      @default(2) // annulation / report possible jusqu'à N heures avant
+  apptNoShowGraceMin   Int      @default(15) // absence notée N minutes après l'heure
+  apptNoShowBlock      Int      @default(0) // 0 = jamais ; sinon blocage des réservations après N absences
   networkId            String?
   sectorId             String?
   createdAt            DateTime @default(now())
@@ -77,6 +81,7 @@ model Organization {
   devices            Device[]
   setupLinks         DeviceSetupLink[]
   priorityCategories PriorityCategory[]
+  closureDays        ClosureDay[]
   network            Network?             @relation(fields: [networkId], references: [id], onDelete: SetNull)
   sector             Sector?              @relation(fields: [sectorId], references: [id], onDelete: SetNull)
 }
@@ -119,15 +124,18 @@ model Branch {
 }
 
 model Service {
-  id             String   @id @default(cuid())
-  branchId       String
-  name           String
-  description    String?
-  avgDurationMin Int      @default(15)
-  icon           String?
-  isActive       Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id              String   @id @default(cuid())
+  branchId        String
+  name            String
+  description     String?
+  avgDurationMin  Int      @default(15)
+  icon            String?
+  apptCapacity    Int      @default(1) // rendez-vous en même temps sur un créneau
+  apptLeadMin     Int      @default(60) // délai minimum avant un rendez-vous (minutes)
+  apptHorizonDays Int      @default(14) // jusqu'à combien de jours à l'avance
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   branch      Branch           @relation(fields: [branchId], references: [id], onDelete: Cascade)
   tickets     Ticket[]
@@ -272,18 +280,26 @@ model PushSubscription {
 }
 
 model Appointment {
-  id             String   @id @default(cuid())
-  userId         String?
-  guestName      String?
-  guestPhone     String?
-  organizationId String
-  serviceId      String?
-  branchId       String
-  scheduledDate  DateTime
-  status         String   @default("CONFIRMED")
-  notes          String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id              String    @id @default(cuid())
+  userId          String?
+  guestName       String?
+  guestPhone      String?
+  organizationId  String
+  serviceId       String?
+  branchId        String
+  scheduledDate   DateTime
+  status          String    @default("CONFIRMED")
+  notes           String?
+  source          String    @default("APP") // APP | GUEST | RECEPTION
+  code            String?   @unique // code d'arrivée à 6 chiffres (borne, accueil)
+  manageTokenHash String?   @unique // lien de gestion (report, annulation) : empreinte seulement
+  reminderDayAt   DateTime?
+  reminderHourAt  DateTime?
+  checkedInAt     DateTime?
+  ticketId        String?
+  cancelledAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   user         User?        @relation(fields: [userId], references: [id])
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -446,6 +462,26 @@ model OutboundMessage {
 
   @@index([organizationId, createdAt])
   @@index([createdAt])
+}
+
+// Jours de fermeture (fériés, exceptionnels) : aucun rendez-vous ce jour-là
+model ClosureDay {
+  id             String   @id @default(cuid())
+  organizationId String
+  branchId       String? // null = tous les sites
+  date           DateTime // jour (minuit UTC)
+  label          String?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, date])
+}
+
+// Tâches planifiées (rappels, absences) : dernière exécution, pour ne pas les lancer trop souvent
+model JobRun {
+  id        String   @id
+  lastRunAt DateTime
 }
 
 // Lien d'installation d'appareils : à usage unique, valable peu de temps, seule l'empreinte est stockée
