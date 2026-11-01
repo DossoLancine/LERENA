@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react'
 import { ArrowLeft, MapPin, Clock, Users, Star, ChevronRight, Heart, Share2, CheckCircle2, PlusSquare, Scissors, Utensils, Building2, Ticket, MousePointer2, AlertTriangle, User as UserIcon, CalendarDays } from 'lucide-react'
 import Link from 'next/link'
+import { DynamicIcon } from '@/lib/icons'
 import { useRouter } from 'next/navigation'
 import { getOrganizationById } from '@/server/actions/orgs'
 import { joinQueue } from '@/server/actions/tickets'
@@ -124,11 +125,7 @@ export default function OrgView({ params, initialOrg, initialIsFavorite }: {
 
   // Attente réelle calculée par le serveur (personnes en file × durée du service)
   const totalWait = org.waitMin || 0
-  const emoji = org.category === 'Pharmacie' ? <PlusSquare size={48} className="text-white opacity-90" /> : 
-               org.category === 'Beauté' ? <Scissors size={48} className="text-white opacity-90" /> : 
-               org.category === 'Restauration' ? <Utensils size={48} className="text-white opacity-90" /> : 
-               org.category === 'Banque' ? <Building2 size={48} className="text-white opacity-90" /> : 
-               <PlusSquare size={48} className="text-white opacity-90" />;
+  const emoji = <DynamicIcon name={org.sectorIcon} size={48} className="text-white opacity-90" />
   const services = org.branches?.[0]?.services || [];
 
   const service = services.find((s: any) => s.id === selectedService)
@@ -183,7 +180,7 @@ export default function OrgView({ params, initialOrg, initialIsFavorite }: {
 
           <div className="flex items-center gap-1 mt-2">
             <MapPin size={13} className="text-gray-400" />
-            <p className="text-sm text-gray-500">{org.address} · {org.distance}</p>
+            <p className="text-sm text-gray-500">{[org.address, org.distance].filter(Boolean).join(' · ')}</p>
           </div>
 
           <p className="text-sm text-gray-600 mt-3 leading-relaxed">{org.description}</p>
@@ -194,7 +191,7 @@ export default function OrgView({ params, initialOrg, initialIsFavorite }: {
               {org.isOpen ? (
                 <>
                   <span className="badge-open mx-auto mb-1">Ouvert</span>
-                  <p className="text-xs text-gray-500">Ferme à {org.closeTime}</p>
+                  {org.closeTime && <p className="text-xs text-gray-500">Ferme à {org.closeTime}</p>}
                 </>
               ) : (
                 <>

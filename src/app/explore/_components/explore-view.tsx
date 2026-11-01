@@ -1,7 +1,8 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Search, Filter, MapPin, Clock, Users, Star, ChevronRight, PlusSquare, Scissors, Utensils, Building2, Home, Compass, Ticket, Heart, User as UserIcon, Map as MapIcon, List as ListIcon } from 'lucide-react'
+import { Search, Filter, MapPin, Clock, Users, Star, ChevronRight, Home, Compass, Ticket, Heart, User as UserIcon, Map as MapIcon, List as ListIcon } from 'lucide-react'
 import Link from 'next/link'
+import { DynamicIcon } from '@/lib/icons'
 import { getOrganizations } from '@/server/actions/orgs'
 import dynamic from 'next/dynamic'
 import { ClientNav } from '@/components/navigation/client-nav'
@@ -19,18 +20,24 @@ const ExploreMap = dynamic(() => import('@/components/maps/explore-map'), {
 type Org = Awaited<ReturnType<typeof getOrganizations>>[number]
 
 // Liste déjà remplie par le serveur ; le navigateur ne la recharge que pour trier par distance
-export default function ExploreView({ initialOrgs }: { initialOrgs: Org[] }) {
+export default function ExploreView({ initialOrgs, sectors, defaultCenter }: { initialOrgs: Org[]; sectors: { slug: string; name: string }[]; defaultCenter: [number, number] | null }) {
   const [search, setSearch] = useState('')
   const [onlyOpen, setOnlyOpen] = useState(false)
-  const [selectedCat, setSelectedCat] = useState('Tout')
+  const [selectedCat, setSelectedCat] = useState<string | null>(null)
   const [maxDist, setMaxDist] = useState<number | null>(null)
   
   const [dbOrgs, setDbOrgs] = useState<Org[]>(initialOrgs)
   const [location, setLocation] = useState<{lat: number, lng: number} | null>(null)
   const [isMapView, setIsMapView] = useState(false)
 
-  const categories = ['Tout', 'Santé', 'Pharmacie', 'Beauté', 'Restauration', 'Banque']
+  const categories = [{ slug: null as string | null, name: 'Tout' }, ...sectors]
   const distances = [{label: 'Toutes distances', val: null}, {label: '< 5 km', val: 5}, {label: '< 10 km', val: 10}]
+
+  useEffect(() => {
+    // Secteur présélectionné depuis l'accueil (/explore?cat=<slug>)
+    const cat = new URLSearchParams(window.location.search).get('cat')
+    if (cat && sectors.some(s => s.slug === cat)) setSelectedCat(cat)
+  }, [sectors])
 
   useEffect(() => {
     // Tri par distance dès que la position arrive
@@ -54,7 +61,7 @@ export default function ExploreView({ initialOrgs }: { initialOrgs: Org[] }) {
   const filtered = dbOrgs.filter((o) => {
     const matchSearch = search === '' || o.name.toLowerCase().includes(search.toLowerCase())
     const matchOpen = !onlyOpen || o.isOpen
-    const matchCat = selectedCat === 'Tout' || o.category === selectedCat
+    const matchCat = selectedCat === null || o.sectorSlug === selectedCat
     const matchDist = maxDist === null || (o.distanceNum && o.distanceNum <= maxDist)
     return matchSearch && matchOpen && matchCat && matchDist
   })
@@ -87,9 +94,9 @@ export default function ExploreView({ initialOrgs }: { initialOrgs: Org[] }) {
                 Ouvert
               </button>
               {categories.map(cat => (
-                <button key={cat} onClick={() => setSelectedCat(cat)} 
-                  className={`px-4 py-1.5 rounded-full whitespace-nowrap text-sm font-semibold transition-colors shrink-0 ${selectedCat === cat ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
-                  {cat}
+                <button key={cat.slug ?? 'all'} onClick={() => setSelectedCat(cat.slug)} aria-pressed={selectedCat === cat.slug}
+                  className={`px-4 py-1.5 rounded-full whitespace-nowrap text-sm font-semibold transition-colors shrink-0 ${selectedCat === cat.slug ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                  {cat.name}
                 </button>
               ))}
             </div>
@@ -97,7 +104,7 @@ export default function ExploreView({ initialOrgs }: { initialOrgs: Org[] }) {
             <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar">
               {distances.map(d => (
                 <button key={d.label} onClick={() => setMaxDist(d.val)} 
-                  className={`px-3 py-1.5 rounded-full whitespace-nowrap text-xs font-semibold transition-colors shrink-0 ${maxDist === d.val ? 'bg-orange-100 text-orange-600 border border-orange-200' : 'bg-white border border-gray-200 text-gray-500 hover:bg-gray-50'}`}>
+                  className={`px-3 py-1.5 rounded-full whitespace-nowrap text-xs font-semibold transition-colors shrink-0 ${maxDist === d.val ? 'bg-orange-100 text-orange-800 border border-orange-200' : 'bg-white border border-gray-200 text-gray-500 hover:bg-gray-50'}`}>
                   {d.label}
                 </button>
               ))}
@@ -108,7 +115,7 @@ export default function ExploreView({ initialOrgs }: { initialOrgs: Org[] }) {
 
       <div className="flex-1 relative">
         {isMapView ? (
-          <ExploreMap orgs={filtered} userLocation={location} />
+          <ExploreMap orgs={filtered} userLocation={location} defaultCenter={defaultCenter} />
         ) : (
           <div className="max-w-lg mx-auto px-4 py-4 space-y-3 pb-24">
         <p className="text-sm text-gray-500">{filtered.length} établissement{filtered.length > 1 ? 's' : ''}</p>
@@ -116,11 +123,7 @@ export default function ExploreView({ initialOrgs }: { initialOrgs: Org[] }) {
           <Link key={org.id} href={`/org/${org.id}`}>
             <div className="bg-white rounded-2xl border border-gray-100 p-4 hover:shadow-md transition-all flex items-center gap-3">
               <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl ${org.color}`}>
-                {org.category === 'Pharmacie' ? <PlusSquare size={24} /> : 
-                 org.category === 'Beauté' ? <Scissors size={24} /> : 
-                 org.category === 'Restauration' ? <Utensils size={24} /> : 
-                 org.category === 'Banque' ? <Building2 size={24} /> : 
-                 <PlusSquare size={24} />}
+                <DynamicIcon name={org.icon} size={24} />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
@@ -136,7 +139,7 @@ export default function ExploreView({ initialOrgs }: { initialOrgs: Org[] }) {
                   {org.isOpen ? (
                     <>
                       <span className="badge-open">Ouvert</span>
-                      <span className="flex items-center gap-1 text-xs font-semibold text-orange-500"><Clock size={11} />{org.waitMin} min</span>
+                      <span className="flex items-center gap-1 text-xs font-semibold text-orange-700"><Clock size={11} />{org.waitMin} min</span>
                       <span className="flex items-center gap-1 text-xs text-gray-400"><Users size={11} />{org.waitingCount}</span>
                     </>
                   ) : (

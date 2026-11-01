@@ -6,7 +6,7 @@ export default withAuth(
     const token = req.nextauth.token
     const path = req.nextUrl.pathname
 
-    const isB2BRoute = path.startsWith('/dashboard') || path.startsWith('/agent') || path.startsWith('/reception')
+    const isB2BRoute = ['/dashboard', '/agent', '/reception', '/org-admin', '/admin'].some(p => path.startsWith(p))
     if (isB2BRoute && !token) {
       return NextResponse.redirect(new URL('/pro/login', req.url))
     }
@@ -21,6 +21,14 @@ export default withAuth(
 
     // Mes tickets et Profil restent ouverts aux visiteurs (tickets sans compte, préférences d'affichage)
     if (path.startsWith('/reception') && token?.role !== 'RECEPTION' && token?.role !== 'MANAGER') {
+      return NextResponse.redirect(new URL('/', req.url))
+    }
+
+    if (path.startsWith('/org-admin') && token?.role !== 'ORG_ADMIN' && token?.role !== 'VIEWER') {
+      return NextResponse.redirect(new URL('/', req.url))
+    }
+
+    if (path.startsWith('/admin') && token?.role !== 'SUPER_ADMIN') {
       return NextResponse.redirect(new URL('/', req.url))
     }
 
@@ -40,5 +48,5 @@ export default withAuth(
 )
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/agent/:path*', '/reception/:path*', '/favorites/:path*']
+  matcher: ['/dashboard/:path*', '/agent/:path*', '/reception/:path*', '/org-admin/:path*', '/admin/:path*', '/favorites/:path*']
 }

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { MapPin, ShieldCheck, Clock } from 'lucide-react'
+import { getPublicConfig } from '@/server/actions/platform'
 import { getSiteLocation, updateBusinessHours, updateSiteLocation } from '@/server/actions/site'
 import { Button, Card, CardHeader, useToast } from '@/components/ui'
 import { cn } from '@/lib/cn'
@@ -34,6 +35,11 @@ export default function LocationSettingsPage() {
   const [hours, setHours] = useState<Hour[]>(DEFAULT_HOURS)
   const [savingPos, setSavingPos] = useState(false)
   const [savingHours, setSavingHours] = useState(false)
+  const [fallback, setFallback] = useState<{ lat: number | null; lng: number | null }>({ lat: null, lng: null })
+
+  useEffect(() => {
+    getPublicConfig().then(c => setFallback({ lat: c.defaultLat, lng: c.defaultLng }))
+  }, [])
 
   useEffect(() => {
     getSiteLocation().then(data => {
@@ -74,7 +80,7 @@ export default function LocationSettingsPage() {
       <Card>
         <CardHeader title={t('location.title')} subtitle={t('location.subtitle')} />
         <div className="space-y-4 p-5">
-          <LocationPickerMap initialLat={pos?.lat} initialLng={pos?.lng} onLocationSelect={(lat, lng) => setPos({ lat, lng })} />
+          <LocationPickerMap initialLat={pos?.lat} initialLng={pos?.lng} defaultLat={fallback.lat} defaultLng={fallback.lng} onLocationSelect={(lat, lng) => setPos({ lat, lng })} />
           <p className="text-sm text-ink-muted">
             {pos ? <>{t('location.coords')} <span className="font-mono text-ink">{pos.lat.toFixed(5)}, {pos.lng.toFixed(5)}</span></> : t('location.noPosition')}
           </p>

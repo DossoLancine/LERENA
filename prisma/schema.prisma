@@ -19,14 +19,15 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  memberships       OrganizationMember[]
-  tickets           Ticket[]
-  appointments      Appointment[]
-  agentSessions     ServiceSession[]     @relation("AgentSessions")
-  favorites         Favorite[]
-  notifications     Notification[]
-  pushSubscriptions PushSubscription[]
-  shifts            Shift[]
+  memberships        OrganizationMember[]
+  tickets            Ticket[]
+  appointments       Appointment[]
+  agentSessions      ServiceSession[]     @relation("AgentSessions")
+  favorites          Favorite[]
+  notifications      Notification[]
+  pushSubscriptions  PushSubscription[]
+  shifts             Shift[]
+  networkMemberships NetworkMember[]
 }
 
 model Organization {
@@ -49,6 +50,8 @@ model Organization {
   maxRadiusKm     Float    @default(10.0)
   requireGps      Boolean  @default(false)
   bookingMode     String   @default("QUEUE_ONLY") // Options: "QUEUE_ONLY", "APPOINTMENT_ONLY", "HYBRID"
+  networkId       String?
+  sectorId        String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -58,6 +61,8 @@ model Organization {
   promotions   Promotion[]
   appointments Appointment[]
   devices      Device[]
+  network      Network?             @relation(fields: [networkId], references: [id], onDelete: SetNull)
+  sector       Sector?              @relation(fields: [sectorId], references: [id], onDelete: SetNull)
 }
 
 model OrganizationMember {
@@ -97,6 +102,7 @@ model Service {
   name           String
   description    String?
   avgDurationMin Int      @default(15)
+  icon           String?
   isActive       Boolean  @default(true)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -342,4 +348,76 @@ model Device {
   createdAt        DateTime  @default(now())
 
   organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+// Réseau d'établissements piloté par un administrateur d'organisation
+model Network {
+  id        String   @id @default(cuid())
+  name      String
+  sector    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organizations Organization[]
+  members       NetworkMember[]
+}
+
+// Accès à un réseau : ORG_ADMIN (pilotage) ou VIEWER (lecture seule : auditeurs, tutelles)
+model NetworkMember {
+  id        String   @id @default(cuid())
+  networkId String
+  userId    String
+  role      String   @default("VIEWER")
+  createdAt DateTime @default(now())
+
+  network Network @relation(fields: [networkId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, networkId])
+}
+
+// Journal d'audit : qui a fait quoi, quand, sur quoi (actions sensibles et administration)
+model AuditLog {
+  id             String   @id @default(cuid())
+  actorId        String?
+  actorName      String?
+  action         String
+  targetType     String?
+  targetId       String?
+  organizationId String?
+  details        String?
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId, createdAt])
+  @@index([createdAt])
+}
+
+// Secteur d'activité (santé, banque, administration…) : géré par l'équipe ATTENDS, jamais écrit dans le code.
+// Les services types servent de modèle à la création d'un établissement.
+model Sector {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  description String?
+  icon        String   @default("building")
+  color       String   @default("orange")
+  services    Json     @default("[]") // [{ name, durationMin, prefix, icon }]
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  organizations Organization[]
+}
+
+// Réglages de la plateforme (une seule ligne) : pays, carte, mode démo
+model PlatformConfig {
+  id                 String   @id @default("default")
+  appName            String   @default("ATTENDS")
+  defaultCountryCode String   @default("+225")
+  defaultCity        String?
+  defaultLat         Float?
+  defaultLng         Float?
+  demoMode           Boolean  @default(false)
+  updatedAt          DateTime @updatedAt
 }

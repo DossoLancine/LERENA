@@ -19,13 +19,18 @@ function MapController({ center }: { center: [number, number] }) {
 export default function LocationPickerMap({ 
   initialLat, 
   initialLng, 
+  defaultLat,
+  defaultLng,
   onLocationSelect 
 }: { 
   initialLat?: number, 
   initialLng?: number, 
+  defaultLat?: number | null,
+  defaultLng?: number | null,
   onLocationSelect: (lat: number, lng: number) => void 
 }) {
-  const defaultPosition: [number, number] = [5.320357, -4.016107] // Abidjan default
+  // Point de départ : réglages de la plateforme (ville par défaut)
+  const defaultPosition: [number, number] = [defaultLat ?? 0, defaultLng ?? 0]
   const [position, setPosition] = useState<[number, number]>(
     initialLat && initialLng ? [initialLat, initialLng] : defaultPosition
   )

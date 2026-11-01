@@ -7,7 +7,7 @@ import {
 import { useSettings } from '../_components/settings-provider'
 
 export default function TeamSettingsPage() {
-  const { org, showAddMemberModal, setShowAddMemberModal, newMember, setNewMember, addingMember, handleAddMember, handleRemoveMember } = useSettings()
+  const { org, showAddMemberModal, setShowAddMemberModal, newMember, setNewMember, createdCredentials, setCreatedCredentials, addingMember, handleAddMember, handleRemoveMember } = useSettings()
 
   return (
     <div className="bg-white rounded-3xl border border-gray-100 p-6 space-y-6 shadow-sm">
@@ -27,6 +27,21 @@ export default function TeamSettingsPage() {
           Ajouter un Collaborateur
         </button>
       </div>
+
+      {/* Identifiants provisoires du compte qui vient d'être créé : affichés une seule fois */}
+      {createdCredentials && (
+        <div role="status" className="rounded-2xl border border-green-200 bg-green-50 p-4 text-sm text-green-900">
+          <p className="font-bold">Compte créé pour {createdCredentials.name}</p>
+          <p className="mt-1">Transmettez-lui ces identifiants ; ils ne seront plus affichés.</p>
+          <p className="mt-2 font-mono">{createdCredentials.email}</p>
+          <p className="font-mono text-base font-bold tracking-wider">{createdCredentials.password}</p>
+          <div className="mt-3 flex gap-2">
+            <button type="button" onClick={() => navigator.clipboard?.writeText(`${createdCredentials.email}
+${createdCredentials.password}`)} className="rounded-xl bg-white px-3 py-1.5 text-xs font-bold text-green-800 border border-green-200">Copier</button>
+            <button type="button" onClick={() => setCreatedCredentials(null)} className="rounded-xl px-3 py-1.5 text-xs font-bold text-green-800">J’ai transmis</button>
+          </div>
+        </div>
+      )}
 
       {/* Liste des membres */}
       <div className="divide-y divide-gray-100">

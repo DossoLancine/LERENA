@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma"
 import { distanceKm, formatDistance } from "@/lib/geo"
+import { sectorColor } from "@/lib/icons"
 
 export async function getOrganizations(search?: string, userLat?: number, userLng?: number) {
   try {
@@ -13,6 +14,7 @@ export async function getOrganizations(search?: string, userLat?: number, userLn
         ]
       } : undefined,
       include: {
+        sector: { select: { slug: true, icon: true, color: true } },
         branches: {
           select: {
             queues: { select: { id: true } },
@@ -66,12 +68,8 @@ export async function getOrganizations(search?: string, userLat?: number, userLn
       const rating = nps && nps.count > 0 ? Number((nps.totalScore / nps.count).toFixed(1)) : 0
       const reviewCount = nps?.count || 0
 
-      let icon = "health"
-      let color = "bg-blue-50 text-blue-600"
-      if (org.category === 'Pharmacie') { icon = "pharmacy"; color = "bg-green-50 text-green-600" }
-      else if (org.category === 'Beauté') { icon = "beauty"; color = "bg-pink-50 text-pink-600" }
-      else if (org.category === 'Restauration') { icon = "food"; color = "bg-orange-50 text-orange-600" }
-      else if (org.category === 'Banque') { icon = "bank"; color = "bg-gray-50 text-gray-600" }
+      // Pictogramme et couleur viennent du secteur choisi en base
+      const palette = sectorColor(org.sector?.color)
 
       let distanceNum = Infinity;
       let distanceStr = "";
@@ -84,6 +82,7 @@ export async function getOrganizations(search?: string, userLat?: number, userLn
         id: org.id,
         name: org.name,
         category: org.category,
+        sectorSlug: org.sector?.slug ?? null,
         distanceNum,
         distance: distanceStr,
         waitMin,
@@ -94,9 +93,10 @@ export async function getOrganizations(search?: string, userLat?: number, userLn
         lng: org.lng,
         rating,
         reviewCount,
-        address: org.address || "Abidjan",
-        icon,
-        color
+        address: org.address ?? "",
+        icon: org.sector?.icon ?? "building",
+        color: palette.soft,
+        colorHex: palette.hex
       }
     })
 
@@ -117,7 +117,8 @@ export async function getOrganizationById(id: string, userLat?: number, userLng?
       prisma.organization.findUnique({
         where: { id },
         include: {
-          branches: { include: { services: true, queues: true } }
+          sector: { select: { slug: true, icon: true, color: true } },
+          branches: { include: { services: true, queues: true, businessHours: true } }
         }
       }),
       // ✅ FIX: Parallélisé avec Promise.all pour ne pas attendre l'une après l'autre
@@ -154,6 +155,10 @@ export async function getOrganizationById(id: string, userLat?: number, userLng?
     const rating = stats._avg.npsScore ? Number(stats._avg.npsScore.toFixed(1)) : 0;
     const reviewCount = stats._count.npsScore || 0;
 
+    // Heure de fermeture du jour, d'après les horaires saisis par l'établissement
+    const today = org.branches.flatMap(b => b.businessHours).find(h => h.dayOfWeek === new Date().getDay())
+    const closeTime = today && !today.isClosed ? today.closeTime : null
+
     let distanceStr = "À proximité";
     let distanceNum = Infinity;
     if (userLat && userLng && org.lat && org.lng) {
@@ -167,12 +172,13 @@ export async function getOrganizationById(id: string, userLat?: number, userLng?
       waitingCount,
       waitMin,
       isOpen: org.isActive,
-      closeTime: "18:00",
+      closeTime,
+      sectorIcon: org.sector?.icon ?? "building",
       rating,
       reviewCount,
       distanceNum,
       distance: distanceStr,
-      address: org.address || "Abidjan, CI"
+      address: org.address ?? ""
     }
   } catch (error) {
     console.error("Failed to fetch organization:", error)

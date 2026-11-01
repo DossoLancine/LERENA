@@ -11,6 +11,7 @@ import {
   exportTicketsHistory
 } from '@/server/actions/settings'
 import { useToast } from '@/components/ui/toast'
+import { getSectors } from '@/server/actions/platform'
 
 // État et actions partagés par toutes les pages Paramètres (établissement, affiche, TV, équipe, données)
 function useSettingsState() {
@@ -24,7 +25,7 @@ function useSettingsState() {
   // Formulaire Profil
   const [formData, setFormData] = useState({
     name: '',
-    category: 'Santé',
+    sectorId: '',
     description: '',
     address: '',
     city: '',
@@ -52,10 +53,13 @@ function useSettingsState() {
     name: '',
     email: '',
     phone: '',
-    password: 'password123',
+    password: '',
     role: 'AGENT' as 'RECEPTION' | 'AGENT' | 'MANAGER'
   })
   const [addingMember, setAddingMember] = useState(false)
+  // Identifiants du dernier compte créé, à transmettre au collaborateur (affichés une seule fois)
+  const [createdCredentials, setCreatedCredentials] = useState<{ name: string; email: string; password: string } | null>(null)
+  const [sectors, setSectors] = useState<Array<{ id: string; name: string; description: string | null }>>([])
 
   // Opérations de données
   const [resettingQueue, setResettingQueue] = useState(false)
@@ -65,6 +69,7 @@ function useSettingsState() {
 
   useEffect(() => {
     loadSettings()
+    getSectors().then(setSectors)
   }, [])
 
   const loadSettings = async () => {
@@ -74,7 +79,7 @@ function useSettingsState() {
       setOrg(res.data)
       setFormData({
         name: res.data.name || '',
-        category: res.data.category || 'Santé',
+        sectorId: res.data.sectorId || '',
         description: res.data.description || '',
         address: res.data.address || '',
         city: res.data.city || '',
@@ -167,7 +172,8 @@ function useSettingsState() {
     const res = await addMemberToOrganization(org.id, newMember)
     if (res.success) {
       showToast(`Collaborateur ${newMember.name} ajouté avec succès !`)
-      setNewMember({ name: '', email: '', phone: '', password: 'password123', role: 'AGENT' })
+      if (res.tempPassword) setCreatedCredentials({ name: newMember.name, email: newMember.email.trim().toLowerCase(), password: res.tempPassword })
+      setNewMember({ name: '', email: '', phone: '', password: '', role: 'AGENT' })
       setShowAddMemberModal(false)
       loadSettings()
     } else {
@@ -255,7 +261,7 @@ function useSettingsState() {
   const clientPageUrl = typeof window !== 'undefined' && org ? `${window.location.origin}/org/${org.id}` : ''
   const tvPageUrl = typeof window !== 'undefined' && org ? `${window.location.origin}/tv/${org.id}` : ''
 
-  return { org, setOrg, loading, setLoading, saving, setSaving, successMsg, setSuccessMsg, errorMsg, setErrorMsg, formData, setFormData, qrCodeDataUrl, setQrCodeDataUrl, copiedUrl, setCopiedUrl, copiedTvUrl, setCopiedTvUrl, playlist, setPlaylist, showAddMemberModal, setShowAddMemberModal, newMember, setNewMember, addingMember, setAddingMember, resettingQueue, setResettingQueue, exportingCsv, setExportingCsv, printRef, loadSettings, showToast, addPlaylistItem, updatePlaylistItem, removePlaylistItem, handleSaveProfile, handleAddMember, handleRemoveMember, handleResetQueue, handleExportCSV, handlePrintPoster, copyToClipboard, clientPageUrl, tvPageUrl }
+  return { org, setOrg, loading, setLoading, saving, setSaving, successMsg, setSuccessMsg, errorMsg, setErrorMsg, formData, setFormData, qrCodeDataUrl, setQrCodeDataUrl, copiedUrl, setCopiedUrl, copiedTvUrl, setCopiedTvUrl, playlist, setPlaylist, showAddMemberModal, setShowAddMemberModal, newMember, setNewMember, createdCredentials, setCreatedCredentials, sectors, addingMember, setAddingMember, resettingQueue, setResettingQueue, exportingCsv, setExportingCsv, printRef, loadSettings, showToast, addPlaylistItem, updatePlaylistItem, removePlaylistItem, handleSaveProfile, handleAddMember, handleRemoveMember, handleResetQueue, handleExportCSV, handlePrintPoster, copyToClipboard, clientPageUrl, tvPageUrl }
 }
 
 export type SettingsState = ReturnType<typeof useSettingsState>

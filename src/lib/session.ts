@@ -57,6 +57,34 @@ export async function getReceptionContext() {
   return ctx && (ctx.role === 'RECEPTION' || ctx.role === 'MANAGER') ? ctx : null
 }
 
+export interface NetworkContext {
+  userId: string
+  name: string | null
+  networkId: string
+  role: 'ORG_ADMIN' | 'VIEWER'
+  canEdit: boolean
+}
+
+// Réseau de l'administrateur d'organisation (ou du lecteur) connecté
+export const getNetworkContext = cache(async (): Promise<NetworkContext | null> => {
+  const user = await getSessionUser()
+  if (!user || (user.role !== 'ORG_ADMIN' && user.role !== 'VIEWER')) return null
+  const membership = await prisma.networkMember.findFirst({
+    where: { userId: user.id },
+    orderBy: { createdAt: 'asc' },
+    select: { networkId: true, role: true }
+  })
+  if (!membership) return null
+  const role = membership.role === 'ORG_ADMIN' ? 'ORG_ADMIN' : 'VIEWER'
+  return { userId: user.id, name: user.name, networkId: membership.networkId, role, canEdit: role === 'ORG_ADMIN' }
+})
+
+// Équipe ATTENDS : accès à toute la plateforme
+export async function getSuperAdmin() {
+  const user = await getSessionUser()
+  return user?.role === 'SUPER_ADMIN' ? user : null
+}
+
 // Identifiants des files d'attente d'une organisation
 export async function getOrgQueueIds(orgId: string) {
   const queues = await prisma.queue.findMany({

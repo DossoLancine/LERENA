@@ -1,11 +1,13 @@
 'use client'
 
-import { useState, Suspense } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Clock, Zap, Briefcase, Headphones, User } from 'lucide-react'
 import PhoneInput from '@/components/ui/phone-input'
+import { homeForRole } from '@/lib/constants'
+import { getPublicConfig } from '@/server/actions/platform'
 
 function LoginForm() {
   const router = useRouter()
@@ -13,6 +15,8 @@ function LoginForm() {
   const callbackUrl = searchParams.get('callbackUrl')
   
   const [email, setEmail] = useState('')
+  const [demoMode, setDemoMode] = useState(false)
+  useEffect(() => { getPublicConfig().then(c => setDemoMode(c.demoMode)).catch(() => {}) }, [])
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -44,13 +48,8 @@ function LoginForm() {
           const session = await sessionRes.json()
           const role = (session?.user as any)?.role
 
-          if (role === 'MANAGER') {
-            router.push('/dashboard')
-          } else if (role === 'AGENT') {
-            router.push('/agent')
-          } else {
-            router.push('/explore')
-          }
+          // Les comptes professionnels arrivent sur leur espace, les clients sur l'exploration
+          router.push(!role || role === 'CLIENT' ? '/explore' : homeForRole(role))
         }
         router.refresh()
       } else {
@@ -73,10 +72,10 @@ function LoginForm() {
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <div className="p-4 flex items-center justify-between">
-        <Link href="/" className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-50 text-gray-700">
+        <Link href="/" aria-label="Retour à l’accueil" className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-50 text-gray-700">
           <ArrowLeft size={20} />
         </Link>
-        <div className="text-orange-500 font-bold flex items-center gap-1">
+        <div className="text-orange-700 font-bold flex items-center gap-1">
           <Clock size={20} /> ATTENDS
         </div>
       </div>
@@ -87,8 +86,8 @@ function LoginForm() {
           <p className="text-gray-500 text-sm">Connectez-vous pour accéder à votre espace.</p>
         </div>
 
-        {/* Comptes Démo Rapides (Client uniquement) */}
-        <div className="mb-5 p-3.5 bg-orange-50/70 border border-orange-100 rounded-2xl">
+        {/* Compte démo : affiché seulement en mode démo */}
+        {demoMode && <div className="mb-5 p-3.5 bg-orange-50/70 border border-orange-100 rounded-2xl">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5 text-xs font-bold text-orange-800 uppercase tracking-wider">
               <Zap size={14} className="text-orange-500" />
@@ -103,7 +102,7 @@ function LoginForm() {
               <span>Remplir Client</span>
             </button>
           </div>
-        </div>
+        </div>}
 
         {error && (
           <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-xl text-sm font-medium border border-red-100">
@@ -144,7 +143,7 @@ function LoginForm() {
 
         <p className="text-center mt-8 text-sm text-gray-500">
           Nouveau sur ATTENDS ?{' '}
-          <Link href="/auth/register" className="font-bold text-orange-500">Créer un compte</Link>
+          <Link href="/auth/register" className="font-bold text-orange-700">Créer un compte</Link>
         </p>
 
         <div className="mt-8 pt-8 border-t border-gray-100 text-center">
