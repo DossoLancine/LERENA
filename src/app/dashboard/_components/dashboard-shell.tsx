@@ -38,8 +38,8 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   const isOpen = !!stats?.isOpen
 
   return (
-    <div className="min-h-screen bg-surface-sunken">
-      <header className="border-b border-surface-line bg-white">
+    <div className="min-h-screen bg-surface-sunken print:bg-white">
+      <header className="border-b border-surface-line bg-white print:hidden">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-4">
           <div className="min-w-0">
             <p className="text-xs font-medium text-ink-muted">{t('dashboard.eyebrow')}</p>

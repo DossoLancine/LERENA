@@ -1,158 +1,199 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell
-} from 'recharts'
-import { getAnalyticsSummary, type AnalyticsSummary } from '@/server/actions/analytics'
-import { TrendingUp, TrendingDown, Clock, UserX, CheckCircle2, BarChart3 } from 'lucide-react'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
+import { ArrowDownRight, ArrowUpRight, Minus, Printer, Ticket, CheckCircle2, UserX, Clock, Timer, Star } from 'lucide-react'
+import { getAnalyticsSummary, type AnalyticsSummary, type PeriodDays, type PeriodMetrics } from '@/server/actions/analytics'
+import { Button, Card, CardHeader, EmptyState } from '@/components/ui'
+import { cn } from '@/lib/cn'
+import { t, type MessageKey } from '@/lib/i18n'
+
+const PERIODS: { value: PeriodDays; label: MessageKey }[] = [
+  { value: 1, label: 'analytics.today' },
+  { value: 7, label: 'analytics.days7' },
+  { value: 30, label: 'analytics.days30' },
+  { value: 90, label: 'analytics.days90' },
+]
+
+// Couleurs des barres : une seule série, teinte de marque ; le pic en plein, le reste atténué
+const BAR = '#fdba74'
+const BAR_PEAK = '#f97316'
+
+type MetricKey = keyof PeriodMetrics
+
+// Pour l'attente, les abandons et la durée de service, une baisse est une bonne nouvelle
+const LOWER_IS_BETTER: MetricKey[] = ['avgWaitMin', 'dropOffRate', 'avgServiceMin']
+
+function Delta({ metric, current, previous }: { metric: MetricKey; current: number | null; previous: number | null }) {
+  if (current === null || previous === null || previous === 0) {
+    return <span className="text-xs text-ink-subtle">{t('analytics.noComparison')}</span>
+  }
+  const change = Math.round(((current - previous) / previous) * 100)
+  if (change === 0) return <span className="flex items-center gap-0.5 text-xs text-ink-subtle"><Minus size={12} />0 %</span>
+  const good = LOWER_IS_BETTER.includes(metric) ? change < 0 : change > 0
+  return (
+    <span className={cn('flex items-center gap-0.5 text-xs font-semibold', good ? 'text-success-ink' : 'text-danger-ink')}>
+      {change > 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+      {change > 0 ? '+' : ''}{change} %
+      <span className="sr-only">{good ? t('analytics.better') : t('analytics.worse')}</span>
+    </span>
+  )
+}
 
 export default function AnalyticsTab() {
+  const [days, setDays] = useState<PeriodDays>(7)
   const [data, setData] = useState<AnalyticsSummary | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    getAnalyticsSummary().then(d => {
+    setLoading(true)
+    getAnalyticsSummary(days).then(d => {
       setData(d)
       setLoading(false)
     })
-  }, [])
+  }, [days])
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-    )
-  }
+  const kpis: { key: MetricKey; label: MessageKey; icon: React.ReactNode; format: (m: PeriodMetrics) => string }[] = [
+    { key: 'totalTickets', label: 'analytics.tickets', icon: <Ticket size={16} className="text-brand" />, format: m => String(m.totalTickets) },
+    { key: 'completedCount', label: 'analytics.served', icon: <CheckCircle2 size={16} className="text-success" />, format: m => String(m.completedCount) },
+    { key: 'avgWaitMin', label: 'analytics.avgWait', icon: <Clock size={16} className="text-info" />, format: m => `${m.avgWaitMin} min` },
+    { key: 'avgServiceMin', label: 'analytics.avgService', icon: <Timer size={16} className="text-purple-500" />, format: m => `${m.avgServiceMin} min` },
+    { key: 'dropOffRate', label: 'analytics.dropOff', icon: <UserX size={16} className="text-danger" />, format: m => `${m.dropOffRate} %` },
+    { key: 'nps', label: 'analytics.satisfaction', icon: <Star size={16} className="text-warning" />, format: m => (m.nps === null ? '—' : `${m.nps}/5`) },
+  ]
 
-  if (!data) {
-    return (
-      <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
-        <p className="text-gray-500">Impossible de charger les analytiques.</p>
-        <p className="text-gray-400 text-sm mt-1">Vérifiez que vous êtes bien connecté en tant que Manager.</p>
-      </div>
-    )
-  }
-
-  // Peak hour
-  const peak = data.hourlyAffluence.reduce((a, b) => (b.count > a.count ? b : a), data.hourlyAffluence[0])
-
-  // Only show hours with activity for cleaner chart (or show business hours 7-21)
-  const chartData = data.hourlyAffluence.filter(h => h.hour >= 7 && h.hour <= 20)
+  const hourly = data?.hourlyAffluence.filter(h => h.hour >= 6 && h.hour <= 21) ?? []
+  const peak = hourly.reduce((a, b) => (b.count > a.count ? b : a), { hour: -1, label: '', count: 0 })
+  const periodLabel = data
+    ? `${new Date(data.from).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })} – ${new Date(data.to).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`
+    : ''
 
   return (
     <div className="space-y-4">
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 gap-3">
-        {/* Completed */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-4">
-          <div className="flex items-center justify-between mb-2">
-            <CheckCircle2 size={18} className="text-green-500" />
-            <TrendingUp size={14} className="text-green-500" />
-          </div>
-          <p className="text-3xl font-black text-gray-900">{data.completedCount}</p>
-          <p className="text-xs text-gray-500 mt-1">Tickets servis</p>
+      {/* Filtres : une seule ligne au-dessus des graphiques */}
+      <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
+        <div className="flex gap-1 rounded-xl bg-white p-1 shadow-card" role="radiogroup" aria-label={t('analytics.period')}>
+          {PERIODS.map(p => (
+            <button key={p.value} role="radio" aria-checked={days === p.value} onClick={() => setDays(p.value)}
+              className={cn('rounded-lg px-3 py-1.5 text-sm font-medium transition-all', days === p.value ? 'bg-brand text-white' : 'text-ink-muted hover:bg-gray-100')}>
+              {t(p.label)}
+            </button>
+          ))}
         </div>
-
-        {/* Drop-off */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-4">
-          <div className="flex items-center justify-between mb-2">
-            <UserX size={18} className="text-red-500" />
-            {data.dropOffRate > 10 ? (
-              <TrendingUp size={14} className="text-red-500" />
-            ) : (
-              <TrendingDown size={14} className="text-green-500" />
-            )}
-          </div>
-          <p className="text-3xl font-black text-gray-900">{data.dropOffRate}%</p>
-          <p className="text-xs text-gray-500 mt-1">Taux d&apos;abandon ({data.dropOffCount} clients)</p>
-        </div>
+        <Button variant="secondary" size="sm" icon={<Printer size={15} />} onClick={() => window.print()} disabled={!data}>{t('analytics.print')}</Button>
       </div>
 
-      {/* AHT by Service */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5">
-        <div className="flex items-center gap-2 mb-4">
-          <Clock size={18} className="text-blue-500" />
-          <h3 className="font-semibold text-gray-900">Temps moyen de traitement (AHT)</h3>
+      {/* En-tête du rapport imprimé */}
+      {data && (
+        <div className="hidden print:block">
+          <h1 className="text-xl font-bold">{t('analytics.reportTitle', { org: data.orgName })}</h1>
+          <p className="text-sm">{periodLabel}</p>
         </div>
-        {data.aht.length === 0 ? (
-          <div className="py-6 text-center">
-            <p className="text-gray-400 text-sm">Aucun ticket complété avec données de durée.</p>
-            <p className="text-gray-300 text-xs mt-1">Les données apparaîtront quand les agents complèteront des tickets.</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {data.aht.map(svc => (
-              <div key={svc.name}>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-medium text-gray-700">{svc.name}</span>
-                  <span className="text-sm font-bold text-blue-600">{svc.avgMinutes} min</span>
+      )}
+
+      {loading || !data ? (
+        <div className="space-y-4" aria-busy="true">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3">{Array.from({ length: 6 }, (_, i) => <div key={i} className="h-24 animate-pulse rounded-card bg-gray-200/80" />)}</div>
+          <div className="h-56 animate-pulse rounded-card bg-gray-200/80" />
+        </div>
+      ) : (
+        <>
+          <p className="text-xs text-ink-muted print:hidden">{periodLabel} · {t('analytics.vsPrevious')}</p>
+
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+            {kpis.map(k => (
+              <Card key={k.key} className="p-4">
+                <div className="mb-2 flex items-center justify-between">
+                  {k.icon}
+                  <Delta metric={k.key} current={data.current[k.key] as number | null} previous={data.previous[k.key] as number | null} />
                 </div>
-                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-blue-400 to-blue-600 rounded-full"
-                    style={{ width: `${Math.min((svc.avgMinutes / 60) * 100, 100)}%` }}
-                  />
-                </div>
-                <p className="text-xs text-gray-400 mt-0.5">{svc.count} ticket{svc.count > 1 ? 's' : ''} traité{svc.count > 1 ? 's' : ''}</p>
-              </div>
+                <p className="text-2xl font-black tabular-nums text-ink">{k.format(data.current)}</p>
+                <p className="mt-1 text-xs text-ink-muted">{t(k.label)}</p>
+              </Card>
             ))}
           </div>
-        )}
-      </div>
 
-      {/* Affluence Chart */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5">
-        <div className="flex items-center justify-between mb-1">
-          <div className="flex items-center gap-2">
-            <BarChart3 size={18} className="text-orange-500" />
-            <h3 className="font-semibold text-gray-900">Affluence par heure</h3>
-          </div>
-          {peak.count > 0 && (
-            <span className="text-xs bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full font-medium">
-              Pic : {peak.label}
-            </span>
+          {/* Volume par jour (sauf pour « aujourd'hui ») */}
+          {days > 1 && (
+            <Card className="p-5">
+              <h3 className="font-semibold text-ink">{t('analytics.dailyTitle')}</h3>
+              <p className="mb-4 text-xs text-ink-subtle">{t('analytics.dailyText')}</p>
+              {data.current.totalTickets === 0 ? (
+                <p className="py-6 text-center text-sm text-ink-subtle">{t('analytics.empty')}</p>
+              ) : (
+                <ResponsiveContainer width="100%" height={180}>
+                  <BarChart data={data.daily} margin={{ top: 4, right: 0, left: -28, bottom: 0 }}>
+                    <CartesianGrid stroke="#f3f4f6" vertical={false} />
+                    <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} interval="preserveStartEnd" minTickGap={12} />
+                    <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} allowDecimals={false} />
+                    <Tooltip cursor={{ fill: '#fff7ed' }} contentStyle={{ borderRadius: 12, border: '1px solid #e5e7eb', fontSize: 12 }}
+                      formatter={(v: number) => [`${v} tickets`, t('analytics.tickets')]} />
+                    <Bar dataKey="count" fill={BAR_PEAK} radius={[4, 4, 0, 0]} maxBarSize={28} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </Card>
           )}
-        </div>
-        <p className="text-xs text-gray-400 mb-4">Nombre de tickets créés selon l&apos;heure de la journée</p>
 
-        {data.totalTickets === 0 ? (
-          <div className="py-6 text-center">
-            <p className="text-gray-400 text-sm">Aucun ticket créé pour le moment.</p>
+          <Card className="p-5">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-ink">{t('analytics.hourlyTitle')}</h3>
+              {peak.count > 0 && <span className="rounded-full bg-brand-100 px-2 py-0.5 text-xs font-medium text-brand-700">{t('analytics.peak', { hour: peak.label })}</span>}
+            </div>
+            <p className="mb-4 text-xs text-ink-subtle">{t('analytics.hourlyText')}</p>
+            {data.current.totalTickets === 0 ? (
+              <p className="py-6 text-center text-sm text-ink-subtle">{t('analytics.empty')}</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={160}>
+                <BarChart data={hourly} margin={{ top: 4, right: 0, left: -28, bottom: 0 }}>
+                  <CartesianGrid stroke="#f3f4f6" vertical={false} />
+                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} allowDecimals={false} />
+                  <Tooltip cursor={{ fill: '#fff7ed' }} contentStyle={{ borderRadius: 12, border: '1px solid #e5e7eb', fontSize: 12 }}
+                    formatter={(v: number) => [`${v} tickets`, t('analytics.tickets')]} />
+                  <Bar dataKey="count" radius={[4, 4, 0, 0]} maxBarSize={24}>
+                    {hourly.map(h => <Cell key={h.hour} fill={h.hour === peak.hour ? BAR_PEAK : BAR} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </Card>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Card>
+              <CardHeader title={t('analytics.ahtTitle')} subtitle={t('analytics.ahtText')} />
+              {data.aht.length === 0 ? (
+                <EmptyState title={t('analytics.noCompleted')} />
+              ) : (
+                <table className="w-full text-sm">
+                  <thead><tr className="text-left text-xs text-ink-muted"><th className="px-5 py-2 font-medium">{t('analytics.service')}</th><th className="px-5 py-2 text-right font-medium">{t('analytics.served')}</th><th className="px-5 py-2 text-right font-medium">{t('analytics.duration')}</th></tr></thead>
+                  <tbody className="divide-y divide-surface-line">
+                    {data.aht.map(s => (
+                      <tr key={s.name}><td className="px-5 py-2.5 text-ink">{s.name}</td><td className="px-5 py-2.5 text-right tabular-nums text-ink-muted">{s.count}</td><td className="px-5 py-2.5 text-right font-semibold tabular-nums text-ink">{s.avgMinutes} min</td></tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </Card>
+
+            <Card>
+              <CardHeader title={t('analytics.countersTitle')} subtitle={t('analytics.countersText')} />
+              {data.counters.length === 0 ? (
+                <EmptyState title={t('analytics.noCompleted')} />
+              ) : (
+                <table className="w-full text-sm">
+                  <thead><tr className="text-left text-xs text-ink-muted"><th className="px-5 py-2 font-medium">{t('analytics.counter')}</th><th className="px-5 py-2 text-right font-medium">{t('analytics.served')}</th><th className="px-5 py-2 text-right font-medium">{t('analytics.duration')}</th></tr></thead>
+                  <tbody className="divide-y divide-surface-line">
+                    {data.counters.map(c => (
+                      <tr key={c.name}><td className="px-5 py-2.5 text-ink">{c.name}</td><td className="px-5 py-2.5 text-right tabular-nums text-ink-muted">{c.served}</td><td className="px-5 py-2.5 text-right font-semibold tabular-nums text-ink">{c.avgMinutes} min</td></tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </Card>
           </div>
-        ) : (
-          <ResponsiveContainer width="100%" height={160}>
-            <BarChart data={chartData} margin={{ top: 0, right: 0, left: -30, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
-              <XAxis
-                dataKey="label"
-                tick={{ fontSize: 10, fill: '#9ca3af' }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <YAxis
-                tick={{ fontSize: 10, fill: '#9ca3af' }}
-                axisLine={false}
-                tickLine={false}
-                allowDecimals={false}
-              />
-              <Tooltip
-                contentStyle={{ borderRadius: '12px', border: '1px solid #e5e7eb', fontSize: '12px' }}
-                formatter={(value: number) => [`${value} tickets`, 'Volume']}
-              />
-              <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                {chartData.map((entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={entry.hour === peak.hour && peak.count > 0 ? '#f97316' : '#fed7aa'}
-                  />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        )}
-      </div>
+        </>
+      )}
     </div>
   )
 }
