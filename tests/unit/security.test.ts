@@ -42,3 +42,20 @@ describe('adresse IP du visiteur (anti-force brute)', () => {
     expect(clientIp(undefined)).toBeNull()
   })
 })
+
+import { passwordProblem } from '@/lib/password-policy'
+
+describe('règles de mot de passe', () => {
+  it('clients : PIN de 6 chiffres ou mot de passe de 8 caractères', () => {
+    expect(passwordProblem('4821', 'CLIENT')).toMatch(/6 chiffres/)
+    expect(passwordProblem('482193', 'CLIENT')).toBeNull()
+    expect(passwordProblem('777777', 'CLIENT')).toMatch(/facile/)
+    expect(passwordProblem('123456', 'CLIENT')).toMatch(/facile/)
+    expect(passwordProblem('maisonbleue', 'CLIENT')).toBeNull()
+  })
+  it('personnel : 8 caractères avec lettres et chiffres', () => {
+    expect(passwordProblem('48219375', 'MANAGER')).toMatch(/lettres/)
+    expect(passwordProblem('Kigali2026', 'MANAGER')).toBeNull()
+    expect(passwordProblem('password123', 'AGENT')).toMatch(/facile/)
+  })
+})

@@ -4,7 +4,7 @@ import { useRef, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { signOut } from 'next-auth/react'
-import { Settings, User as UserIcon, LogOut } from 'lucide-react'
+import { Settings, User as UserIcon, LogOut, ShieldCheck } from 'lucide-react'
 import UserProfileForm from '@/components/profile/user-profile-form'
 import { Button, Dialog, IconButton, DashboardSkeleton } from '@/components/ui'
 import { cn } from '@/lib/cn'
@@ -99,6 +99,9 @@ export function DashboardShell({ children }: { children: ReactNode }) {
       <Dialog open={showProfile} onClose={() => setShowProfile(false)} title={t('dashboard.myProfile')}>
         <div className="flex flex-col gap-4">
           <UserProfileForm theme="orange" />
+          <Link href="/account/security" onClick={() => setShowProfile(false)} className="flex min-h-touch items-center justify-center gap-2 rounded-control border border-gray-200 text-sm font-semibold text-ink">
+            <ShieldCheck size={16} aria-hidden="true" /> Sécurité du compte (mot de passe, double authentification)
+          </Link>
           <Button variant="secondary" fullWidth icon={<LogOut size={16} />} onClick={() => signOut()} className="text-danger">
             {t('common.logout')}
           </Button>

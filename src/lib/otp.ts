@@ -1,6 +1,6 @@
 import { createHash, randomInt } from 'crypto'
 import { prisma } from '@/lib/prisma'
-import { sendSms } from '@/lib/sms'
+import { sendSmsMessage } from '@/lib/messaging'
 
 // Codes de vérification à 4 chiffres envoyés par SMS. Seule une empreinte du code est stockée.
 
@@ -26,8 +26,10 @@ export async function sendOtp(phone: string, purpose: OtpPurpose) {
     data: { phone, purpose, codeHash: hash(phone, code), expiresAt: new Date(Date.now() + TTL_MIN * 60_000) }
   })
 
-  const sent = await sendSms(phone, `ATTENDS : votre code est ${code}. Il expire dans ${TTL_MIN} minutes.`)
-  return sent ? { ok: true as const } : { ok: false as const, error: "Le SMS n'a pas pu être envoyé." }
+  const sent = await sendSmsMessage({ to: phone, text: `ATTENDS : votre code est ${code}. Il expire dans ${TTL_MIN} minutes.`, purpose: 'OTP' })
+  // Environnement de test sans fournisseur : le SMS est simulé et lisible dans l'administration (Messages)
+  const simulated = !process.env.SMS_PROVIDER && process.env.ATTENDS_ENV !== 'production'
+  return sent || simulated ? { ok: true as const } : { ok: false as const, error: "Le SMS n'a pas pu être envoyé." }
 }
 
 export async function verifyOtp(phone: string, purpose: OtpPurpose, code: string) {

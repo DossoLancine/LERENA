@@ -9,15 +9,22 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  name      String?
-  email     String?  @unique
-  phone     String?  @unique
-  password  String?
-  image     String?
-  role      String   @default("CLIENT")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                 String    @id @default(cuid())
+  name               String?
+  email              String?   @unique
+  phone              String?   @unique
+  password           String?
+  image              String?
+  role               String    @default("CLIENT")
+  // Sécurité du compte (P3)
+  mustChangePassword Boolean   @default(false) // mot de passe provisoire à changer à la première connexion
+  sessionVersion     Int       @default(0) // incrémenté pour déconnecter toutes les sessions
+  twoFactorEnabled   Boolean   @default(false)
+  twoFactorSecret    String? // secret TOTP chiffré
+  twoFactorRecovery  String[]  @default([]) // empreintes des codes de secours
+  lastLoginAt        DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   memberships        OrganizationMember[]
   tickets            Ticket[]
@@ -28,6 +35,8 @@ model User {
   pushSubscriptions  PushSubscription[]
   shifts             Shift[]
   networkMemberships NetworkMember[]
+  passwordResets     PasswordReset[]
+  authSessions       AuthSession[]
 }
 
 model Organization {
@@ -381,6 +390,51 @@ model LoginAttempt {
   createdAt DateTime @default(now())
 
   @@index([key, createdAt])
+}
+
+// Lien de réinitialisation du mot de passe : à usage unique, 1 heure, seule l'empreinte est stockée
+model PasswordReset {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Session de connexion (un appareil) : listée dans « Sécurité du compte », révocable à distance
+model AuthSession {
+  id         String    @id @default(cuid())
+  userId     String
+  userAgent  String?
+  ip         String?
+  createdAt  DateTime  @default(now())
+  lastSeenAt DateTime  @default(now())
+  revokedAt  DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// Journal des SMS et e-mails envoyés (ou simulés tant qu'aucun fournisseur n'est branché)
+model OutboundMessage {
+  id             String   @id @default(cuid())
+  channel        String // SMS | EMAIL
+  to             String
+  subject        String?
+  body           String
+  purpose        String // RESET_PASSWORD, OTP, TURN_SOON, APPOINTMENT_REMINDER…
+  status         String // SENT | FAILED | SIMULATED
+  provider       String?
+  error          String?
+  organizationId String?
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId, createdAt])
+  @@index([createdAt])
 }
 
 // Lien d'installation d'appareils : à usage unique, valable peu de temps, seule l'empreinte est stockée

@@ -111,7 +111,7 @@ export async function createStaffAccount(orgId: string, data: { name: string; em
     : await (async () => {
         password = tempPassword()
         return prisma.user.create({
-          data: { email, name: data.name.trim(), phone: data.phone?.trim() || null, password: await bcrypt.hash(password, 10), role: data.role },
+          data: { email, name: data.name.trim(), phone: data.phone?.trim() || null, password: await bcrypt.hash(password, 10), role: data.role, mustChangePassword: true },
           select: { id: true }
         })
       })()
@@ -146,7 +146,7 @@ export async function createNetworkAccount(networkId: string, data: { name: stri
     : await (async () => {
         password = tempPassword()
         return prisma.user.create({
-          data: { email, name: data.name.trim(), password: await bcrypt.hash(password, 10), role: data.role },
+          data: { email, name: data.name.trim(), password: await bcrypt.hash(password, 10), role: data.role, mustChangePassword: true },
           select: { id: true }
         })
       })()

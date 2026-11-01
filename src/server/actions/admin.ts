@@ -262,7 +262,9 @@ export async function getPlatformHealth() {
     { name: 'Base de données', ok: true, detail: `Réponse en ${dbLatencyMs} ms` },
     { name: 'Temps réel', ok: !!process.env.NEXT_PUBLIC_SUPABASE_URL, detail: 'Mises à jour instantanées des écrans' },
     { name: 'Notifications push', ok: !!process.env.VAPID_PRIVATE_KEY, detail: `${pushSubs} appareil(s) abonné(s)` },
-    { name: 'SMS', ok: false, detail: 'Fournisseur pas encore branché' }
+    { name: 'E-mails', ok: !!process.env.RESEND_API_KEY, detail: process.env.RESEND_API_KEY ? 'Envoi par Resend' : 'Simulés (visibles dans Messages)' },
+    { name: 'SMS', ok: !!process.env.SMS_PROVIDER, detail: process.env.SMS_PROVIDER ? `Fournisseur : ${process.env.SMS_PROVIDER}` : 'Simulés (visibles dans Messages)' },
+    { name: 'Clé de double authentification', ok: !!process.env.TWO_FACTOR_KEY, detail: process.env.TWO_FACTOR_KEY ? 'Clé dédiée' : 'Clé dérivée de NEXTAUTH_SECRET : définir TWO_FACTOR_KEY avant la production' }
   ]
 
   return {
@@ -292,4 +294,25 @@ export async function getAuditLog(page = 1, action?: string) {
     actions: actions.map(a => a.action),
     rows: rows.map(r => ({ ...r, createdAt: r.createdAt.toISOString(), orgName: r.organizationId ? orgName.get(r.organizationId) ?? null : null }))
   }
+}
+
+// ---- Messages envoyés (SMS, e-mails) ----
+
+export async function getOutboundMessages(channel?: 'SMS' | 'EMAIL') {
+  if (!(await getSuperAdmin())) return null
+  const rows = await prisma.outboundMessage.findMany({
+    where: channel ? { channel } : {},
+    orderBy: { createdAt: 'desc' },
+    take: 100
+  })
+  const orgIds = Array.from(new Set(rows.map(r => r.organizationId).filter((x): x is string => !!x)))
+  const orgs = await prisma.organization.findMany({ where: { id: { in: orgIds } }, select: { id: true, name: true } })
+  const orgName = new Map(orgs.map(o => [o.id, o.name]))
+  return rows.map(r => ({
+    id: r.id, channel: r.channel, to: r.to, subject: r.subject, purpose: r.purpose, status: r.status, provider: r.provider, error: r.error,
+    createdAt: r.createdAt.toISOString(),
+    orgName: r.organizationId ? orgName.get(r.organizationId) ?? null : null,
+    // Contenu (liens, codes) visible seulement pour les envois simulés de l'environnement de test
+    body: r.status === 'SIMULATED' ? r.body : null
+  }))
 }
