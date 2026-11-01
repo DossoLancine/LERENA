@@ -26,6 +26,7 @@ model User {
   favorites         Favorite[]
   notifications     Notification[]
   pushSubscriptions PushSubscription[]
+  shifts            Shift[]
 }
 
 model Organization {
@@ -85,6 +86,7 @@ model Branch {
   queues        Queue[]
   businessHours BusinessHour[]
   counters      Counter[]
+  shifts        Shift[]
   Appointment   Appointment[]
 }
 
@@ -284,6 +286,7 @@ model Counter {
 
   branch  Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
   tickets Ticket[]
+  shifts  Shift[]
 
   @@unique([branchId, name])
 }
@@ -303,4 +306,22 @@ model TicketEvent {
   ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
   @@index([ticketId])
+}
+
+// Créneau de travail planifié : un agent, un jour, des heures et éventuellement un guichet
+model Shift {
+  id        String   @id @default(cuid())
+  branchId  String
+  userId    String
+  counterId String?
+  date      DateTime @db.Date
+  startTime String // « 08:00 »
+  endTime   String // « 12:30 »
+  createdAt DateTime @default(now())
+
+  branch  Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  counter Counter? @relation(fields: [counterId], references: [id], onDelete: SetNull)
+
+  @@index([branchId, date])
 }

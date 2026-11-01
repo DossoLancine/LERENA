@@ -17,6 +17,7 @@ const TABS: { href: string; label: MessageKey }[] = [
   { href: '/dashboard/agenda', label: 'dashboard.tabs.agenda' },
   { href: '/dashboard/services', label: 'dashboard.tabs.services' },
   { href: '/dashboard/counters', label: 'dashboard.tabs.counters' },
+  { href: '/dashboard/planning', label: 'dashboard.tabs.planning' },
   { href: '/dashboard/analytics', label: 'dashboard.tabs.analytics' },
   { href: '/dashboard/promotions', label: 'dashboard.tabs.promotions' },
   { href: '/dashboard/settings', label: 'dashboard.tabs.settings' },

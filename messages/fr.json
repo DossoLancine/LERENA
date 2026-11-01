@@ -44,7 +44,8 @@
       "analytics": "Statistiques",
       "promotions": "Promotions",
       "settings": "Paramètres",
-      "counters": "Guichets"
+      "counters": "Guichets",
+      "planning": "Planning"
     },
     "toggleOpen": "Ouvrir ou fermer l'établissement",
     "settingsShortcut": "Paramètres de l'établissement",
@@ -287,5 +288,24 @@
     "counterOpened": "{name} est ouvert : les agents peuvent l’utiliser.",
     "addCounter": "Ajouter un guichet",
     "seeQueue": "Voir la file"
+  },
+  "planning": {
+    "title": "Planning des agents",
+    "prevWeek": "Semaine précédente",
+    "nextWeek": "Semaine suivante",
+    "thisWeek": "Cette semaine",
+    "copyPrevious": "Recopier la semaine précédente",
+    "copied": "{count} créneaux recopiés",
+    "nothingToCopy": "Rien à recopier",
+    "noShift": "Personne de prévu",
+    "add": "Ajouter",
+    "added": "Créneau ajouté",
+    "delete": "Supprimer ce créneau",
+    "addTitle": "Créneau du {day}",
+    "agent": "Agent",
+    "counter": "Guichet",
+    "anyCounter": "Sans guichet précis",
+    "start": "Début",
+    "end": "Fin"
   }
 }
