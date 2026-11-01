@@ -1,7 +1,7 @@
 // Guide d'utilisation affiché dans Paramètres → Guide d'utilisation.
 // À METTRE À JOUR à chaque évolution de l'application (nouvel écran, nouvelle étape, changement de nom).
 
-export const GUIDE_UPDATED_AT = '1er novembre 2026 (rendez-vous complets, plusieurs sites)'
+export const GUIDE_UPDATED_AT = '1er novembre 2026 (numérotation quotidienne, rendez-vous, plusieurs sites)'
 
 export interface GuideSection {
   id: string
@@ -61,7 +61,8 @@ export const GUIDE: GuideSection[] = [
       'Avec l’affiche QR code (Paramètres → Affiche & QR code) : imprimez-la et collez-la à l’entrée ; un scan suffit, sans compte.',
       'À la borne, s’il y en a une.',
       'Auprès de l’agent d’accueil, qui crée le ticket pour eux (personnes sans téléphone).',
-      'Ils suivent ensuite leur position en direct sur leur téléphone et sur la TV, et reçoivent une alerte quand leur tour approche.'
+      'Ils suivent ensuite leur position en direct sur leur téléphone et sur la TV, et reçoivent une alerte quand leur tour approche.',
+      'Chaque matin, la numérotation repart à 1 dans chaque file (A001, A002…). Les tickets restés ouverts la veille sont clôturés automatiquement pendant la nuit : la file du jour démarre propre.'
     ]
   },
   {

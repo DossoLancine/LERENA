@@ -24,7 +24,7 @@ export default function HomeView({ userName, activeTicket, initialOrgs, sectors 
         const orgs = await getOrganizations(undefined, position.coords.latitude, position.coords.longitude)
         setPopularOrgs(orgs.slice(0, 3))
       },
-      (error) => console.error("Erreur GPS:", error),
+      () => {}, // position refusée ou indisponible : la liste s'affiche sans les distances
       { maximumAge: 5 * 60 * 1000, timeout: 8000 }
     )
   }, [])

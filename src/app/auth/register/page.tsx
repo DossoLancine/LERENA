@@ -71,15 +71,17 @@ function RegisterForm() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Numéro de téléphone</label>
-            <PhoneInput 
+            <label htmlFor="register-phone" className="block text-sm font-medium text-gray-700 mb-1">Numéro de téléphone</label>
+            <PhoneInput id="register-phone"
               value={phone} 
               onChange={setPhone}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Nom complet</label>
+            <label htmlFor="register-name" className="block text-sm font-medium text-gray-700 mb-1">Nom complet</label>
             <input 
+              id="register-name"
+              autoComplete="name"
               type="text" 
               required
               value={name}
@@ -89,9 +91,11 @@ function RegisterForm() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Code PIN (6 chiffres)</label>
+            <label htmlFor="register-pin" className="block text-sm font-medium text-gray-700 mb-1">Code PIN (6 chiffres)</label>
             <input 
-              type="password" 
+              id="register-pin"
+              type="password"
+              autoComplete="new-password" 
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}

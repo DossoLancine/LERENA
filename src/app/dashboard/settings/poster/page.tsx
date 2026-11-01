@@ -61,6 +61,7 @@ export default function PosterSettingsPage() {
                 <input
                   type="text"
                   readOnly
+                  aria-label="Lien de l’établissement"
                   value={clientPageUrl}
                   className="flex-1 bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs font-mono text-gray-600 truncate"
                 />

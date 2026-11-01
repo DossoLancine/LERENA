@@ -47,7 +47,7 @@ export default function ExploreView({ initialOrgs, sectors, defaultCenter }: { i
           setLocation(coords)
           fetchOrgs(coords.lat, coords.lng)
         },
-        (error) => console.error("Erreur GPS:", error),
+        () => {}, // position refusée ou indisponible : la liste s'affiche sans les distances
         { maximumAge: 5 * 60 * 1000, timeout: 8000 }
       )
     }
@@ -80,7 +80,7 @@ export default function ExploreView({ initialOrgs, sectors, defaultCenter }: { i
           </div>
           <div className="relative mb-3">
             <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input type="text" placeholder="Rechercher un établissement..." value={search} onChange={(e) => setSearch(e.target.value)}
+            <input type="search" aria-label="Rechercher un établissement" placeholder="Rechercher un établissement..." value={search} onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-10 pr-4 py-3 bg-gray-100 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all" />
           </div>
           

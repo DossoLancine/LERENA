@@ -13,6 +13,7 @@ import AppointmentBookingForm from '@/components/booking/appointment-booking-for
 import { BottomSheet } from '@/components/ui/bottom-sheet'
 import { GuestTicketSheet } from '@/components/booking/guest-ticket-sheet'
 import { haptics } from '@/lib/haptics'
+import { useToast } from '@/components/ui'
 
 type OrgDetails = NonNullable<Awaited<ReturnType<typeof getOrganizationById>>>
 
@@ -55,6 +56,18 @@ export default function OrgView({ params, initialOrg, initialIsFavorite }: {
     setSelectedService(id)
     setError(null)
     if (!coordsRef.current) getPosition(8000)
+  }
+
+  const toast = useToast()
+  // Partage : feuille de partage du téléphone (WhatsApp, SMS…), sinon copie du lien
+  const handleShare = async () => {
+    const url = window.location.href
+    try {
+      if (navigator.share) await navigator.share({ title: org.name, text: `File d'attente — ${org.name}`, url })
+      else { await navigator.clipboard.writeText(url); toast('Lien copié') }
+    } catch (e: any) {
+      if (e?.name !== 'AbortError') toast('Partage impossible', 'error')
+    }
   }
 
   const handleFavoriteClick = async () => {
@@ -146,6 +159,7 @@ export default function OrgView({ params, initialOrg, initialIsFavorite }: {
         {/* Back button */}
         <button
           onClick={() => router.back()}
+          aria-label="Retour"
           className="absolute top-4 left-4 w-9 h-9 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow"
         >
           <ArrowLeft size={18} className="text-gray-700" />
@@ -154,11 +168,13 @@ export default function OrgView({ params, initialOrg, initialIsFavorite }: {
         <div className="absolute top-4 right-4 flex gap-2">
           <button
             onClick={handleFavoriteClick}
+            aria-label={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+            aria-pressed={isFavorite}
             className="w-9 h-9 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow"
           >
             <Heart size={16} className={isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-600'} />
           </button>
-          <button className="w-9 h-9 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow">
+          <button onClick={handleShare} aria-label="Partager" className="w-9 h-9 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow">
             <Share2 size={16} className="text-gray-600" />
           </button>
         </div>

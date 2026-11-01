@@ -124,16 +124,18 @@ function LoginForm() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Numéro de téléphone</label>
-            <PhoneInput 
+            <label htmlFor="login-phone" className="block text-sm font-medium text-gray-700 mb-1">Numéro de téléphone</label>
+            <PhoneInput id="login-phone"
               value={email} 
               onChange={setEmail}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Code PIN</label>
+            <label htmlFor="login-pin" className="block text-sm font-medium text-gray-700 mb-1">Code PIN</label>
             <input 
-              type="password" 
+              id="login-pin"
+              type="password"
+              autoComplete="current-password" 
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}

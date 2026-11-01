@@ -82,15 +82,6 @@ export async function issueTicket({ orgId, serviceId, priorityId, channel = 'app
 
   const queue = queueForService(service)
 
-  // Numéro attribué de façon atomique : deux clients simultanés ne reçoivent jamais le même
-  const lastTicket = await prisma.ticket.findFirst({
-    where: { queueId: queue.id },
-    orderBy: { number: 'desc' },
-    select: { number: true }
-  })
-  if (lastTicket && queue.currentNum < lastTicket.number) {
-    await prisma.queue.update({ where: { id: queue.id }, data: { currentNum: lastTicket.number } })
-  }
 
   let priority: Awaited<ReturnType<typeof resolvePriority>>
   try {
@@ -100,7 +91,11 @@ export async function issueTicket({ orgId, serviceId, priorityId, channel = 'app
     throw error
   }
 
+  // Numéro attribué de façon atomique : deux clients simultanés ne reçoivent jamais le même.
+  // La numérotation repart à 1 chaque jour (premier ticket du jour).
+  const today = new Date().toISOString().slice(0, 10)
   const ticket = await prisma.$transaction(async (tx) => {
+    await tx.queue.updateMany({ where: { id: queue.id, OR: [{ numDay: null }, { numDay: { not: today } }] }, data: { currentNum: 0, numDay: today } })
     const { currentNum: newNumber } = await tx.queue.update({
       where: { id: queue.id },
       data: { currentNum: { increment: 1 } },

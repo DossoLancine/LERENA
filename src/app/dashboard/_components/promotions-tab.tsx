@@ -148,6 +148,7 @@ export default function PromotionsTab() {
               </div>
               <button
                 onClick={() => handleDelete(promo.id)}
+                aria-label="Supprimer cette annonce"
                 className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg border border-red-100 text-red-400 hover:bg-red-50"
               >
                 <Trash2 size={14} />

@@ -29,11 +29,13 @@ const COUNTRIES = [
 export default function PhoneInput({ 
   value, 
   onChange, 
-  className = "" 
+  className = "",
+  id
 }: { 
   value: string, 
   onChange: (val: string) => void,
-  className?: string 
+  className?: string,
+  id?: string
 }) {
   const [prefix, setPrefix] = useState('+225')
   const [localNum, setLocalNum] = useState('')
@@ -144,7 +146,9 @@ export default function PhoneInput({
 
       {/* Champ de saisie du numéro local */}
       <input 
+        id={id}
         type="tel"
+        autoComplete="tel-national"
         value={localNum}
         onChange={handleNumberChange}
         className="flex-1 bg-transparent px-4 py-3 outline-none text-lg font-medium text-gray-900 w-full min-w-0 rounded-r-xl placeholder:text-gray-400"

@@ -178,6 +178,7 @@ export default function TvSettingsPage() {
                       type="text"
                       value={item.title}
                       onChange={e => updatePlaylistItem(item.id, 'title', e.target.value)}
+                      aria-label="Titre de la vidéo"
                       placeholder="Titre de la vidéo (ex: Présentation Clinique)"
                       className="text-xs font-bold text-gray-800 bg-transparent border-b border-transparent hover:border-gray-200 focus:border-orange-500 focus:outline-none px-1 py-0.5"
                     />
@@ -197,6 +198,7 @@ export default function TvSettingsPage() {
                     type="text"
                     value={item.url}
                     onChange={e => updatePlaylistItem(item.id, 'url', e.target.value)}
+                    aria-label="Lien de la vidéo"
                     placeholder="Lien YouTube ou direct MP4 (ex: https://www.youtube.com/watch?v=...)"
                     className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-900 font-mono focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all"
                   />
@@ -266,6 +268,7 @@ export default function TvSettingsPage() {
           <input
             type="text"
             readOnly
+            aria-label="Lien de l’écran"
             value={tvPageUrl}
             className="flex-1 bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs font-mono text-gray-600 truncate"
           />

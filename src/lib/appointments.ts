@@ -109,13 +109,13 @@ export async function checkIn(appointmentId: string, orgId: string) {
   return { ticketId: ticket.id, displayNum: ticket.displayNum, already: false }
 }
 
-// ---- Tâches automatiques : rappels et absences ----
+// ---- Tâches automatiques : rappels, absences et clôture des tickets de la veille ----
 
 const JOB_ID = 'appointments'
 const JOB_EVERY_MS = 5 * 60_000
 
 /**
- * Rappels (la veille, 2 h avant) et absences. Lancé au plus toutes les 5 minutes, par n'importe quelle activité
+ * Rappels (la veille, 2 h avant), absences et tickets oubliés des jours précédents. Lancé au plus toutes les 5 minutes, par n'importe quelle activité
  * (écran TV, tableau de bord) et par la tâche planifiée quotidienne : pas besoin d'un service externe.
  */
 export async function runAppointmentJobs(force = false) {
@@ -159,5 +159,13 @@ export async function runAppointmentJobs(force = false) {
   const noShow = late.filter(a => a.scheduledDate.getTime() + a.organization.apptNoShowGraceMin * 60_000 < now.getTime()).map(a => a.id)
   if (noShow.length) await prisma.appointment.updateMany({ where: { id: { in: noShow } }, data: { status: 'NO_SHOW' } })
 
-  return { skipped: false, remindersDay: dayBefore.length, remindersHour: twoHours.length, noShows: noShow.length }
+  // Fin de journée : les tickets restés ouverts des jours précédents (plus de 6 h) sont clôturés
+  const startOfDay = new Date(`${now.toISOString().slice(0, 10)}T00:00:00Z`)
+  const before = new Date(Math.min(startOfDay.getTime(), now.getTime() - 6 * 3600_000))
+  const [served, dropped] = await Promise.all([
+    prisma.ticket.updateMany({ where: { status: 'SERVING', createdAt: { lt: before } }, data: { status: 'COMPLETED', completedAt: now } }),
+    prisma.ticket.updateMany({ where: { status: { in: ['WAITING', 'CALLED', 'ON_HOLD'] }, createdAt: { lt: before } }, data: { status: 'CANCELLED', completedAt: now } })
+  ])
+
+  return { skipped: false, remindersDay: dayBefore.length, remindersHour: twoHours.length, noShows: noShow.length, closedTickets: served.count + dropped.count }
 }

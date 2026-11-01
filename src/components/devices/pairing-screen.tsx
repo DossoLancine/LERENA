@@ -73,7 +73,9 @@ export function PairingScreen({ type, onPaired }: {
 
   usePolling(check, 3000, !!token && !done.current)
 
-  const origin = typeof window !== 'undefined' ? window.location.host : ''
+  // Lu après le montage : le serveur ne connaît pas l'adresse affichée (sinon écart d'hydratation)
+  const [origin, setOrigin] = useState('')
+  useEffect(() => setOrigin(window.location.host), [])
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-gray-950 px-8 text-center text-white">

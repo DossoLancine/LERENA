@@ -150,6 +150,7 @@ model Queue {
   prefix     String   @default("A")
   status     String   @default("OPEN")
   currentNum Int      @default(0)
+  numDay     String? // jour (AAAA-MM-JJ) de la numérotation en cours : elle repart à 1 chaque jour
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
