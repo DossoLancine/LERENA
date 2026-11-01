@@ -143,3 +143,57 @@ export async function getOrganizationServices() {
     return []
   }
 }
+
+/** Guichets en direct : client au guichet, agent qui l'a appelé, passages du jour. */
+export async function getCounterBoard() {
+  try {
+    const ctx = await getManagerContext()
+    if (!ctx) return []
+
+    const today = startOfToday()
+    const [counters, active, served] = await Promise.all([
+      prisma.counter.findMany({
+        where: { branch: { organizationId: ctx.orgId } },
+        orderBy: [{ isActive: 'desc' }, { name: 'asc' }],
+        select: { id: true, name: true, isActive: true }
+      }),
+      prisma.ticket.findMany({
+        where: { status: { in: ['CALLED', 'SERVING', 'ON_HOLD'] }, queue: { branch: { organizationId: ctx.orgId } } },
+        select: {
+          id: true, displayNum: true, status: true, counterName: true, calledAt: true, startedAt: true,
+          service: { select: { name: true } },
+          events: { where: { type: 'CALLED' }, orderBy: { createdAt: 'desc' }, take: 1, select: { actorId: true } }
+        }
+      }),
+      prisma.ticket.groupBy({
+        by: ['counterName'],
+        where: { status: 'COMPLETED', completedAt: { gte: today }, queue: { branch: { organizationId: ctx.orgId } } },
+        _count: { _all: true }
+      })
+    ])
+
+    const actorIds = Array.from(new Set(active.map(t => t.events[0]?.actorId).filter((x): x is string => !!x)))
+    const agents = actorIds.length
+      ? await prisma.user.findMany({ where: { id: { in: actorIds } }, select: { id: true, name: true } })
+      : []
+
+    return counters.map(c => {
+      const ticket = active.find(t => t.counterName === c.name && t.status !== 'ON_HOLD')
+      const actorId = ticket?.events[0]?.actorId
+      return {
+        id: c.id,
+        name: c.name,
+        isActive: c.isActive,
+        servedToday: served.find(s => s.counterName === c.name)?._count._all ?? 0,
+        onHold: active.filter(t => t.counterName === c.name && t.status === 'ON_HOLD').length,
+        agentName: agents.find(a => a.id === actorId)?.name ?? null,
+        ticket: ticket
+          ? { num: ticket.displayNum, status: ticket.status, service: ticket.service.name, since: (ticket.startedAt ?? ticket.calledAt)?.toISOString() ?? null }
+          : null
+      }
+    })
+  } catch (error) {
+    console.error('getCounterBoard error:', error)
+    return []
+  }
+}

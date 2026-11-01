@@ -77,7 +77,8 @@
       "poster": "Affiche & QR code",
       "tv": "Écran TV & publicités",
       "team": "Équipe & agents",
-      "data": "Opérations & données"
+      "data": "Opérations & données",
+      "location": "Localisation & horaires"
     }
   },
   "guest": {
@@ -262,5 +263,29 @@
     "recent": "Tickets d'aujourd'hui",
     "noRecent": "Aucun ticket aujourd'hui.",
     "priorityChanged": "Priorité modifiée"
+  },
+  "location": {
+    "title": "Position de l’établissement",
+    "subtitle": "Touchez la carte pour placer votre établissement : les clients le trouvent sur la carte et la distance est calculée depuis ce point.",
+    "coords": "Coordonnées :",
+    "noPosition": "Aucune position enregistrée : touchez la carte.",
+    "requireGps": "Exiger la présence à proximité",
+    "requireGpsText": "Un ticket ne peut être pris que depuis le rayon choisi. Évite les tickets pris de loin et jamais utilisés.",
+    "radius": "Rayon autorisé",
+    "saved": "Position enregistrée",
+    "hoursTitle": "Horaires d’ouverture",
+    "hoursSubtitle": "Les créneaux de rendez-vous proposés aux clients suivent ces horaires.",
+    "saveHours": "Enregistrer les horaires",
+    "hoursSaved": "Horaires enregistrés"
+  },
+  "overview": {
+    "countersTitle": "Guichets ({open} ouverts sur {total})",
+    "counterFree": "Libre",
+    "servedToday": "{count} servis aujourd'hui",
+    "onHold": "{count} en pause",
+    "openCounter": "Ouvrir {name}",
+    "counterOpened": "{name} est ouvert : les agents peuvent l’utiliser.",
+    "addCounter": "Ajouter un guichet",
+    "seeQueue": "Voir la file"
   }
 }

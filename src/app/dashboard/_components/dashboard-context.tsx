@@ -2,18 +2,20 @@
 
 import { createContext, useCallback, useContext, useState, type ReactNode } from 'react'
 import { usePathname } from 'next/navigation'
-import { getManagerStats, getLiveQueue, getOrganizationServices, toggleOrganizationStatus } from '@/server/actions/manager'
+import { getManagerStats, getLiveQueue, getOrganizationServices, getCounterBoard, toggleOrganizationStatus } from '@/server/actions/manager'
 import { usePolling } from '@/hooks/use-polling'
 import { useOrgRealtime } from '@/hooks/use-org-realtime'
 
 type Stats = NonNullable<Awaited<ReturnType<typeof getManagerStats>>>
 type LiveTicket = Awaited<ReturnType<typeof getLiveQueue>>[number]
 type ServiceSummary = Awaited<ReturnType<typeof getOrganizationServices>>[number]
+export type CounterStatus = Awaited<ReturnType<typeof getCounterBoard>>[number]
 
 interface DashboardData {
   stats: Stats | null
   liveQueue: LiveTicket[]
   services: ServiceSummary[]
+  counters: CounterStatus[]
   loading: boolean
   refresh: () => Promise<void>
   toggleOpen: () => Promise<boolean>
@@ -30,14 +32,16 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   const [stats, setStats] = useState<Stats | null>(null)
   const [liveQueue, setLiveQueue] = useState<LiveTicket[]>([])
   const [services, setServices] = useState<ServiceSummary[]>([])
+  const [counters, setCounters] = useState<CounterStatus[]>([])
   const [loading, setLoading] = useState(true)
 
   const refresh = useCallback(async () => {
     try {
-      const [s, q, svc] = await Promise.all([getManagerStats(), getLiveQueue(), getOrganizationServices()])
+      const [s, q, svc, ctr] = await Promise.all([getManagerStats(), getLiveQueue(), getOrganizationServices(), getCounterBoard()])
       setStats(s)
       setLiveQueue(q)
       setServices(svc)
+      setCounters(ctr)
     } finally {
       setLoading(false)
     }
@@ -59,7 +63,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   }, [stats])
 
   return (
-    <DashboardContext.Provider value={{ stats, liveQueue, services, loading, refresh, toggleOpen }}>
+    <DashboardContext.Provider value={{ stats, liveQueue, services, counters, loading, refresh, toggleOpen }}>
       {children}
     </DashboardContext.Provider>
   )
