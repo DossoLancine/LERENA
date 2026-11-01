@@ -1,4 +1,4 @@
-// Système de design ATTENDS : importer depuis '@/components/ui'
+// Système de design Lerena : importer depuis '@/components/ui'
 export { Button, IconButton, Spinner } from './button'
 export { Card, CardHeader, StatCard, EmptyState } from './card'
 export { AnimatedNumber } from './animated-number'

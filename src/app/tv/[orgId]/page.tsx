@@ -321,7 +321,7 @@ export default function TVPage({ params }: { params: { orgId: string } }) {
         <div className="absolute w-96 h-96 bg-cyan-500/10 rounded-full blur-[140px] animate-pulse" />
         <div className="w-16 h-16 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mb-4 relative z-10" />
         <p className="text-cyan-400 font-mono tracking-widest uppercase text-xs relative z-10">
-          ATTENDS OS 2050 // INITIALIZING QUANTUM DISPLAY...
+          LERENA OS 2050 // INITIALIZING QUANTUM DISPLAY...
         </p>
       </div>
     )
@@ -572,7 +572,7 @@ export default function TVPage({ params }: { params: { orgId: string } }) {
               {playlistIndex + 1}/{playlist.length} · {currentVideo?.title || 'Vidéo'}
             </span>
           )}
-          <span className="text-gray-600">ATTENDS</span>
+          <span className="text-gray-600">Lerena</span>
         </div>
       </footer>
     </div>

@@ -7,7 +7,7 @@ import { ServiceWorkerRegister } from '@/components/pwa/install'
 import { DeploymentWatcher } from '@/components/system/deployment-watcher'
 
 export const metadata: Metadata = {
-  title: 'ATTENDS — Ne perdez plus votre temps à attendre',
+  title: 'Lerena — Ne perdez plus votre temps à attendre',
   description: 'Gérez vos files d\'attente intelligemment. Rejoignez une file, suivez votre position et recevez une notification quand votre tour approche.',
   manifest: '/manifest.json',
   icons: {
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'ATTENDS',
+    title: 'Lerena',
   },
   // Balise standard demandée par Chrome (la variante « apple- » seule est dépréciée)
   other: { 'mobile-web-app-capable': 'yes' },

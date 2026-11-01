@@ -87,7 +87,7 @@ function ProLoginForm() {
             <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center">
               <Building2 size={20} className="text-white" />
             </div>
-            <span className="text-xl font-bold tracking-wider">ATTENDS <span className="font-light text-slate-400">BUSINESS</span></span>
+            <span className="text-xl font-bold tracking-wider">Lerena <span className="font-light text-slate-400">BUSINESS</span></span>
           </div>
           <h1 className="text-4xl font-bold mb-6 leading-tight">
             Gérez vos flux d'accueil<br />avec précision.
@@ -115,7 +115,7 @@ function ProLoginForm() {
             <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center">
               <Building2 size={20} className="text-white" />
             </div>
-            <span className="text-xl font-bold tracking-wider text-slate-900">ATTENDS <span className="font-light text-slate-500">PRO</span></span>
+            <span className="text-xl font-bold tracking-wider text-slate-900">Lerena <span className="font-light text-slate-500">PRO</span></span>
           </div>
 
           <div className="mb-8">

@@ -1,4 +1,4 @@
-// Service worker ATTENDS : application installable, écran hors ligne, et notifications push
+// Service worker Lerena : application installable, écran hors ligne, et notifications push
 // même application fermée ou téléphone verrouillé.
 
 const VERSION = 'attends-v3'
@@ -62,7 +62,7 @@ self.addEventListener('fetch', (event) => {
 })
 
 self.addEventListener('push', (event) => {
-  let data = { title: 'ATTENDS', body: 'Votre file avance.', url: '/tickets' }
+  let data = { title: 'Lerena', body: 'Votre file avance.', url: '/tickets' }
   try {
     data = { ...data, ...event.data.json() }
   } catch {}

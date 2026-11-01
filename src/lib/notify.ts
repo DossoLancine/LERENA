@@ -24,6 +24,8 @@ export async function notifyTicket(ticketId: string, payload: PushPayload, sms?:
     const org = ticket?.queue.branch.organization
     const phone = ticket?.guestPhone || ticket?.user?.phone
     if (!ticket || !org?.smsTurnAlerts || !phone || ticket._count.pushSubscriptions > 0) return
+    const { hasFeature } = await import('@/lib/billing')
+    if (!(await hasFeature(org.id, 'SMS_ALERTS'))) return
 
     const already = await prisma.outboundMessage.count({ where: { ticketId, channel: 'SMS', purpose: 'TURN_SOON' } })
     if (already >= MAX_SMS_PER_TICKET) return

@@ -63,7 +63,7 @@ export function verifyTotp(secret: string, code: string, now = Date.now()) {
   return false
 }
 
-export function otpauthUrl(secret: string, account: string, issuer = 'ATTENDS') {
+export function otpauthUrl(secret: string, account: string, issuer = 'Lerena') {
   return `otpauth://totp/${encodeURIComponent(issuer)}:${encodeURIComponent(account)}?secret=${secret}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=6&period=30`
 }
 

@@ -63,7 +63,7 @@ async function sendWithHttp(to: string, text: string) {
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...(process.env.SMS_HTTP_AUTH ? { Authorization: process.env.SMS_HTTP_AUTH } : {}) },
-    body: JSON.stringify({ to: international(to), text, sender: process.env.SMS_HTTP_SENDER || 'ATTENDS' })
+    body: JSON.stringify({ to: international(to), text, sender: process.env.SMS_HTTP_SENDER || 'Lerena' })
   })
   if (!res.ok) throw new Error(`SMS HTTP ${res.status} : ${(await res.text()).slice(0, 200)}`)
 }

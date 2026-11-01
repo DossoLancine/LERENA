@@ -5,6 +5,7 @@ import { appUrl, sendEmail, sendSmsMessage } from '@/lib/messaging'
 import { isSlotAvailable } from '@/lib/slots'
 import { issueTicket } from '@/lib/ticketing'
 import { notifyOrg } from '@/lib/realtime'
+import { hasFeature } from '@/lib/billing'
 
 // Rendez-vous : réservation, arrivée sur place (le RDV devient un ticket placé à son heure),
 // rappels automatiques et absences. Utilisé par l'application, les invités, l'accueil et la borne.
@@ -47,6 +48,7 @@ export async function bookAppointment(input: BookingInput) {
   if (!service) throw new AppointmentError('Service introuvable')
   const org = service.branch.organization
   if (org.bookingMode === 'QUEUE_ONLY' && input.source !== 'RECEPTION') throw new AppointmentError('Cet établissement ne prend pas de rendez-vous')
+  if (!(await hasFeature(input.orgId, 'APPOINTMENTS'))) throw new AppointmentError('La prise de rendez-vous n’est pas incluse dans le forfait de cet établissement')
 
   // Qui réserve : un compte, ou un numéro de téléphone (invité, réservation par l'accueil)
   const who = input.userId ? { userId: input.userId } : input.guestPhone ? { guestPhone: input.guestPhone } : null
@@ -76,7 +78,7 @@ export async function bookAppointment(input: BookingInput) {
   })
 
   const manageUrl = `${appUrl()}/rdv/${token}`
-  const text = `ATTENDS : RDV ${service.name} chez ${org.name}${service.branch.name ? ` (${service.branch.name})` : ''}, ${fmt(date)}. Code d'arrivée : ${code}. Gérer : ${manageUrl}`
+  const text = `Lerena : RDV ${service.name} chez ${org.name}${service.branch.name ? ` (${service.branch.name})` : ''}, ${fmt(date)}. Code d'arrivée : ${code}. Gérer : ${manageUrl}`
   const phone = input.guestPhone ?? (input.userId ? (await prisma.user.findUnique({ where: { id: input.userId }, select: { phone: true } }))?.phone : null)
   if (phone) await sendSmsMessage({ to: phone, text, purpose: 'APPOINTMENT_CONFIRMED', organizationId: input.orgId })
   if (input.email) await sendEmail({ to: input.email, subject: `Rendez-vous confirmé — ${org.name}`, text, purpose: 'APPOINTMENT_CONFIRMED', organizationId: input.orgId })
@@ -141,7 +143,7 @@ export async function runAppointmentJobs(force = false) {
       if (phone) {
         await sendSmsMessage({
           to: phone,
-          text: `ATTENDS : rappel, RDV ${a.service?.name ?? ''} chez ${a.organization.name} ${label === 'demain' ? 'demain' : 'à'} ${a.scheduledDate.toISOString().slice(11, 16)}. Code d'arrivée : ${a.code ?? ''}.`,
+          text: `Lerena : rappel, RDV ${a.service?.name ?? ''} chez ${a.organization.name} ${label === 'demain' ? 'demain' : 'à'} ${a.scheduledDate.toISOString().slice(11, 16)}. Code d'arrivée : ${a.code ?? ''}.`,
           purpose: 'APPOINTMENT_REMINDER',
           organizationId: a.organizationId
         })

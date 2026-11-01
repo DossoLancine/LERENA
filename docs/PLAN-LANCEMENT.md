@@ -1,4 +1,4 @@
-# ATTENDS — Plan de lancement en 15 phases
+# Lerena — Plan de lancement en 15 phases
 
 > Objectif : passer d'une application **utilisable en pilote (~75 %)** à un produit **commercialisable à 100 %**,
 > avec un **back-office startup** pour contrôler les établissements clients et leurs utilisateurs,
@@ -130,7 +130,7 @@ Le pilote (P15) peut démarrer dès la fin de P7 avec un établissement accompag
 
 ## Bloc D — Back-office startup (contrôle des clients et des utilisateurs)
 
-> Espace réservé à l'équipe ATTENDS (`/admin`), étendu en véritable outil de gestion de la startup.
+> Espace réservé à l'équipe Lerena (`/admin`), étendu en véritable outil de gestion de la startup.
 
 ### P8 · Clients et comptes · 1,5 semaine
 

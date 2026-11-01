@@ -1,7 +1,7 @@
 // Guide d'utilisation affiché dans Paramètres → Guide d'utilisation.
 // À METTRE À JOUR à chaque évolution de l'application (nouvel écran, nouvelle étape, changement de nom).
 
-export const GUIDE_UPDATED_AT = '1er novembre 2026 (numérotation quotidienne, rendez-vous, plusieurs sites)'
+export const GUIDE_UPDATED_AT = '1er novembre 2026 (abonnement et boutique, nouveau menu latéral, Lerena)'
 
 export interface GuideSection {
   id: string
@@ -36,7 +36,7 @@ export const GUIDE: GuideSection[] = [
       'Chaque appareil se connecte une seule fois : il reste connecté après une coupure de courant, tant qu’on n’efface pas les données de son navigateur.'
     ],
     tips: [
-      'Sécurité : le QR code ne sert qu’une fois et expire au bout de 30 minutes. Il disparaît de la barre d’adresse dès son ouverture. Seule une empreinte chiffrée est conservée par ATTENDS.',
+      'Sécurité : le QR code ne sert qu’une fois et expire au bout de 30 minutes. Il disparaît de la barre d’adresse dès son ouverture. Seule une empreinte chiffrée est conservée par Lerena.',
       'Un appareil en trop ou perdu ? « Retirer » dans la liste : il perd immédiatement l’accès.',
       'Le point vert « En ligne » indique que l’appareil a donné signe de vie depuis moins de 2 minutes.',
       'Pour les annonces vocales, touchez une fois l’écran de la TV au démarrage (les navigateurs bloquent le son sans geste de l’utilisateur).'
@@ -137,7 +137,7 @@ export const GUIDE: GuideSection[] = [
     title: 'Plusieurs sites dans un établissement',
     steps: [
       'Paramètres → Sites : ajoutez vos agences ou antennes. Un nouveau site peut reprendre les services du site actif.',
-      'En haut du tableau de bord, choisissez le site sur lequel vous travaillez ; « Tous les sites » donne la vue d’ensemble.',
+      'En haut du menu de gauche (sous le nom de l’établissement), choisissez le site sur lequel vous travaillez ; « Tous les sites » donne la vue d’ensemble.',
       'Services, guichets, horaires, planning, écrans et bornes se règlent site par site. Chaque site a sa propre file d’attente.',
       'L’agent travaille sur le site de son guichet ; la TV et la borne affichent leur site. Le visiteur choisit son site sur la fiche de l’établissement.'
     ]
@@ -149,6 +149,20 @@ export const GUIDE: GuideSection[] = [
     steps: [
       'Les appareils d’une agence se connectent depuis le tableau de bord de cette agence : une TV de l’agence A n’affiche jamais les tickets de l’agence B.',
       'Le siège (administrateur du réseau) suit toutes les agences dans l’espace réseau : affluence en direct, création de nouvelles agences, rapport mensuel.'
+    ]
+  },
+  {
+    id: 'abonnement',
+    title: 'Abonnement, factures et boutique',
+    intro: 'Menu de gauche → Abonnement : votre forfait, votre consommation du mois, vos factures et la boutique.',
+    steps: [
+      'Le prix est fixé par site et par mois. Pendant l’essai gratuit, tout le forfait est disponible ; un bandeau vous prévient 7 jours avant la fin.',
+      'Changer de forfait : choisissez-le dans « Changer de forfait » (mensuel ou annuel, moins cher). Le nouveau tarif s’applique à la prochaine facture. Pour le forfait sur devis, l’équipe Lerena vous recontacte.',
+      'Les limites du forfait (guichets, services, tickets du mois, SMS inclus) s’affichent sous forme de jauges. Une fois une limite atteinte, l’ajout est refusé avec un message clair ; l’accueil peut toujours créer un ticket sur place.',
+      'Payer une facture : par Orange Money, MTN, Wave, Moov ou virement, en indiquant le numéro de facture. Cliquez ensuite sur « J’ai payé » et donnez la référence de la transaction : Lerena confirme et votre service est prolongé.',
+      'Sans paiement après l’échéance, un délai de grâce s’ouvre (bandeau orange), puis les tickets en ligne sont suspendus. Vos données restent intactes et tout repart dès le paiement.',
+      'Boutique : packs SMS (utilisés après les SMS inclus), mise en avant « À la une » en tête de la recherche, matériel en vente ou en location, installation et formation. Une facture est créée ; l’article s’active à son paiement.',
+      'Chaque facture s’ouvre en grand et s’imprime ou s’enregistre en PDF (bouton « Imprimer / PDF »).'
     ]
   },
   {
@@ -179,7 +193,7 @@ export const GUIDE: GuideSection[] = [
     id: 'problemes',
     title: 'En cas de problème',
     steps: [
-      'Une TV ou une borne affiche un vieux code, ou ne bouge plus : rechargez sa page. Les appareils se mettent aussi à jour tout seuls après chaque nouvelle version d’ATTENDS.',
+      'Une TV ou une borne affiche un vieux code, ou ne bouge plus : rechargez sa page. Les appareils se mettent aussi à jour tout seuls après chaque nouvelle version d’Lerena.',
       '« Code inconnu ou expiré » : le code a plus de 15 minutes ; rechargez la page sur l’appareil et tapez le nouveau code.',
       '« Lien expiré ou déjà utilisé » : affichez un nouveau QR code dans Paramètres → Appareils.',
       'Un appareil apparaît deux fois : retirez la ligne en trop.',

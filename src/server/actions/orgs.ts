@@ -97,14 +97,18 @@ export async function getOrganizations(search?: string, userLat?: number, userLn
         address: org.address ?? "",
         icon: org.sector?.icon ?? "building",
         color: palette.soft,
-        colorHex: palette.hex
+        colorHex: palette.hex,
+        // Mise en avant payée : en tête de liste avec le badge « À la une »
+        featured: !!org.featuredUntil && org.featuredUntil.getTime() > Date.now()
       }
     })
 
     if (userLat && userLng) {
-      formattedOrgs.sort((a, b) => a.distanceNum - b.distanceNum);
+      formattedOrgs.sort((a, b) => Number(b.featured) - Number(a.featured) || a.distanceNum - b.distanceNum);
     }
 
+    // Les établissements à la une passent devant (le tri reste stable pour les autres)
+    formattedOrgs.sort((a, b) => Number(b.featured) - Number(a.featured));
     return formattedOrgs;
   } catch (error) {
     console.error("Failed to fetch organizations:", error)

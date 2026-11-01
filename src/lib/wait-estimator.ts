@@ -6,7 +6,7 @@ export interface WaitEstimate {
 }
 
 /**
- * Moteur d'estimation du temps d'attente ATTENDS.
+ * Moteur d'estimation du temps d'attente Lerena.
  * Utilise une pondération médiane/moyenne sur les sessions récentes.
  */
 export function estimateWait(

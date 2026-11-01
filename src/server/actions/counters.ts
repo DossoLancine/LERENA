@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { getManagerContext } from '@/lib/session'
 import { branchFilter, siteForWrite } from '@/lib/sites'
 import { notifyOrg } from '@/lib/realtime'
+import { assertCanAddCounter, checkLimit } from '@/lib/billing'
 
 // Gestion des guichets par le responsable : nom, services traités, actif ou non
 
@@ -38,6 +39,9 @@ export async function createCounter(name: string) {
 
   const branchId = await mainBranchId(ctx.orgId)
   if (!branchId) return { success: false, error: 'Aucune agence configurée' }
+
+  const limit = await checkLimit(() => assertCanAddCounter(ctx.orgId, branchId))
+  if (limit) return { success: false, error: limit }
 
   const exists = await prisma.counter.findFirst({ where: { branchId, name: clean } })
   if (exists) return { success: false, error: 'Un guichet porte déjà ce nom' }

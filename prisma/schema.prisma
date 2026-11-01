@@ -40,7 +40,7 @@ model User {
 }
 
 model Organization {
-  id                   String   @id @default(cuid())
+  id                   String    @id @default(cuid())
   name                 String
   category             String
   description          String?
@@ -51,27 +51,29 @@ model Organization {
   phone                String?
   email                String?
   logo                 String?
-  isActive             Boolean  @default(true)
+  isActive             Boolean   @default(true)
   tvVideoUrl           String?
-  tvMode               String   @default("HYBRID")
-  tvQueueDuration      Int      @default(30)
-  tvVideoDuration      Int      @default(30)
-  maxRadiusKm          Float    @default(10.0)
-  requireGps           Boolean  @default(false)
-  bookingMode          String   @default("QUEUE_ONLY") // Options: "QUEUE_ONLY", "APPOINTMENT_ONLY", "HYBRID"
+  tvMode               String    @default("HYBRID")
+  tvQueueDuration      Int       @default(30)
+  tvVideoDuration      Int       @default(30)
+  maxRadiusKm          Float     @default(10.0)
+  requireGps           Boolean   @default(false)
+  bookingMode          String    @default("QUEUE_ONLY") // Options: "QUEUE_ONLY", "APPOINTMENT_ONLY", "HYBRID"
   // Le visiteur peut-il choisir lui-même une priorité ? (par défaut non : elle s'attribue à l'accueil)
-  visitorPriorityApp   Boolean  @default(false)
-  visitorPriorityKiosk Boolean  @default(false)
+  visitorPriorityApp   Boolean   @default(false)
+  visitorPriorityKiosk Boolean   @default(false)
   // SMS « bientôt votre tour » aux visiteurs sans notification push (coût par SMS : désactivé par défaut)
-  smsTurnAlerts        Boolean  @default(false)
-  apptMaxActive        Int      @default(2) // RDV à venir par personne
-  apptCancelHours      Int      @default(2) // annulation / report possible jusqu'à N heures avant
-  apptNoShowGraceMin   Int      @default(15) // absence notée N minutes après l'heure
-  apptNoShowBlock      Int      @default(0) // 0 = jamais ; sinon blocage des réservations après N absences
+  smsTurnAlerts        Boolean   @default(false)
+  apptMaxActive        Int       @default(2) // RDV à venir par personne
+  apptCancelHours      Int       @default(2) // annulation / report possible jusqu'à N heures avant
+  apptNoShowGraceMin   Int       @default(15) // absence notée N minutes après l'heure
+  apptNoShowBlock      Int       @default(0) // 0 = jamais ; sinon blocage des réservations après N absences
   networkId            String?
   sectorId             String?
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  smsCredits           Int       @default(0) // SMS achetés en packs, consommés après le quota mensuel du forfait
+  featuredUntil        DateTime? // « mise en avant » payée : en tête de la recherche jusqu'à cette date
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
   members            OrganizationMember[]
   branches           Branch[]
@@ -82,6 +84,9 @@ model Organization {
   setupLinks         DeviceSetupLink[]
   priorityCategories PriorityCategory[]
   closureDays        ClosureDay[]
+  subscription       Subscription?
+  invoices           Invoice[]
+  smsLedger          SmsLedger[]
   network            Network?             @relation(fields: [networkId], references: [id], onDelete: SetNull)
   sector             Sector?              @relation(fields: [sectorId], references: [id], onDelete: SetNull)
 }
@@ -565,12 +570,135 @@ model Sector {
 
 // Réglages de la plateforme (une seule ligne) : pays, carte, mode démo
 model PlatformConfig {
-  id                 String   @id @default("default")
-  appName            String   @default("ATTENDS")
-  defaultCountryCode String   @default("+225")
-  defaultCity        String?
-  defaultLat         Float?
-  defaultLng         Float?
-  demoMode           Boolean  @default(false)
-  updatedAt          DateTime @updatedAt
+  id                  String   @id @default("default")
+  appName             String   @default("Lerena")
+  defaultCountryCode  String   @default("+225")
+  defaultCity         String?
+  defaultLat          Float?
+  defaultLng          Float?
+  demoMode            Boolean  @default(false)
+  // Modèle économique (modifiable dans /admin/billing-settings)
+  trialDays           Int      @default(30) // 0 = pas d'essai
+  trialPlanId         String? // forfait pendant l'essai (par défaut : le forfait mis en avant)
+  graceDays           Int      @default(7) // délai après échéance avant suspension
+  paymentTermDays     Int      @default(15) // échéance des factures
+  taxRate             Int      @default(0) // TVA en %
+  invoicePrefix       String   @default("LER")
+  companyName         String?
+  companyAddress      String?
+  companyTaxId        String? // NCC
+  companyRccm         String?
+  companyPhone        String?
+  companyEmail        String?
+  paymentInstructions String? // numéros Mobile Money, RIB… affichés sur les factures
+  updatedAt           DateTime @updatedAt
+}
+
+// ---- Modèle économique : forfaits par site, abonnements, catalogue, factures ----
+
+model Plan {
+  id                String   @id @default(cuid())
+  code              String   @unique
+  name              String
+  tagline           String?
+  priceMonthly      Int? // FCFA HT par site et par mois ; vide = sur devis
+  yearlyDiscountPct Int      @default(15)
+  maxCounters       Int? // par site ; vide = illimité
+  maxServices       Int?
+  maxTicketsMonth   Int?
+  smsIncluded       Int      @default(0) // par site et par mois
+  features          String[]
+  isPublic          Boolean  @default(true)
+  isActive          Boolean  @default(true)
+  highlight         Boolean  @default(false)
+  sortOrder         Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id                 String    @id @default(cuid())
+  organizationId     String    @unique
+  planId             String
+  status             String    @default("TRIAL") // TRIAL | ACTIVE | SUSPENDED | CANCELLED
+  billingCycle       String    @default("MONTHLY") // MONTHLY | YEARLY
+  customPricePerSite Int? // prix négocié (FCFA HT / site / mois)
+  discountPct        Int       @default(0)
+  trialEndsAt        DateTime?
+  currentPeriodEnd   DateTime?
+  suspendedAt        DateTime?
+  cancelledAt        DateTime?
+  notes              String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  plan         Plan         @relation(fields: [planId], references: [id])
+}
+
+model Product {
+  id            String   @id @default(cuid())
+  kind          String // SMS_PACK | FEATURED | HARDWARE | SETUP | OTHER
+  name          String
+  description   String?
+  price         Int // FCFA HT
+  rentalMonthly Int? // matériel : location mensuelle
+  smsQuantity   Int?
+  featuredDays  Int?
+  isActive      Boolean  @default(true)
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Invoice {
+  id             String    @id @default(cuid())
+  number         String    @unique
+  organizationId String
+  kind           String    @default("SUBSCRIPTION") // SUBSCRIPTION | ORDER
+  status         String    @default("SENT") // DRAFT | SENT | PAID | VOID
+  periodStart    DateTime?
+  periodEnd      DateTime?
+  issuedAt       DateTime  @default(now())
+  dueAt          DateTime
+  paidAt         DateTime?
+  subtotal       Int
+  taxRate        Int       @default(0)
+  tax            Int       @default(0)
+  total          Int
+  lines          Json // [{ label, qty, unitPrice, amount, productId?, smsQuantity?, featuredDays? }]
+  notes          String?
+  appliedAt      DateTime? // effets appliqués au paiement (période, SMS, mise en avant)
+  createdById    String?
+  createdAt      DateTime  @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  payments     Payment[]
+
+  @@index([organizationId, issuedAt])
+}
+
+model Payment {
+  id           String   @id @default(cuid())
+  invoiceId    String
+  amount       Int
+  method       String // ORANGE_MONEY | MTN_MOMO | WAVE | MOOV_MONEY | BANK_TRANSFER | CASH | CHEQUE
+  reference    String?
+  receivedAt   DateTime @default(now())
+  recordedById String?
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+}
+
+model SmsLedger {
+  id             String   @id @default(cuid())
+  organizationId String
+  delta          Int
+  reason         String
+  invoiceId      String?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 }

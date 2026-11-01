@@ -80,7 +80,7 @@ export function ServiceWorkerRegister() {
 function IosInstructions({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
     <BottomSheet open={open} onClose={onClose}>
-      <h2 className="text-lg font-bold text-ink">Installer ATTENDS sur l’iPhone</h2>
+      <h2 className="text-lg font-bold text-ink">Installer Lerena sur l’iPhone</h2>
       <ol className="stagger mt-4 space-y-3 text-sm text-ink">
         <li className="flex items-center gap-3 rounded-2xl bg-surface-sunken p-3">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-info shadow-card"><Share size={18} aria-hidden="true" /></span>
@@ -92,7 +92,7 @@ function IosInstructions({ open, onClose }: { open: boolean; onClose: () => void
         </li>
         <li className="flex items-center gap-3 rounded-2xl bg-surface-sunken p-3">
           <img src="/icons/icon-192.png" alt="" className="h-9 w-9 shrink-0 rounded-xl" />
-          <span>Touchez <strong>Ajouter</strong> : ATTENDS s’ouvre ensuite comme une application</span>
+          <span>Touchez <strong>Ajouter</strong> : Lerena s’ouvre ensuite comme une application</span>
         </li>
       </ol>
       <p className="mt-3 text-xs text-ink-muted">Sur iPhone, l’installation n’est possible que depuis Safari.</p>
@@ -150,7 +150,7 @@ export function InstallBanner() {
         <div className="flex items-center gap-3 rounded-2xl bg-gray-900 p-3 pr-2 text-white shadow-raised">
           <img src="/icons/icon-192.png" alt="" className="h-11 w-11 shrink-0 rounded-xl" />
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-bold">Installer ATTENDS</p>
+            <p className="text-sm font-bold">Installer Lerena</p>
             <p className="text-xs text-gray-300">Accès en un geste et alertes même écran verrouillé</p>
           </div>
           <button type="button" onClick={async () => { if (p === 'prompt') { if (await promptInstall()) dismiss() } else setIosOpen(true) }}

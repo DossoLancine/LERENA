@@ -53,7 +53,7 @@ function RegisterForm() {
           <ArrowLeft size={20} />
         </Link>
         <div className="text-orange-500 font-bold flex items-center gap-1">
-          <Clock size={20} /> ATTENDS
+          <Clock size={20} /> Lerena
         </div>
       </div>
       

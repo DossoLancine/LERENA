@@ -128,8 +128,8 @@
   },
   "scan": {
     "title": "Scanner un QR code",
-    "hint": "Visez le QR code ATTENDS affiché à l'entrée.",
-    "notAttends": "Ce QR code n'est pas un code ATTENDS.",
+    "hint": "Visez le QR code Lerena affiché à l'entrée.",
+    "notAttends": "Ce QR code n'est pas un code Lerena.",
     "unsupported": "Le scan intégré n’est pas disponible sur ce téléphone.",
     "denied": "L'accès à la caméra a été refusé.",
     "useCamera": "Ouvrez l'appareil photo de votre téléphone et visez le QR code : le lien s'ouvrira directement."

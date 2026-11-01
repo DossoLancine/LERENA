@@ -79,7 +79,7 @@ export const getNetworkContext = cache(async (): Promise<NetworkContext | null> 
   return { userId: user.id, name: user.name, networkId: membership.networkId, role, canEdit: role === 'ORG_ADMIN' }
 })
 
-// Équipe ATTENDS : accès à toute la plateforme
+// Équipe Lerena : accès à toute la plateforme
 export async function getSuperAdmin() {
   const user = await getSessionUser()
   return user?.role === 'SUPER_ADMIN' ? user : null

@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 
 // Le lien de gestion contient un secret : jamais transmis à un autre site, jamais indexé
 export const metadata: Metadata = {
-  title: 'Mon rendez-vous — ATTENDS',
+  title: 'Mon rendez-vous — Lerena',
   referrer: 'no-referrer',
   robots: { index: false, follow: false }
 }

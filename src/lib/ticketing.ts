@@ -4,6 +4,7 @@ import { resolvePriority, PriorityError, type PriorityChannel } from '@/lib/prio
 import { notifyOrg } from '@/lib/realtime'
 import { revalidatePath } from 'next/cache'
 import { logTicketEvent } from '@/lib/ticket-events'
+import { assertCanIssueTicket, BillingError } from '@/lib/billing'
 
 // Création d'un ticket, commune à tous les canaux : client connecté, visiteur,
 // et plus tard accueil et borne. Module serveur uniquement (jamais appelé du navigateur).
@@ -81,6 +82,12 @@ export async function issueTicket({ orgId, serviceId, priorityId, channel = 'app
   }
 
   const queue = queueForService(service)
+
+  // Abonnement suspendu ou quota mensuel atteint
+  try { await assertCanIssueTicket(orgId, service.branchId, channel) } catch (e) {
+    if (e instanceof BillingError) throw new TicketError(e.message)
+    throw e
+  }
 
 
   let priority: Awaited<ReturnType<typeof resolvePriority>>

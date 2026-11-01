@@ -7,6 +7,7 @@ import { getManagerContext, getReceptionContext } from '@/lib/session'
 import { ALL_SITES, SITE_COOKIE, listSites, siteScope } from '@/lib/sites'
 import { audit } from '@/lib/audit'
 import { notifyOrg } from '@/lib/realtime'
+import { assertCanAddSite, checkLimit } from '@/lib/billing'
 
 // Sites (agences, antennes) d'un établissement : liste, site actif, création et modification.
 
@@ -66,6 +67,9 @@ export async function createSite(data: { name: string; address?: string; city?: 
   const name = clean(data.name, 60)
   if (!name) return { success: false as const, error: 'Donnez un nom au site' }
   if (await prisma.branch.findFirst({ where: { organizationId: ctx.orgId, name } })) return { success: false as const, error: 'Un site porte déjà ce nom' }
+
+  const limit = await checkLimit(() => assertCanAddSite(ctx.orgId))
+  if (limit) return { success: false as const, error: limit }
 
   const source = data.copyServices ? await siteScope(ctx.orgId) : null
   const model = source ? await prisma.branch.findUnique({ where: { id: source }, include: { services: { where: { isActive: true } }, queues: true } }) : null

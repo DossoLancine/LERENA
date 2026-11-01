@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache"
 import { getManagerContext, getSessionUser } from "@/lib/session"
 import { branchFilter } from '@/lib/sites'
 import { notifyOrg } from "@/lib/realtime"
+import { assertFeature, checkLimit } from '@/lib/billing'
 
 // Ticket du client connecté (les tickets sans compte restent modifiables via leur lien)
 async function getOwnTicket(ticketId: string) {
@@ -137,6 +138,8 @@ export async function createPromotion(data: {
   const ctx = await getManagerContext()
   if (!ctx) return { success: false, error: "Non autorisé" }
   if (!data.title?.trim()) return { success: false, error: "Le titre est requis" }
+  const limit = await checkLimit(() => assertFeature(ctx.orgId, 'TV_ADS'))
+  if (limit) return { success: false, error: limit }
 
   await prisma.promotion.create({
     data: {

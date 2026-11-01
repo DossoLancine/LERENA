@@ -12,7 +12,7 @@ export async function GET(_req: Request, { params }: { params: { token: string }
   const start = new Date(appt.scheduledDate)
   const end = new Date(start.getTime() + 30 * 60_000)
   const body = [
-    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//ATTENDS//RDV//FR', 'BEGIN:VEVENT',
+    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Lerena//RDV//FR', 'BEGIN:VEVENT',
     `UID:${stamp(start)}-${appt.code ?? 'rdv'}@attends`, `DTSTAMP:${stamp(new Date())}`,
     `DTSTART:${stamp(start)}`, `DTEND:${stamp(end)}`,
     `SUMMARY:${esc(`${appt.serviceName} — ${appt.orgName}`)}`,

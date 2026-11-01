@@ -16,10 +16,10 @@ export default async function OrgAdminLayout({ children }: { children: ReactNode
       eyebrow="Espace réseau"
       title={network?.name ?? 'Mon réseau'}
       badge={ctx.canEdit ? undefined : 'Lecture seule'}
-      tabs={[
-        { href: '/org-admin', label: 'Sites', exact: true },
-        { href: '/org-admin/report', label: 'Rapport mensuel' }
-      ]}
+      groups={[{ items: [
+        { href: '/org-admin', label: 'Sites', icon: 'Building2', exact: true },
+        { href: '/org-admin/report', label: 'Rapport mensuel', icon: 'FileText' }
+      ] }]}
     >
       <TwoFactorNotice userId={ctx.userId} />
       {children}
