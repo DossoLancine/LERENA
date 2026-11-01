@@ -1,0 +1,87 @@
+'use client'
+
+import { useCallback, useEffect, useState } from 'react'
+import { Tv, Tablet, Loader2 } from 'lucide-react'
+import { getDeviceStatus, startPairing, type DeviceType } from '@/server/actions/devices'
+import { usePolling } from '@/hooks/use-polling'
+import { t } from '@/lib/i18n'
+
+export const deviceTokenKey = (type: DeviceType) => `attends_device_${type.toLowerCase()}`
+
+export function readDeviceToken(type: DeviceType) {
+  try { return localStorage.getItem(deviceTokenKey(type)) } catch { return null }
+}
+
+/**
+ * Écran d'appairage d'une TV ou d'une borne : affiche un code à 6 chiffres que le responsable
+ * saisit dans le tableau de bord. L'appareil se connecte seul dès que le code est validé.
+ */
+export function PairingScreen({ type, onPaired }: {
+  type: DeviceType
+  onPaired: (status: { orgId: string; name: string | null }) => void
+}) {
+  const [code, setCode] = useState<string | null>(null)
+  const [token, setToken] = useState<string | null>(null)
+
+  // Jeton existant (appareil déjà enregistré), sinon nouvelle demande de code
+  useEffect(() => {
+    const existing = readDeviceToken(type)
+    if (existing) {
+      setToken(existing)
+      return
+    }
+    startPairing(type).then(res => {
+      if (!res) return
+      try { localStorage.setItem(deviceTokenKey(type), res.token) } catch {}
+      setToken(res.token)
+      setCode(res.pairingCode)
+    })
+  }, [type])
+
+  const check = useCallback(async () => {
+    if (!token) return
+    const status = await getDeviceStatus(token)
+    if (!status) {
+      // Jeton inconnu (appareil retiré) : on repart de zéro
+      try { localStorage.removeItem(deviceTokenKey(type)) } catch {}
+      const res = await startPairing(type)
+      if (res) {
+        try { localStorage.setItem(deviceTokenKey(type), res.token) } catch {}
+        setToken(res.token)
+        setCode(res.pairingCode)
+      }
+      return
+    }
+    if (status.paired) onPaired({ orgId: status.orgId!, name: status.name ?? null })
+    else setCode(status.code ?? null)
+  }, [token, type, onPaired])
+
+  usePolling(check, 3000, !!token)
+
+  const origin = typeof window !== 'undefined' ? window.location.host : ''
+
+  return (
+    <main className="flex min-h-screen flex-col items-center justify-center bg-gray-950 px-8 text-center text-white">
+      <span className="mb-8 flex h-20 w-20 items-center justify-center rounded-3xl bg-brand">
+        {type === 'TV' ? <Tv size={40} /> : <Tablet size={40} />}
+      </span>
+      <h1 className="text-3xl font-bold">{type === 'TV' ? t('pairing.titleTv') : t('pairing.titleKiosk')}</h1>
+      <p className="mt-3 max-w-xl text-lg text-white/70">{t('pairing.instructions')}</p>
+
+      <div className="my-10 flex gap-3" aria-live="polite" aria-label={t('pairing.codeLabel')}>
+        {code ? (
+          code.split('').map((digit, i) => (
+            <span key={i} className="flex h-24 w-16 items-center justify-center rounded-2xl bg-white/10 font-mono text-6xl font-black tabular-nums sm:h-28 sm:w-20 sm:text-7xl">
+              {digit}
+            </span>
+          ))
+        ) : (
+          <Loader2 size={48} className="animate-spin text-white/50" />
+        )}
+      </div>
+
+      <p className="text-sm text-white/50">{t('pairing.path')}</p>
+      <p className="mt-6 text-xs text-white/30">{origin} · {t('pairing.waiting')}</p>
+    </main>
+  )
+}

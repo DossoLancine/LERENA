@@ -3,7 +3,7 @@
 import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Building2, QrCode, Tv, Users, Database, AlertCircle, MapPin } from 'lucide-react'
+import { Building2, QrCode, Tv, Users, Database, AlertCircle, MapPin, MonitorSmartphone } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { t, type MessageKey } from '@/lib/i18n'
 import { useSettings } from './settings-provider'
@@ -13,6 +13,7 @@ const SECTIONS: { slug: string; label: MessageKey; icon: ReactNode }[] = [
   { slug: 'location', label: 'settings.sections.location', icon: <MapPin size={15} /> },
   { slug: 'poster', label: 'settings.sections.poster', icon: <QrCode size={15} /> },
   { slug: 'tv', label: 'settings.sections.tv', icon: <Tv size={15} /> },
+  { slug: 'devices', label: 'settings.sections.devices', icon: <MonitorSmartphone size={15} /> },
   { slug: 'team', label: 'settings.sections.team', icon: <Users size={15} /> },
   { slug: 'data', label: 'settings.sections.data', icon: <Database size={15} /> },
 ]

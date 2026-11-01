@@ -79,7 +79,8 @@
       "tv": "Écran TV & publicités",
       "team": "Équipe & agents",
       "data": "Opérations & données",
-      "location": "Localisation & horaires"
+      "location": "Localisation & horaires",
+      "devices": "Écrans & bornes"
     }
   },
   "guest": {
@@ -340,5 +341,34 @@
     "service": "Service",
     "counter": "Guichet",
     "duration": "Durée moy."
+  },
+  "pairing": {
+    "titleTv": "Connecter cet écran",
+    "titleKiosk": "Connecter cette borne",
+    "instructions": "Le responsable de l’établissement saisit ce code dans son tableau de bord. L’appareil se connecte ensuite tout seul.",
+    "codeLabel": "Code d’appairage",
+    "path": "Tableau de bord → Paramètres → Écrans & bornes",
+    "waiting": "En attente de validation…"
+  },
+  "devices": {
+    "title": "Écrans TV et bornes",
+    "subtitle": "Ouvrez l’adresse ci-dessous sur la TV ou la tablette : un code s’affiche. Saisissez-le ici.",
+    "openOnTv": "Sur la TV :",
+    "openOnKiosk": "Sur la borne :",
+    "code": "Code affiché",
+    "name": "Nom de l’appareil",
+    "namePlaceholder": "TV salle d’attente, Borne entrée…",
+    "pair": "Connecter",
+    "paired": "Appareil connecté",
+    "none": "Aucun appareil connecté pour le moment.",
+    "tv": "Écran TV",
+    "kiosk": "Borne",
+    "online": "En ligne",
+    "offline": "Hors ligne",
+    "lastSeen": "vu {when}",
+    "never": "jamais vu",
+    "remove": "Retirer",
+    "confirmRemove": "Retirer « {name} » ? Il reviendra à l’écran de code.",
+    "removed": "Appareil retiré"
   }
 }

@@ -16,7 +16,7 @@ export async function getTVQueue(orgId: string) {
                   where: {
                     status: { in: ACTIVE_TICKET_STATUSES }
                   },
-                  orderBy: { number: 'asc' },
+                  orderBy: [{ priorityScore: 'desc' }, { queuedAt: 'asc' }],
                   include: {
                     service: { select: { name: true } },
                     user: { select: { name: true } }
@@ -52,8 +52,17 @@ export async function getTVQueue(orgId: string) {
 
     const waiting = allTickets
       .filter(t => t.status === 'WAITING')
+      .sort((a, b) => b.priorityScore - a.priorityScore || a.queuedAt.getTime() - b.queuedAt.getTime())
       .slice(0, 8)
       .map(mapTicket)
+
+    // Derniers appels (2 dernières heures), pour ceux qui ont manqué l'annonce
+    const recentCalls = await prisma.ticket.findMany({
+      where: { queue: { branch: { organizationId: orgId } }, calledAt: { gte: new Date(Date.now() - 2 * 3600_000) } },
+      orderBy: { calledAt: 'desc' },
+      take: 6,
+      select: { id: true, displayNum: true, counterName: true, calledAt: true }
+    })
 
     let playlist: Array<{ id: string; title: string; url: string }> = []
     if (org.tvVideoUrl && org.tvVideoUrl.trim()) {
@@ -78,7 +87,9 @@ export async function getTVQueue(orgId: string) {
       tvMode: org.tvMode || 'HYBRID',
       tvQueueDuration: org.tvQueueDuration || 30,
       tvVideoDuration: org.tvVideoDuration || 30,
-      promotions: org.promotions || []
+      promotions: org.promotions || [],
+      recentCalls: recentCalls.map(t => ({ id: t.id, displayNum: t.displayNum, counter: counterLabel(t.counterName), calledAt: t.calledAt!.toISOString() })),
+      updatedAt: new Date().toISOString()
     }
 
   } catch (error) {
