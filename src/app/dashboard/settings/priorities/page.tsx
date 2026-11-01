@@ -55,7 +55,7 @@ export default function PrioritiesSettingsPage() {
           Un visiteur transféré vers un autre service se place derrière la dernière personne arrivée dans ce service, sauf s’il a une priorité.
         </p>
         <p className="mt-2 text-ink-muted">
-          « Le visiteur peut le choisir » : le motif apparaît dans l’application et sur la borne. Sinon, seul l’agent d’accueil peut l’attribuer.
+          « Le visiteur peut le choisir » : le motif est proposé dans l’application. Sinon, seul l’agent d’accueil peut l’attribuer. La borne ne propose jamais de priorité : chacun y prend un ticket normal.
           Sur la TV, le motif n’est jamais affiché, seulement la mention « Prioritaire ».
         </p>
       </Card>
@@ -65,7 +65,7 @@ export default function PrioritiesSettingsPage() {
         {items === null ? (
           <div className="m-5 h-24 rounded-card shimmer" />
         ) : items.length === 0 ? (
-          <EmptyState title="Aucun motif" description="Sans motif, tout le monde est servi dans l’ordre d’arrivée et la borne ne pose pas la question." />
+          <EmptyState title="Aucun motif" description="Sans motif, tout le monde est servi dans l’ordre d’arrivée." />
         ) : (
           <ul className="stagger divide-y divide-surface-line">
             {items.map((item, i) => (
