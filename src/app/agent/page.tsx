@@ -16,7 +16,7 @@ import { DashboardSkeleton } from '@/components/ui/skeletons'
 import { usePolling } from '@/hooks/use-polling'
 import { useOrgRealtime } from '@/hooks/use-org-realtime'
 import { haptics } from '@/lib/haptics'
-import { counterLabel, type TicketStatus } from '@/lib/constants'
+import type { TicketStatus } from '@/lib/constants'
 import { cn } from '@/lib/cn'
 import { priorityText } from '@/lib/priority-text'
 import { t } from '@/lib/i18n'
@@ -100,7 +100,8 @@ export default function AgentPage() {
   const myServiceIds = realCounter && realCounter.serviceIds.length > 0 ? new Set(realCounter.serviceIds) : null
 
   const name = counter?.name ?? ''
-  const mine = (tk: QueueTicket) => counterLabel(tk.counterName) === name
+  // Uniquement les tickets réellement rattachés à ce guichet (un ticket sans guichet n'appartient à personne)
+  const mine = (tk: QueueTicket) => !!tk.counterName && (tk.counterId ? tk.counterId === realCounter?.id || tk.counterName === name : tk.counterName === name)
   const current = queue.find(tk => (tk.status === 'SERVING' || tk.status === 'CALLED') && mine(tk))
   const onHold = queue.filter(tk => tk.status === 'ON_HOLD' && mine(tk))
   // Un autre guichet ouvert peut-il traiter ce service ? (sinon ce guichet garde le client, même transféré par lui)
