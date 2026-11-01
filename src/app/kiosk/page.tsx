@@ -6,7 +6,7 @@ import {
   Ticket, Users, Clock,
   Volume2, ArrowLeft, UserRound, Accessibility, WifiOff, Hand
 } from 'lucide-react'
-import { PairingScreen, readDeviceToken } from '@/components/devices/pairing-screen'
+import { PairingScreen, readDeviceToken, adoptDeviceRole } from '@/components/devices/pairing-screen'
 import { getDeviceStatus, getKioskBoard, issueKioskTicket } from '@/server/actions/devices'
 import { usePolling } from '@/hooks/use-polling'
 import { useOrgRealtime } from '@/hooks/use-org-realtime'
@@ -127,7 +127,13 @@ export default function KioskPage() {
 
   if (paired === null) return <main className="min-h-screen bg-gray-950" />
   if (!paired) {
-    return <PairingScreen type="KIOSK" onPaired={() => { setToken(readDeviceToken('KIOSK')); setPaired(true) }} />
+    return <PairingScreen type="KIOSK" onPaired={status => {
+      // Le responsable a pu choisir « écran d'affichage » : l'appareil bascule alors sur la TV
+      const next = adoptDeviceRole(status)
+      if (status.type !== 'KIOSK') return window.location.replace(next)
+      setToken(status.token)
+      setPaired(true)
+    }} />
   }
 
   const service = board?.services.find(s => s.id === serviceId)

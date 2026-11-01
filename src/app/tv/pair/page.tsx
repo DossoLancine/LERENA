@@ -2,11 +2,11 @@
 
 import { useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { PairingScreen } from '@/components/devices/pairing-screen'
+import { PairingScreen, adoptDeviceRole } from '@/components/devices/pairing-screen'
 
-// Une TV qui ouvre cette adresse affiche un code ; une fois appairée, elle affiche la file de l'établissement
+// Ancienne adresse des TV, toujours valable : une fois appairé, l'appareil prend le rôle choisi au tableau de bord
 export default function TvPairPage() {
   const router = useRouter()
-  const onPaired = useCallback(({ orgId }: { orgId: string }) => router.replace(`/tv/${orgId}`), [router])
+  const onPaired = useCallback((status: Parameters<typeof adoptDeviceRole>[0]) => router.replace(adoptDeviceRole(status)), [router])
   return <PairingScreen type="TV" onPaired={onPaired} />
 }

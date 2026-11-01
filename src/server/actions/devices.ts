@@ -12,6 +12,8 @@ import { audit } from "@/lib/audit"
 // L'appareil garde un jeton secret ; le responsable saisit le code affiché pour le rattacher.
 
 export type DeviceType = 'TV' | 'KIOSK'
+// Appareil ouvert sur le lien unique /appareil : son rôle (écran ou borne) est choisi au moment de l'appairage
+export type PairingType = DeviceType | 'ANY'
 
 const CODE_TTL_MIN = 15
 const ONLINE_WINDOW_MS = 2 * 60_000
@@ -27,8 +29,8 @@ async function freshCode() {
 }
 
 /** Un nouvel écran ou une nouvelle borne demande un code d'appairage. */
-export async function startPairing(type: DeviceType) {
-  if (type !== 'TV' && type !== 'KIOSK') return null
+export async function startPairing(type: PairingType) {
+  if (type !== 'TV' && type !== 'KIOSK' && type !== 'ANY') return null
   // Ménage : les appareils jamais appairés dont le code a expiré depuis une journée
   await prisma.device.deleteMany({ where: { pairedAt: null, pairingExpiresAt: { lt: new Date(Date.now() - 86400_000) } } })
 
@@ -57,40 +59,47 @@ export async function getDeviceStatus(token: string) {
         data: { pairingCode: await freshCode(), pairingExpiresAt: new Date(Date.now() + CODE_TTL_MIN * 60_000) },
         select: { pairingCode: true }
       })
-      return { paired: false as const, type: device.type as DeviceType, code: renewed.pairingCode }
+      return { paired: false as const, type: device.type as PairingType, code: renewed.pairingCode }
     }
-    return { paired: false as const, type: device.type as DeviceType, code: device.pairingCode }
+    return { paired: false as const, type: device.type as PairingType, code: device.pairingCode }
   }
 
   await prisma.device.update({ where: { id: device.id }, data: { lastSeenAt: new Date() } })
-  return { paired: true as const, type: device.type as DeviceType, orgId: device.organizationId, name: device.name }
+  return { paired: true as const, type: device.type as PairingType, orgId: device.organizationId, name: device.name }
 }
 
 /** Le responsable rattache l'appareil à son établissement en saisissant le code affiché. */
-export async function pairDevice(code: string, name: string) {
+export async function pairDevice(code: string, name: string, role?: DeviceType) {
   const ctx = await getManagerContext()
   if (!ctx) return { success: false, error: 'Non autorisé' }
   const clean = code.replace(/\D/g, '')
   if (clean.length !== 6) return { success: false, error: 'Le code fait 6 chiffres' }
 
+  if (role && role !== 'TV' && role !== 'KIOSK') return { success: false, error: 'Rôle invalide' }
   const device = await prisma.device.findUnique({ where: { pairingCode: clean } })
   if (!device || device.organizationId || !device.pairingExpiresAt || device.pairingExpiresAt < new Date()) {
     return { success: false, error: 'Code inconnu ou expiré. Rechargez la page sur l’appareil pour afficher un nouveau code, puis saisissez-le ici.' }
   }
 
+  // Rôle choisi par le responsable ; à défaut, celui de l'adresse ouverte sur l'appareil
+  const type: DeviceType | null = role ?? (device.type === 'TV' || device.type === 'KIOSK' ? device.type : null)
+  if (!type) return { success: false, error: 'Choisissez si cet appareil est un écran ou une borne' }
+  const count = await prisma.device.count({ where: { organizationId: ctx.orgId, type } })
+
   await prisma.device.update({
     where: { id: device.id },
     data: {
+      type,
       organizationId: ctx.orgId,
-      name: name.trim().slice(0, 40) || (device.type === 'TV' ? 'Écran TV' : 'Borne'),
+      name: name.trim().slice(0, 40) || `${type === 'TV' ? 'Écran' : 'Borne'} ${count + 1}`,
       pairedAt: new Date(),
       pairingCode: null,
       pairingExpiresAt: null
     }
   })
-  await audit({ action: 'DEVICE_PAIRED', targetType: 'Device', targetId: device.id, organizationId: ctx.orgId, details: device.type })
+  await audit({ action: 'DEVICE_PAIRED', targetType: 'Device', targetId: device.id, organizationId: ctx.orgId, details: type })
   revalidatePath('/dashboard/settings/devices')
-  return { success: true, type: device.type as DeviceType }
+  return { success: true, type }
 }
 
 export async function listDevices() {
