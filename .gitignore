@@ -43,3 +43,8 @@ dev.db-journal
 
 # Identifiants générés localement (jamais commités)
 *.local.txt
+
+# Secrets de production : jamais dans git (définis dans Vercel)
+.env.production
+.env.*
+!.env.example
