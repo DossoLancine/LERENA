@@ -1,6 +1,7 @@
 'use server'
 
-import { randomBytes, randomInt } from 'crypto'
+import { randomInt } from 'crypto'
+import { hashSecret, isPlausibleSecret, newSecret } from '@/lib/secrets'
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { getManagerContext } from '@/lib/session'
@@ -28,28 +29,42 @@ async function freshCode() {
   throw new Error('Impossible de générer un code')
 }
 
+/**
+ * Appareil correspondant à un jeton. La base ne garde que l'empreinte du jeton ;
+ * un ancien jeton encore stocké en clair (48 caractères hexadécimaux) est converti au premier contact.
+ */
+async function findDeviceByToken(token: string) {
+  if (!isPlausibleSecret(token)) return null
+  const device = await prisma.device.findUnique({ where: { token: hashSecret(token) } })
+  if (device || !/^[0-9a-f]{48}$/.test(token)) return device
+  const legacy = await prisma.device.findUnique({ where: { token } })
+  if (!legacy) return null
+  return prisma.device.update({ where: { id: legacy.id }, data: { token: hashSecret(token) } })
+}
+
 /** Un nouvel écran ou une nouvelle borne demande un code d'appairage. */
 export async function startPairing(type: PairingType) {
   if (type !== 'TV' && type !== 'KIOSK' && type !== 'ANY') return null
   // Ménage : les appareils jamais appairés dont le code a expiré depuis une journée
   await prisma.device.deleteMany({ where: { pairedAt: null, pairingExpiresAt: { lt: new Date(Date.now() - 86400_000) } } })
 
+  const token = newSecret()
   const device = await prisma.device.create({
     data: {
       type,
-      token: randomBytes(24).toString('hex'),
+      token: hashSecret(token),
       pairingCode: await freshCode(),
       pairingExpiresAt: new Date(Date.now() + CODE_TTL_MIN * 60_000)
     },
-    select: { token: true, pairingCode: true, pairingExpiresAt: true }
+    select: { pairingCode: true, pairingExpiresAt: true }
   })
-  return device
+  // Le jeton en clair ne quitte le serveur qu'une fois, vers l'appareil
+  return { ...device, token }
 }
 
 /** État d'un appareil (appairé ou non) ; sert aussi de signe de vie. Renouvelle le code s'il a expiré. */
 export async function getDeviceStatus(token: string) {
-  if (!token || token.length > 100) return null
-  const device = await prisma.device.findUnique({ where: { token } })
+  const device = await findDeviceByToken(token)
   if (!device) return null
 
   if (!device.organizationId) {
@@ -138,8 +153,7 @@ export async function removeDevice(id: string) {
 // ---- Borne d'accueil ----
 
 async function kioskDevice(token: string) {
-  if (!token || token.length > 100) return null
-  const device = await prisma.device.findUnique({ where: { token }, select: { id: true, type: true, organizationId: true } })
+  const device = await findDeviceByToken(token)
   return device && device.type === 'KIOSK' && device.organizationId ? device : null
 }
 
@@ -209,4 +223,98 @@ export async function issueKioskTicket(token: string, serviceId: string, priorit
     console.error('issueKioskTicket error:', error)
     return { success: false as const, error: 'Une erreur est survenue' }
   }
+}
+
+// ---- Lien d'installation : plusieurs appareils sans code à recopier ----
+// À usage unique, valable 30 minutes, renouvelé après chaque appareil installé.
+// Le secret du lien n'est montré qu'une fois au responsable ; la base n'en garde que l'empreinte.
+
+const SETUP_LINK_TTL_MIN = 30
+
+/** Nouveau lien d'installation pour l'établissement ; les liens précédents non utilisés sont annulés. */
+export async function createSetupLink() {
+  const ctx = await getManagerContext()
+  if (!ctx) return null
+  const now = new Date()
+  await prisma.deviceSetupLink.updateMany({
+    where: { organizationId: ctx.orgId, usedAt: null, expiresAt: { gt: now } },
+    data: { expiresAt: now }
+  })
+  const secret = newSecret()
+  const link = await prisma.deviceSetupLink.create({
+    data: {
+      organizationId: ctx.orgId,
+      tokenHash: hashSecret(secret),
+      expiresAt: new Date(now.getTime() + SETUP_LINK_TTL_MIN * 60_000),
+      createdById: ctx.userId
+    },
+    select: { id: true, expiresAt: true }
+  })
+  return { id: link.id, path: `/i/${secret}`, expiresAt: link.expiresAt.toISOString() }
+}
+
+/** Le lien affiché a-t-il servi, ou expiré ? (le tableau de bord en génère alors un nouveau) */
+export async function getSetupLinkState(id: string) {
+  const ctx = await getManagerContext()
+  if (!ctx) return null
+  const link = await prisma.deviceSetupLink.findFirst({
+    where: { id, organizationId: ctx.orgId },
+    select: { usedAt: true, expiresAt: true, deviceId: true }
+  })
+  if (!link) return null
+  const device = link.deviceId ? await prisma.device.findUnique({ where: { id: link.deviceId }, select: { name: true, type: true } }) : null
+  return { used: !!link.usedAt, expired: !link.usedAt && link.expiresAt < new Date(), device }
+}
+
+export async function revokeSetupLink(id: string) {
+  const ctx = await getManagerContext()
+  if (!ctx) return { success: false }
+  await prisma.deviceSetupLink.updateMany({ where: { id, organizationId: ctx.orgId, usedAt: null }, data: { expiresAt: new Date() } })
+  return { success: true }
+}
+
+async function activeLink(secret: string) {
+  if (!isPlausibleSecret(secret)) return null
+  return prisma.deviceSetupLink.findFirst({
+    where: { tokenHash: hashSecret(secret), usedAt: null, expiresAt: { gt: new Date() } },
+    select: { id: true, organizationId: true, organization: { select: { name: true } } }
+  })
+}
+
+/** Ouverture du lien sur l'appareil : nom de l'établissement si le lien est encore valable. */
+export async function checkSetupLink(secret: string) {
+  const link = await activeLink(secret)
+  return link ? { valid: true as const, orgName: link.organization.name } : { valid: false as const }
+}
+
+/** L'appareil choisit son rôle : il est rattaché à l'établissement et le lien ne peut plus resservir. */
+export async function redeemSetupLink(secret: string, role: DeviceType) {
+  if (role !== 'TV' && role !== 'KIOSK') return { success: false as const, error: 'Rôle invalide' }
+  const link = await activeLink(secret)
+  if (!link) return { success: false as const, error: 'Ce lien a expiré ou a déjà servi. Demandez un nouveau lien au responsable.' }
+
+  // Réservation atomique : si deux appareils ouvrent le même lien, un seul l'obtient
+  const claimed = await prisma.deviceSetupLink.updateMany({
+    where: { id: link.id, usedAt: null, expiresAt: { gt: new Date() } },
+    data: { usedAt: new Date() }
+  })
+  if (claimed.count !== 1) return { success: false as const, error: 'Ce lien vient d’être utilisé par un autre appareil. Demandez un nouveau lien.' }
+
+  const token = newSecret()
+  const count = await prisma.device.count({ where: { organizationId: link.organizationId, type: role } })
+  const device = await prisma.device.create({
+    data: {
+      type: role,
+      token: hashSecret(token),
+      organizationId: link.organizationId,
+      name: `${role === 'TV' ? 'Écran' : 'Borne'} ${count + 1}`,
+      pairedAt: new Date(),
+      lastSeenAt: new Date()
+    },
+    select: { id: true }
+  })
+  await prisma.deviceSetupLink.update({ where: { id: link.id }, data: { deviceId: device.id } })
+  await audit({ action: 'DEVICE_PAIRED', targetType: 'Device', targetId: device.id, organizationId: link.organizationId, details: `${role} (lien d’installation)` })
+  revalidatePath('/dashboard/settings/devices')
+  return { success: true as const, token, orgId: link.organizationId, type: role }
 }
