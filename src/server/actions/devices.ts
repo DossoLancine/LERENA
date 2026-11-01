@@ -75,7 +75,7 @@ export async function pairDevice(code: string, name: string) {
 
   const device = await prisma.device.findUnique({ where: { pairingCode: clean } })
   if (!device || device.organizationId || !device.pairingExpiresAt || device.pairingExpiresAt < new Date()) {
-    return { success: false, error: 'Code inconnu ou expiré : vérifiez l’écran de l’appareil.' }
+    return { success: false, error: 'Code inconnu ou expiré. Rechargez la page sur l’appareil pour afficher un nouveau code, puis saisissez-le ici.' }
   }
 
   await prisma.device.update({
