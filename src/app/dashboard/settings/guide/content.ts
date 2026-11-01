@@ -1,7 +1,7 @@
 // Guide d'utilisation affiché dans Paramètres → Guide d'utilisation.
 // À METTRE À JOUR à chaque évolution de l'application (nouvel écran, nouvelle étape, changement de nom).
 
-export const GUIDE_UPDATED_AT = '1er novembre 2026 (priorités et parcours)'
+export const GUIDE_UPDATED_AT = '1er novembre 2026 (transferts entre guichets)'
 
 export interface GuideSection {
   id: string
@@ -83,7 +83,11 @@ export const GUIDE: GuideSection[] = [
       'Quand il a fini à un guichet (ou s’il n’est pas au bon endroit), l’agent touche « Transférer » (touche X), choisit le service suivant et peut laisser une note au collègue.',
       'Le visiteur reçoit une notification « Étape 2 : Caisse » et sa page de suivi affiche les étapes déjà faites puis l’étape en cours.',
       'Dans le nouveau service, il se place derrière la dernière personne arrivée, comme tout le monde — sauf s’il a une priorité.',
-      'L’agent suivant voit l’étape et les services déjà passés, ainsi que la note. Le dernier agent touche « Terminé ».'
+      'L’agent suivant voit l’étape et les services déjà passés, ainsi que la note. Le dernier agent touche « Terminé ».',
+      'Le guichet qui vient de transférer un client ne le revoit pas dans sa file : il est laissé aux autres guichets du service suivant. S’il est le seul guichet à traiter ce service, il le garde (la fenêtre de transfert l’indique).'
+    ],
+    tips: [
+      'Indispensable : dans « Guichets », cochez les services que chaque guichet traite. Un guichet sans service coché traite tous les services, et les transferts reviennent alors chez lui.'
     ]
   },
   {
