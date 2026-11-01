@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { ArrowLeft, MapPin, Clock, Users, Star, ChevronRight, Heart, Share2, CheckCircle2, PlusSquare, Scissors, Utensils, Building2, Ticket, MousePointer2, AlertTriangle, User as UserIcon, CalendarDays } from 'lucide-react'
+import { Accessibility, ArrowLeft, MapPin, Clock, Users, Star, ChevronRight, Heart, Share2, CheckCircle2, PlusSquare, Scissors, Utensils, Building2, Ticket, MousePointer2, AlertTriangle, User as UserIcon, CalendarDays } from 'lucide-react'
 import Link from 'next/link'
 import { DynamicIcon } from '@/lib/icons'
 import { useRouter } from 'next/navigation'
@@ -25,12 +25,12 @@ export default function OrgView({ params, initialOrg, initialIsFavorite }: {
   const { data: session } = useSession()
   const router = useRouter()
   const [selectedService, setSelectedService] = useState<string | null>(null)
+  // Motif de priorité (proposé seulement si l'établissement l'autorise dans l'application)
+  const [priorityId, setPriorityId] = useState<string | null>(null)
   const [isJoining, setIsJoining] = useState(false)
   const [isFavorite, setIsFavorite] = useState(initialIsFavorite)
   const org: any = initialOrg
   const [error, setError] = useState<string | null>(null)
-  // Motif de priorité choisi parmi ceux de l'établissement (null = attente classique)
-  const [priorityId, setPriorityId] = useState<string | null>(null)
   const [bookingType, setBookingType] = useState<'TICKET' | 'APPOINTMENT'>('TICKET')
   // Position GPS demandée dès le choix du service, pour que la prise de ticket soit immédiate
   const coordsRef = useRef<{ lat: number; lng: number } | null>(null)
@@ -289,24 +289,29 @@ export default function OrgView({ params, initialOrg, initialIsFavorite }: {
         </div>
       ) : (
         <>
-          {/* Options de file d'attente (EPIC 4 VIP) */}
           <div className="max-w-lg mx-auto px-4 pb-32">
-            {/* Motifs définis par l'établissement ; rien à choisir s'il n'en propose aucun */}
-            {org.priorities.length > 0 && <div className="bg-white rounded-2xl border border-gray-100 p-4 mb-4">
-              <h2 className="font-semibold text-gray-900 mb-3">Besoin spécifique ?</h2>
-              <select
-                aria-label="Besoin spécifique"
-                value={priorityId ?? ''}
-                onChange={(e) => setPriorityId(e.target.value || null)}
-                className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-orange-500 focus:border-orange-500 block p-3"
-              >
-                <option value="">Non, attente classique</option>
-                {org.priorities.map((p: { id: string; label: string }) => <option key={p.id} value={p.id}>{p.label}</option>)}
-              </select>
-              <p className="text-xs text-gray-500 mt-2">
-                Les tickets prioritaires passent automatiquement devant les autres.
+            {org.priorities.length > 0 ? (
+              /* L'établissement autorise le choix d'une priorité dans l'application */
+              <div className="bg-white rounded-2xl border border-gray-100 p-4">
+                <h2 className="font-semibold text-gray-900 mb-3">Besoin spécifique ?</h2>
+                <select
+                  aria-label="Besoin spécifique"
+                  value={priorityId ?? ''}
+                  onChange={(e) => setPriorityId(e.target.value || null)}
+                  className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-orange-500 focus:border-orange-500 block p-3"
+                >
+                  <option value="">Non, attente classique</option>
+                  {org.priorities.map((p: { id: string; label: string }) => <option key={p.id} value={p.id}>{p.label}</option>)}
+                </select>
+                <p className="text-xs text-gray-500 mt-2">L’accueil peut vous demander un justificatif.</p>
+              </div>
+            ) : (
+              /* Sinon, la priorité s'attribue à l'accueil, sur place */
+              <p className="flex items-start gap-2 rounded-2xl bg-white border border-gray-100 p-4 text-sm text-gray-600">
+                <Accessibility size={18} className="mt-0.5 shrink-0 text-info" aria-hidden="true" />
+                <span>Besoin d’une priorité (handicap, grossesse, âge…) ? Présentez-vous à l’accueil : l’agent l’ajoutera à votre ticket.</span>
               </p>
-            </div>}
+            )}
           </div>
 
           {/* CTA TICKET */}

@@ -17,13 +17,13 @@ const NAME_KEY = 'attends_guest_name'
 const PHONE_KEY = 'attends_guest_phone'
 
 /** Ticket sans compte : prénom, téléphone, puis code SMS si l'établissement l'exige. */
-export function GuestTicketSheet({ open, onClose, orgId, serviceId, serviceName, priorityId, getPosition }: {
+export function GuestTicketSheet({ open, onClose, orgId, serviceId, serviceName, priorityId = null, getPosition }: {
   open: boolean
   onClose: () => void
   orgId: string
   serviceId: string
   serviceName?: string
-  priorityId: string | null
+  priorityId?: string | null
   getPosition: () => Promise<{ lat: number; lng: number } | null>
 }) {
   const router = useRouter()

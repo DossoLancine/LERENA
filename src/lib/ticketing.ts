@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { distanceKm } from '@/lib/geo'
-import { resolvePriority, PriorityError } from '@/lib/priorities'
+import { resolvePriority, PriorityError, type PriorityChannel } from '@/lib/priorities'
 import { notifyOrg } from '@/lib/realtime'
 import { revalidatePath } from 'next/cache'
 import { logTicketEvent } from '@/lib/ticket-events'
@@ -21,8 +21,8 @@ export interface IssueTicketInput {
   serviceId: string
   // Motif de priorité choisi parmi ceux de l'établissement (null = sans priorité)
   priorityId?: string | null
-  // Accueil ou agent : peut attribuer tous les motifs, y compris ceux réservés au personnel
-  staff?: boolean
+  // Canal d'émission : l'accueil attribue tous les motifs ; l'application et la borne seulement si l'établissement l'autorise
+  channel?: PriorityChannel
   lat?: number
   lng?: number
   owner: TicketOwner
@@ -56,7 +56,7 @@ export function queueForService<Q extends { name: string; prefix: string }>(serv
   return best ?? service.branch.queues[0]
 }
 
-export async function issueTicket({ orgId, serviceId, priorityId, staff = false, lat, lng, owner }: IssueTicketInput) {
+export async function issueTicket({ orgId, serviceId, priorityId, channel = 'app', lat, lng, owner }: IssueTicketInput) {
   const org = await prisma.organization.findUnique({ where: { id: orgId } })
   if (!org) throw new TicketError('Établissement introuvable')
   if (!org.isActive) throw new TicketError('Cet établissement est fermé pour le moment')
@@ -92,7 +92,7 @@ export async function issueTicket({ orgId, serviceId, priorityId, staff = false,
 
   let priority: Awaited<ReturnType<typeof resolvePriority>>
   try {
-    priority = await resolvePriority(orgId, priorityId, staff)
+    priority = await resolvePriority(orgId, priorityId, channel)
   } catch (error) {
     if (error instanceof PriorityError) throw new TicketError(error.message)
     throw error

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import QRCode from 'qrcode'
 import {
   Ticket, Users, Clock,
-  Volume2, ArrowLeft, WifiOff, Hand, Loader2, ChevronRight
+  Volume2, ArrowLeft, WifiOff, Hand, Loader2, ChevronRight, UserRound, Accessibility
 } from 'lucide-react'
 import { PairingScreen, readDeviceToken, adoptDeviceRole } from '@/components/devices/pairing-screen'
 import { getDeviceStatus, getKioskBoard, issueKioskTicket } from '@/server/actions/devices'
@@ -18,8 +18,8 @@ import { t } from '@/lib/i18n'
 
 type Board = NonNullable<Awaited<ReturnType<typeof getKioskBoard>>>
 type Issued = Extract<Awaited<ReturnType<typeof issueKioskTicket>>, { success: true }>['ticket']
-// Pas d'étape « priorité » : à la borne, tout le monde prend un ticket normal (les priorités se donnent à l'accueil)
-type Step = 'welcome' | 'service' | 'ticket'
+// L'étape « priorité » n'existe que si l'établissement autorise le choix d'une priorité à la borne
+type Step = 'welcome' | 'service' | 'priority' | 'ticket'
 
 const IDLE_MS = 30_000
 const TICKET_SCREEN_MS = 15_000
@@ -99,14 +99,14 @@ export default function KioskPage() {
     setStep('service')
   }
 
-  const issue = async (sid: string) => {
+  const issue = async (sid: string, priorityId: string | null = null) => {
     if (!token || busy) return
     haptics.tap()
     setServiceId(sid)
     setBusy(true)
     setError(null)
     try {
-      const res = await issueKioskTicket(token, sid)
+      const res = await issueKioskTicket(token, sid, priorityId)
       if (!res.success) {
         setError(res.error)
         return
@@ -162,7 +162,7 @@ export default function KioskPage() {
           {board?.orgName ?? 'ATTENDS'}
         </span>
         {step !== 'welcome' && step !== 'ticket' && (
-          <button onClick={reset}
+          <button onClick={() => (step === 'priority' ? setStep('service') : reset())}
             className="flex min-h-touch items-center gap-2 rounded-2xl bg-gray-100 px-6 text-lg font-semibold text-ink">
             <ArrowLeft size={22} /> {t('kiosk.back')}
           </button>
@@ -202,7 +202,11 @@ export default function KioskPage() {
                 const loading = busy && serviceId === s.id
                 return (
                   <li key={s.id} className="flex items-stretch gap-2">
-                    <button onClick={() => issue(s.id)} disabled={busy}
+                    <button onClick={() => {
+                        // Priorité proposée seulement si l'établissement l'autorise à la borne
+                        if (board.priorities.length > 0) { haptics.tap(); setServiceId(s.id); setError(null); setStep('priority') }
+                        else issue(s.id)
+                      }} disabled={busy}
                       className={cn('flex min-w-0 flex-1 items-center gap-4 rounded-2xl border-2 bg-white px-4 text-left shadow-card disabled:opacity-60',
                         dense ? 'min-h-[76px] py-2 [@media(max-height:700px)]:min-h-[64px]' : 'min-h-[96px] py-3',
                         loading ? 'border-brand' : 'border-surface-line active:border-brand')}>
@@ -227,6 +231,29 @@ export default function KioskPage() {
                 )
               })}
             </ul>
+          </div>
+        ) : step === 'priority' && serviceId ? (
+          /* Écran 2 (facultatif) : priorité */
+          <div className="w-full max-w-4xl text-center">
+            <h1 className="text-3xl font-black text-ink md:text-4xl">{t('kiosk.priorityTitle')}</h1>
+            <p className="mt-2 text-xl text-ink-muted">{board.services.find(x => x.id === serviceId)?.name}</p>
+            <div className="mt-8 grid gap-4 md:grid-cols-2">
+              <button onClick={() => issue(serviceId)} disabled={busy}
+                className="flex min-h-[180px] flex-col items-center justify-center gap-4 rounded-3xl bg-brand p-8 text-white shadow-raised disabled:opacity-60 md:row-span-2">
+                {busy ? <Loader2 size={56} className="animate-spin" /> : <UserRound size={56} />}
+                <span className="text-3xl font-black">{t('kiosk.standard')}</span>
+              </button>
+              <div className="stagger grid content-start gap-3">
+                {board.priorities.map(p => (
+                  <button key={p.id} onClick={() => issue(serviceId, p.id)} disabled={busy}
+                    className="flex min-h-[80px] items-center gap-4 rounded-3xl border-4 border-info bg-white px-6 text-left text-info-ink shadow-card disabled:opacity-60">
+                    <Accessibility size={36} className="shrink-0" aria-hidden="true" />
+                    <span className="text-2xl font-black">{p.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            {error && <p role="alert" className="mt-6 rounded-2xl bg-danger-soft p-4 text-lg font-semibold text-danger-ink">{error}</p>}
           </div>
         ) : issued ? (
           /* Écran 3 : ticket */

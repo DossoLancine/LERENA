@@ -31,8 +31,8 @@ export async function joinQueueAsGuest(input: {
   serviceId: string
   name: string
   phone: string
-  code?: string
   priorityId?: string | null
+  code?: string
   lat?: number
   lng?: number
 }) {
@@ -63,7 +63,8 @@ export async function joinQueueAsGuest(input: {
     const ticket = await issueTicket({
       orgId: input.orgId,
       serviceId: input.serviceId,
-      priorityId: input.priorityId,
+      priorityId: input.priorityId ?? null,
+      channel: 'app',
       lat: input.lat,
       lng: input.lng,
       owner: { userId: null, name, phone }

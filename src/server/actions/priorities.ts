@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { getManagerContext } from '@/lib/session'
 import { audit } from '@/lib/audit'
+import { notifyOrg } from '@/lib/realtime'
 
 // Motifs de priorité de l'établissement du responsable connecté (Paramètres → Priorités)
 
@@ -59,5 +60,29 @@ export async function movePriorityCategory(id: string, direction: -1 | 1) {
   if (i < 0 || j < 0 || j >= list.length) return { success: false }
   ;[list[i], list[j]] = [list[j], list[i]]
   await prisma.$transaction(list.map((p, index) => prisma.priorityCategory.update({ where: { id: p.id }, data: { sortOrder: index + 1 } })))
+  return { success: true }
+}
+
+/** Le visiteur peut-il choisir une priorité lui-même, dans l'application et à la borne ? */
+export async function getVisitorPrioritySettings() {
+  const ctx = await getManagerContext()
+  if (!ctx) return null
+  return prisma.organization.findUnique({
+    where: { id: ctx.orgId },
+    select: { visitorPriorityApp: true, visitorPriorityKiosk: true }
+  })
+}
+
+export async function setVisitorPriority(channel: 'app' | 'kiosk', enabled: boolean) {
+  const ctx = await getManagerContext()
+  if (!ctx) return { success: false }
+  if (channel !== 'app' && channel !== 'kiosk') return { success: false }
+  await prisma.organization.update({
+    where: { id: ctx.orgId },
+    data: channel === 'app' ? { visitorPriorityApp: !!enabled } : { visitorPriorityKiosk: !!enabled }
+  })
+  await audit({ action: 'PRIORITY_UPDATED', targetType: 'Organization', targetId: ctx.orgId, organizationId: ctx.orgId, details: `Choix de priorité par le visiteur ${channel === 'app' ? 'dans l’application' : 'à la borne'} : ${enabled ? 'activé' : 'désactivé'}` })
+  await notifyOrg(ctx.orgId)
+  revalidatePath(`/org/${ctx.orgId}`)
   return { success: true }
 }

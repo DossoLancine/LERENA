@@ -1,8 +1,8 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Plus, Trash2, ArrowUp, ArrowDown, Accessibility, Siren } from 'lucide-react'
-import { listPriorityCategories, savePriorityCategory, deletePriorityCategory, movePriorityCategory } from '@/server/actions/priorities'
+import { Plus, Trash2, ArrowUp, ArrowDown, Accessibility, Siren, Smartphone, Tablet } from 'lucide-react'
+import { listPriorityCategories, savePriorityCategory, deletePriorityCategory, movePriorityCategory, getVisitorPrioritySettings, setVisitorPriority } from '@/server/actions/priorities'
 import { Button, Card, CardHeader, EmptyState, useToast } from '@/components/ui'
 import { cn } from '@/lib/cn'
 
@@ -13,6 +13,15 @@ export default function PrioritiesSettingsPage() {
   const toast = useToast()
   const [items, setItems] = useState<Category[] | null>(null)
   const [newLabel, setNewLabel] = useState('')
+  const [visitor, setVisitor] = useState<{ visitorPriorityApp: boolean; visitorPriorityKiosk: boolean } | null>(null)
+
+  useEffect(() => { getVisitorPrioritySettings().then(setVisitor) }, [])
+
+  const toggleVisitor = async (channel: 'app' | 'kiosk', enabled: boolean) => {
+    setVisitor(v => v && { ...v, [channel === 'app' ? 'visitorPriorityApp' : 'visitorPriorityKiosk']: enabled })
+    const res = await setVisitorPriority(channel, enabled)
+    toast(res.success ? (enabled ? 'Choix de priorité activé' : 'Choix de priorité désactivé') : 'Enregistrement impossible', res.success ? 'success' : 'error')
+  }
 
   const load = useCallback(() => listPriorityCategories().then(list => setItems(list ?? [])), [])
   useEffect(() => { load() }, [load])
@@ -55,9 +64,32 @@ export default function PrioritiesSettingsPage() {
           Un visiteur transféré vers un autre service se place derrière la dernière personne arrivée dans ce service, sauf s’il a une priorité.
         </p>
         <p className="mt-2 text-ink-muted">
-          « Le visiteur peut le choisir » : le motif est proposé dans l’application. Sinon, seul l’agent d’accueil peut l’attribuer. La borne ne propose jamais de priorité : chacun y prend un ticket normal.
+          Par défaut, seul l’agent d’accueil attribue une priorité, sur place. Vous pouvez aussi laisser le visiteur la choisir lui-même, dans l’application ou à la borne — avec le risque que certains en abusent.
           Sur la TV, le motif n’est jamais affiché, seulement la mention « Prioritaire ».
         </p>
+      </Card>
+
+      <Card>
+        <CardHeader title="Le visiteur peut-il choisir sa priorité ?" subtitle="Désactivé : la priorité s’attribue uniquement à l’accueil" />
+        <div className="divide-y divide-surface-line">
+          {([['app', Smartphone, 'Dans l’application mobile', 'Au moment de prendre un ticket depuis son téléphone'], ['kiosk', Tablet, 'Sur la borne', 'Un écran « priorité » apparaît après le choix du service']] as const).map(([channel, Icon, title, hint]) => {
+            const on = channel === 'app' ? visitor?.visitorPriorityApp : visitor?.visitorPriorityKiosk
+            return (
+              <label key={channel} className="flex cursor-pointer items-center gap-4 px-5 py-4">
+                <Icon size={22} className="shrink-0 text-ink-muted" aria-hidden="true" />
+                <span className="min-w-0 flex-1">
+                  <span className="block font-semibold text-ink">{title}</span>
+                  <span className="block text-xs text-ink-muted">{hint}</span>
+                </span>
+                <input type="checkbox" role="switch" checked={!!on} disabled={!visitor} aria-label={title}
+                  onChange={e => toggleVisitor(channel, e.target.checked)} className="peer sr-only" />
+                <span aria-hidden="true" className={cn('relative h-7 w-12 shrink-0 rounded-full transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-brand peer-focus-visible:ring-offset-2', on ? 'bg-brand' : 'bg-gray-300')}>
+                  <span className={cn('absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-transform duration-300 ease-spring', on ? 'translate-x-6' : 'translate-x-1')} />
+                </span>
+              </label>
+            )
+          })}
+        </div>
       </Card>
 
       <Card>
@@ -90,7 +122,7 @@ export default function PrioritiesSettingsPage() {
                   </label>
                   <label className="flex items-center gap-2 text-ink">
                     <input type="checkbox" checked={item.selfService} onChange={e => save(item, { selfService: e.target.checked })} className="h-4 w-4 accent-brand" />
-                    Le visiteur peut le choisir
+                    Proposé aux visiteurs
                   </label>
                   <label className="flex items-center gap-2 text-ink">
                     <input type="checkbox" checked={item.isActive} onChange={e => save(item, { isActive: e.target.checked })} className="h-4 w-4 accent-brand" />

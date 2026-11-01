@@ -1,7 +1,7 @@
 // Guide d'utilisation affiché dans Paramètres → Guide d'utilisation.
 // À METTRE À JOUR à chaque évolution de l'application (nouvel écran, nouvelle étape, changement de nom).
 
-export const GUIDE_UPDATED_AT = '1er novembre 2026 (borne sans priorité)'
+export const GUIDE_UPDATED_AT = '1er novembre 2026 (priorités au choix du visiteur : réglable)'
 
 export interface GuideSection {
   id: string
@@ -30,7 +30,7 @@ export const GUIDE: GuideSection[] = [
     intro: 'Deux types d’appareils peuvent être connectés, autant que vous voulez, chacun indépendamment : ils ne se connectent pas entre eux mais à l’établissement.',
     steps: [
       'Écran d’affichage : la TV de la salle d’attente. Elle montre les numéros appelés, les annonce à voix haute et peut diffuser vos vidéos. Personne ne la touche.',
-      'Borne de tickets (facultative) : une tablette à l’entrée. Le visiteur touche « Prendre un ticket », puis son service : le ticket sort aussitôt. La borne ne pose aucune question de priorité (sinon chacun se déclarerait prioritaire).',
+      'Borne de tickets (facultative) : une tablette à l’entrée. Le visiteur touche « Prendre un ticket », puis son service : le ticket sort aussitôt. Par défaut, la borne ne pose aucune question de priorité (voir la rubrique « Priorités »).',
       'Tablette : Paramètres → Appareils → « Afficher un QR code d’installation ». Scannez-le avec la tablette, touchez « Écran » ou « Borne ». C’est fini. Un nouveau QR code apparaît aussitôt pour l’appareil suivant.',
       'TV : ouvrez l’adresse courte indiquée dans Paramètres → Appareils dans le navigateur de la TV. Un code à 6 chiffres s’affiche : tapez-le dans Paramètres → Appareils, choisissez « Écran d’affichage », puis Connecter.',
       'Chaque appareil se connecte une seule fois : il reste connecté après une coupure de courant, tant qu’on n’efface pas les données de son navigateur.'
@@ -97,7 +97,9 @@ export const GUIDE: GuideSection[] = [
     steps: [
       'Créez vos motifs (ex. « Personne en situation de handicap », « Femme enceinte », « Urgence ») et choisissez leur niveau : Prioritaire ou Très prioritaire.',
       'Dans une file : les très prioritaires d’abord, puis les prioritaires, puis tous les autres dans l’ordre d’arrivée.',
-      '« Le visiteur peut le choisir » : le motif est proposé dans l’application. Sinon, seul l’agent d’accueil peut l’attribuer (utile pour « Urgence »). La borne ne propose jamais de priorité : une personne prioritaire passe par l’accueil, qui ajoute la priorité à son ticket.',
+      'Par défaut, seul l’agent d’accueil attribue une priorité : la personne se présente à l’accueil, qui l’ajoute à son ticket.',
+      'En haut de Paramètres → Priorités, deux interrupteurs permettent de laisser le visiteur choisir lui-même sa priorité : dans l’application mobile, et/ou sur la borne. Ils sont désactivés au départ, car certains visiteurs pourraient en abuser.',
+      'Quand un interrupteur est activé, seuls les motifs cochés « Proposé aux visiteurs » sont proposés (décochez par exemple « Urgence »).',
       'À l’accueil, une priorité peut aussi être ajoutée ou retirée sur un ticket déjà émis.'
     ],
     tips: [

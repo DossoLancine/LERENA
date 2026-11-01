@@ -8,6 +8,7 @@ import { maskPhone } from "@/lib/phone"
 import { notifyOrg } from "@/lib/realtime"
 import { revalidatePath } from "next/cache"
 
+/** Ticket pris dans l'application ; la priorité n'est retenue que si l'établissement l'autorise dans l'application. */
 export async function joinQueue(serviceId: string, orgId: string, priorityId: string | null = null, userLat?: number, userLng?: number) {
   try {
     const sessionUser = await getSessionUser()
@@ -18,7 +19,7 @@ export async function joinQueue(serviceId: string, orgId: string, priorityId: st
     if (!validUser) throw new Error("SESSION_EXPIRED")
 
     const ticket = await issueTicket({
-      orgId, serviceId, priorityId, lat: userLat, lng: userLng,
+      orgId, serviceId, priorityId, channel: 'app', lat: userLat, lng: userLng,
       owner: { userId: sessionUser.id, name: sessionUser.name || 'Client', phone: validUser.phone }
     })
     return { success: true, ticketId: ticket.id }
