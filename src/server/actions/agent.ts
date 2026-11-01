@@ -7,6 +7,7 @@ import { getStaffContext, getOrgQueueIds } from "@/lib/session"
 import { ACTIVE_TICKET_STATUSES, startOfToday, type TicketStatus } from "@/lib/constants"
 import { notifyOrg } from "@/lib/realtime"
 import { sendPushToTicket } from "@/lib/push"
+import { notifyTicket } from "@/lib/notify"
 import { logTicketEvent, type TicketEventType } from "@/lib/ticket-events"
 import { queueForService } from "@/lib/ticketing"
 
@@ -272,21 +273,22 @@ async function notifyCalledAndNext(
   })
 
   await Promise.allSettled([
-    sendPushToTicket(ticket.id, {
+    notifyTicket(ticket.id, {
       title: "C'est votre tour !",
       body: `Ticket ${ticket.displayNum} : présentez-vous au ${counterName || 'guichet'}.`,
       url: `/ticket/${ticket.id}`,
       tag: `ticket-${ticket.id}`,
       urgent: true
-    }),
-    ...next.map((t, i) => sendPushToTicket(t.id, {
+    }, `ATTENDS : ticket ${ticket.displayNum}, c'est votre tour. Présentez-vous au ${counterName || 'guichet'}.`),
+    // SMS seulement pour le prochain (le suivant reçoit une notification push si possible)
+    ...next.map((t, i) => notifyTicket(t.id, {
       title: i === 0 ? 'Vous êtes le prochain' : 'Votre tour approche',
       body: i === 0
         ? `Ticket ${t.displayNum} : rapprochez-vous du guichet.`
         : `Ticket ${t.displayNum} : plus qu'une personne devant vous.`,
       url: `/ticket/${t.id}`,
       tag: `ticket-${t.id}`
-    }))
+    }, i === 0 ? `ATTENDS : ticket ${t.displayNum}, vous êtes le prochain. Rapprochez-vous du guichet.` : undefined))
   ])
 }
 

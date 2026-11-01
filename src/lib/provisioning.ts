@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { parseSectorServices } from '@/lib/platform'
 import { tempPassword } from '@/lib/passwords'
 import { DEFAULT_PRIORITIES } from '@/lib/priorities'
+import { sendCredentialsEmail } from '@/lib/messaging'
 
 // Création d'établissements à partir des modèles de secteur (services, préfixes, pictogrammes en base).
 // Utilisé par l'espace réseau (/org-admin) et l'administration de la plateforme (/admin).
@@ -121,6 +122,7 @@ export async function createStaffAccount(orgId: string, data: { name: string; em
     update: { role: data.role },
     create: { userId: user.id, organizationId: orgId, role: data.role }
   })
+  if (password) await sendCredentialsEmail({ to: email, name: data.name, password, organizationId: orgId })
   return { userId: user.id, email, tempPassword: password as string | null }
 }
 
@@ -156,5 +158,6 @@ export async function createNetworkAccount(networkId: string, data: { name: stri
     update: { role: data.role },
     create: { userId: user.id, networkId, role: data.role }
   })
+  if (password) await sendCredentialsEmail({ to: email, name: data.name, password, place: 'espace réseau' })
   return { userId: user.id, email, tempPassword: password as string | null }
 }
