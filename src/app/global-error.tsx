@@ -12,7 +12,7 @@ export default function GlobalError({ reset }: { error: Error; reset: () => void
           </p>
           <button
             onClick={reset}
-            style={{ marginTop: 24, background: '#f97316', color: '#fff', border: 0, borderRadius: 14, padding: '14px 24px', fontWeight: 700, fontSize: 15, cursor: 'pointer' }}
+            style={{ marginTop: 24, background: '#c2410c', color: '#fff', border: 0, borderRadius: 14, padding: '14px 24px', fontWeight: 700, fontSize: 15, cursor: 'pointer' }}
           >
             Réessayer
           </button>

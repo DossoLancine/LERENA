@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#F97316',
+  themeColor: '#C2410C',
   width: 'device-width',
   initialScale: 1,
   // Pas de maximumScale : le zoom à deux doigts doit rester possible (malvoyants)
