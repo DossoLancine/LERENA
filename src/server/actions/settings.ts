@@ -5,7 +5,9 @@ import { revalidatePath } from "next/cache"
 import bcrypt from "bcryptjs"
 import { getManagerContext, getOrgQueueIds } from "@/lib/session"
 import { ACTIVE_TICKET_STATUSES, priorityLabel } from "@/lib/constants"
+import { audit } from "@/lib/audit"
 import { notifyOrg } from "@/lib/realtime"
+import { tempPassword } from "@/lib/passwords"
 
 // Toutes les actions de ce fichier agissent uniquement sur l'organisation du manager connecté.
 // Le paramètre orgId reçu de l'interface est vérifié, jamais utilisé tel quel.
@@ -66,7 +68,7 @@ export async function getOrganizationSettings() {
 // 2. Mettre à jour les informations de l'organisation
 export async function updateOrganizationProfile(orgId: string, data: {
   name: string
-  category: string
+  sectorId?: string | null
   description?: string
   address?: string
   city?: string
@@ -83,11 +85,14 @@ export async function updateOrganizationProfile(orgId: string, data: {
     const ctx = await requireOwnOrg(orgId)
     if (!ctx) return DENIED
 
+    // Le secteur vient de la liste gérée en base ; son nom sert de catégorie affichée
+    const sector = data.sectorId ? await prisma.sector.findFirst({ where: { id: data.sectorId, isActive: true }, select: { id: true, name: true } }) : null
+
     const updated = await prisma.organization.update({
       where: { id: ctx.orgId },
       data: {
         name: data.name,
-        category: data.category,
+        ...(sector ? { sectorId: sector.id, category: sector.name } : {}),
         description: data.description || null,
         address: data.address || null,
         city: data.city || null,
@@ -140,8 +145,13 @@ export async function addMemberToOrganization(orgId: string, data: {
       return { success: false, error: 'Ce compte appartient déjà à un autre établissement' }
     }
 
+    let generatedPassword: string | null = null
     if (!user) {
-      const defaultPassword = data.password && data.password.trim() ? data.password : 'password123'
+      // Sans mot de passe saisi, un mot de passe provisoire aléatoire est créé et affiché une seule fois
+      const chosen = data.password?.trim()
+      if (chosen && chosen.length < 8) return { success: false, error: 'Le mot de passe doit contenir au moins 8 caractères' }
+      if (!chosen) generatedPassword = tempPassword()
+      const defaultPassword = chosen || generatedPassword!
       user = await prisma.user.create({
         data: {
           email,
@@ -178,8 +188,9 @@ export async function addMemberToOrganization(orgId: string, data: {
       }
     })
 
+    await audit({ action: 'MEMBER_ADDED', targetType: 'User', targetId: user.id, organizationId: ctx.orgId, details: `${email} (${role})` })
     revalidatePath('/dashboard')
-    return { success: true, user: { id: user.id, name: user.name, email: user.email, role } }
+    return { success: true, user: { id: user.id, name: user.name, email: user.email, role }, tempPassword: generatedPassword }
   } catch (error: any) {
     console.error('addMemberToOrganization error:', error)
     return { success: false, error: error.message || 'Erreur lors de l’ajout du collaborateur' }
@@ -196,6 +207,7 @@ export async function removeMemberFromOrganization(memberId: string) {
       where: { id: memberId, organizationId: ctx.orgId, userId: { not: ctx.userId } }
     })
     if (res.count === 0) return { success: false, error: 'Membre introuvable' }
+    await audit({ action: 'MEMBER_REMOVED', targetType: 'OrganizationMember', targetId: memberId, organizationId: ctx.orgId })
 
     revalidatePath('/dashboard')
     return { success: true }
@@ -258,6 +270,7 @@ export async function resetDailyQueue(orgId: string) {
       }
     })
 
+    await audit({ action: 'QUEUE_RESET', organizationId: ctx.orgId, details: `${res.count} tickets clôturés` })
     await notifyOrg(ctx.orgId)
     revalidatePath('/dashboard')
     revalidatePath('/agent')
@@ -286,6 +299,7 @@ export async function exportTicketsHistory(orgId: string) {
       }
     })
 
+    await audit({ action: 'DATA_EXPORTED', organizationId: ctx.orgId, details: `${tickets.length} tickets` })
     return {
       success: true,
       tickets: tickets.map(t => ({

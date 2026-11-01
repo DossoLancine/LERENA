@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma"
 import { getSessionUser } from "@/lib/session"
 import { revalidatePath } from "next/cache"
+import { sectorColor } from '@/lib/icons'
 
 export async function toggleFavorite(orgId: string) {
   try {
@@ -76,8 +77,9 @@ export async function getMyFavorites() {
       include: {
         organization: {
           include: {
+            sector: { select: { icon: true, color: true } },
             branches: {
-              include: { queues: true }
+              select: { services: { where: { isActive: true }, select: { avgDurationMin: true } } }
             }
           }
         }
@@ -88,9 +90,11 @@ export async function getMyFavorites() {
     const formattedFavs = await Promise.all(favorites.map(async (fav) => {
       const org = fav.organization
 
-      const totalWait = org.branches.reduce((acc, branch) => {
-        return acc + branch.queues.reduce((qAcc, q) => qAcc + (q.currentNum * 15), 0)
-      }, 0)
+      // Attente réelle : personnes en file × durée moyenne des services
+      const durations = org.branches.flatMap(b => b.services.map(sv => sv.avgDurationMin))
+      const avgDuration = durations.length ? durations.reduce((a, d) => a + d, 0) / durations.length : 15
+      const waiting = await prisma.ticket.count({ where: { status: 'WAITING', queue: { branch: { organizationId: org.id } } } })
+      const totalWait = Math.round(waiting * avgDuration)
       
       const stats = await prisma.ticket.aggregate({
         where: {
@@ -105,7 +109,8 @@ export async function getMyFavorites() {
         id: org.id,
         name: org.name,
         category: org.category,
-        distance: "1.2 km",
+        icon: org.sector?.icon ?? 'building',
+        color: sectorColor(org.sector?.color).soft,
         waitMin: totalWait,
         isOpen: org.isActive,
         rating

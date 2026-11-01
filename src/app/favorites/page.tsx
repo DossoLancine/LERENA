@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react'
 import { ListPageSkeleton } from '@/components/ui/skeletons'
 import Link from 'next/link'
-import { Heart, ChevronRight, Clock, Users, PlusSquare, Scissors, Home, Compass, Ticket, User, Utensils, Building2, AlertTriangle } from 'lucide-react'
+import { DynamicIcon } from '@/lib/icons'
+import { Heart, ChevronRight, Clock, Users, Home, Compass, Ticket, User, AlertTriangle } from 'lucide-react'
 import { getMyFavorites, toggleFavorite } from '@/server/actions/favorites'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
@@ -74,11 +75,7 @@ export default function FavoritesPage() {
             <Link key={org.id} href={`/org/${org.id}`}>
               <div className="bg-white rounded-2xl border border-gray-100 p-4 hover:shadow-md transition-all flex items-center gap-3 relative overflow-hidden group">
                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl ${org.color}`}>
-                  {org.category === 'Pharmacie' ? <PlusSquare size={24} /> : 
-                   org.category === 'Beauté' ? <Scissors size={24} /> : 
-                   org.category === 'Restauration' ? <Utensils size={24} /> : 
-                   org.category === 'Banque' ? <Building2 size={24} /> : 
-                   <PlusSquare size={24} />}
+                  <DynamicIcon name={org.icon} size={24} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">

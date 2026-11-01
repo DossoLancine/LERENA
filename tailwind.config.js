@@ -29,7 +29,7 @@ module.exports = {
         ink: {
           DEFAULT: '#111827',
           muted: '#6b7280',
-          subtle: '#9ca3af',
+          subtle: '#6b7280',
         },
         surface: {
           DEFAULT: '#ffffff',

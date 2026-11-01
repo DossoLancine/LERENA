@@ -9,7 +9,7 @@ import {
 import { useSettings } from '../_components/settings-provider'
 
 export default function SiteSettingsPage() {
-  const { saving, formData, setFormData, handleSaveProfile } = useSettings()
+  const { saving, formData, setFormData, handleSaveProfile, sectors } = useSettings()
 
   return (
     <form onSubmit={handleSaveProfile} className="bg-white rounded-3xl border border-gray-100 p-6 space-y-6 shadow-sm">
@@ -88,17 +88,14 @@ export default function SiteSettingsPage() {
             Secteur d'activité
           </label>
           <select
-            value={formData.category}
-            onChange={e => setFormData(f => ({ ...f, category: e.target.value }))}
+            value={formData.sectorId}
+            onChange={e => setFormData(f => ({ ...f, sectorId: e.target.value }))}
             className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all"
           >
-            <option value="Santé">Santé (Hôpital / Clinique / Cabinet)</option>
-            <option value="Pharmacie">Pharmacie</option>
-            <option value="Banque">Banque & Microfinance</option>
-            <option value="Télécom">Téléphonie & SAV</option>
-            <option value="Administration">Administration Publique</option>
-            <option value="Commerce">Commerce & Magasin</option>
-            <option value="Autre">Autre service</option>
+            {!formData.sectorId && <option value="">Choisir un secteur…</option>}
+            {sectors.map(sec => (
+              <option key={sec.id} value={sec.id}>{sec.name}</option>
+            ))}
           </select>
         </div>
 
@@ -140,7 +137,7 @@ export default function SiteSettingsPage() {
             value={formData.city}
             onChange={e => setFormData(f => ({ ...f, city: e.target.value }))}
             className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all"
-            placeholder="Ex: Abidjan"
+            placeholder="Ex : ville du site"
           />
         </div>
 

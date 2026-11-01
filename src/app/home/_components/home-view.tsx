@@ -2,15 +2,17 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Search, Compass, Ticket, Heart, User as UserIcon, Home as HomeIcon, MapPin, Clock, Users, PlusSquare, Scissors, Utensils, Building2, ChevronRight } from 'lucide-react'
+import { DynamicIcon, sectorColor } from '@/lib/icons'
+import { Search, Compass, Ticket, Heart, User as UserIcon, Home as HomeIcon, MapPin, Clock, Users, ChevronRight } from 'lucide-react'
 import { getOrganizations } from '@/server/actions/orgs'
 import { ClientNav } from '@/components/navigation/client-nav'
 
 type Org = Awaited<ReturnType<typeof getOrganizations>>[number]
 
 // Données préparées par le serveur ; le navigateur ne recharge que pour trier par distance
-export default function HomeView({ userName, activeTicket, initialOrgs }: {
+export default function HomeView({ userName, activeTicket, initialOrgs, sectors }: {
   userName: string | null
+  sectors: { slug: string; name: string; icon: string; color: string }[]
   activeTicket: any
   initialOrgs: Org[]
 }) {
@@ -51,7 +53,7 @@ export default function HomeView({ userName, activeTicket, initialOrgs }: {
           <Link href="/explore">
             <div className="w-full bg-gray-100 rounded-2xl p-3 flex items-center gap-3 text-gray-400">
               <Search size={18} />
-              <span className="text-sm">Rechercher une clinique, pharmacie...</span>
+              <span className="text-sm">Rechercher un établissement...</span>
             </div>
           </Link>
         </div>
@@ -86,24 +88,14 @@ export default function HomeView({ userName, activeTicket, initialOrgs }: {
         <section>
           <h2 className="text-lg font-bold text-gray-900 mb-3">Catégories</h2>
           <div className="grid grid-cols-4 gap-3">
-            <Link href="/explore?cat=sante" className="flex flex-col items-center gap-2">
-              <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-500 hover:bg-blue-100 transition-colors">
-                <PlusSquare size={24} />
-              </div>
-              <span className="text-xs font-medium text-gray-700">Santé</span>
-            </Link>
-            <Link href="/explore?cat=beaute" className="flex flex-col items-center gap-2">
-              <div className="w-14 h-14 bg-pink-50 rounded-2xl flex items-center justify-center text-pink-500 hover:bg-pink-100 transition-colors">
-                <Scissors size={24} />
-              </div>
-              <span className="text-xs font-medium text-gray-700">Beauté</span>
-            </Link>
-            <Link href="/explore?cat=resto" className="flex flex-col items-center gap-2">
-              <div className="w-14 h-14 bg-orange-50 rounded-2xl flex items-center justify-center text-orange-500 hover:bg-orange-100 transition-colors">
-                <Utensils size={24} />
-              </div>
-              <span className="text-xs font-medium text-gray-700">Resto</span>
-            </Link>
+            {sectors.slice(0, 3).map(sec => (
+              <Link key={sec.slug} href={`/explore?cat=${sec.slug}`} className="flex flex-col items-center gap-2">
+                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-opacity hover:opacity-80 ${sectorColor(sec.color).soft}`}>
+                  <DynamicIcon name={sec.icon} size={24} />
+                </div>
+                <span className="text-xs font-medium text-gray-700 text-center leading-tight line-clamp-2">{sec.name}</span>
+              </Link>
+            ))}
             <Link href="/explore" className="flex flex-col items-center gap-2">
               <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors">
                 <Search size={24} />
@@ -124,11 +116,7 @@ export default function HomeView({ userName, activeTicket, initialOrgs }: {
               <Link key={org.id} href={`/org/${org.id}`}>
                 <div className="bg-white rounded-2xl border border-gray-100 p-4 hover:shadow-md transition-all flex items-center gap-3">
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl ${org.color}`}>
-                    {org.category === 'Pharmacie' ? <PlusSquare size={24} /> : 
-                     org.category === 'Beauté' ? <Scissors size={24} /> : 
-                     org.category === 'Restauration' ? <Utensils size={24} /> : 
-                     org.category === 'Banque' ? <Building2 size={24} /> : 
-                     <PlusSquare size={24} />}
+                    <DynamicIcon name={org.icon} size={24} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-gray-900 text-sm truncate">{org.name}</p>

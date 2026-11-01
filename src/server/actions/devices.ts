@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma'
 import { getManagerContext } from '@/lib/session'
 import { issueTicket, TicketError } from '@/lib/ticketing'
 import { PRIORITY_SCORES, type Priority } from '@/lib/constants'
+import { audit } from "@/lib/audit"
 
 // Écrans TV et bornes : appairage par code, sans compte utilisateur sur l'appareil.
 // L'appareil garde un jeton secret ; le responsable saisit le code affiché pour le rattacher.
@@ -87,6 +88,7 @@ export async function pairDevice(code: string, name: string) {
       pairingExpiresAt: null
     }
   })
+  await audit({ action: 'DEVICE_PAIRED', targetType: 'Device', targetId: device.id, organizationId: ctx.orgId, details: device.type })
   revalidatePath('/dashboard/settings/devices')
   return { success: true, type: device.type as DeviceType }
 }
@@ -140,11 +142,11 @@ export async function getKioskBoard(token: string) {
 
   const orgId = device.organizationId!
   const [org, services, waiting] = await Promise.all([
-    prisma.organization.findUnique({ where: { id: orgId }, select: { name: true, isActive: true } }),
+    prisma.organization.findUnique({ where: { id: orgId }, select: { name: true, isActive: true, sector: { select: { icon: true } } } }),
     prisma.service.findMany({
       where: { isActive: true, branch: { organizationId: orgId } },
       orderBy: { name: 'asc' },
-      select: { id: true, name: true, description: true, avgDurationMin: true }
+      select: { id: true, name: true, description: true, avgDurationMin: true, icon: true }
     }),
     prisma.ticket.groupBy({
       by: ['serviceId'],
@@ -159,7 +161,7 @@ export async function getKioskBoard(token: string) {
     isOpen: org.isActive,
     services: services.map(s => {
       const count = waiting.find(w => w.serviceId === s.id)?._count._all ?? 0
-      return { ...s, waiting: count, waitMin: count * s.avgDurationMin }
+      return { ...s, icon: s.icon ?? org.sector?.icon ?? null, waiting: count, waitMin: count * s.avgDurationMin }
     })
   }
 }

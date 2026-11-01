@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import QRCode from 'qrcode'
 import {
-  Ticket, Baby, Stethoscope, Siren, Banknote, Pill, FileText, Users, Clock,
+  Ticket, Users, Clock,
   Volume2, ArrowLeft, UserRound, Accessibility, WifiOff, Hand
 } from 'lucide-react'
 import { PairingScreen, readDeviceToken } from '@/components/devices/pairing-screen'
@@ -14,6 +14,7 @@ import { useWakeLock } from '@/hooks/use-wake-lock'
 import { haptics } from '@/lib/haptics'
 import type { Priority } from '@/lib/constants'
 import { cn } from '@/lib/cn'
+import { iconFor } from '@/lib/icons'
 import { t } from '@/lib/i18n'
 
 type Board = NonNullable<Awaited<ReturnType<typeof getKioskBoard>>>
@@ -22,18 +23,6 @@ type Step = 'welcome' | 'service' | 'priority' | 'ticket'
 
 const IDLE_MS = 30_000
 const TICKET_SCREEN_MS = 15_000
-
-// Pictogramme d'après le nom du service : la borne doit se comprendre sans lire
-function serviceIcon(name: string) {
-  const n = name.toLowerCase()
-  if (/p[ée]diatr|enfant|vaccin/.test(n)) return Baby
-  if (/urgen/.test(n)) return Siren
-  if (/caisse|paiement|factur|banque|retrait|d[ée]p[oô]t/.test(n)) return Banknote
-  if (/pharma|m[ée]dicament/.test(n)) return Pill
-  if (/m[ée]decin|consult|soin/.test(n)) return Stethoscope
-  if (/[ée]tat civil|document|dossier|passeport|carte|acte/.test(n)) return FileText
-  return Ticket
-}
 
 function speak(text: string) {
   try {
@@ -199,7 +188,8 @@ export default function KioskPage() {
             <h1 className="mb-8 text-center text-4xl font-black text-ink">{t('kiosk.chooseService')}</h1>
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {board.services.map(s => {
-                const Icon = serviceIcon(s.name)
+                // Pictogramme choisi pour le service (sinon celui du secteur) : la borne se comprend sans lire
+                const Icon = iconFor(s.icon, 'ticket')
                 return (
                   <div key={s.id} className="relative">
                     <button onClick={() => { haptics.tap(); setServiceId(s.id); setStep('priority') }}

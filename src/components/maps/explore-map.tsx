@@ -4,8 +4,9 @@ import { useEffect, useState } from 'react'
 import { MapContainer, TileLayer, Marker, useMap, Polyline, Tooltip } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { MapPin, PlusSquare, Scissors, Utensils, Building2, ChevronRight, Clock, Users, X, Navigation } from 'lucide-react'
+import { MapPin, ChevronRight, Clock, Users, X, Navigation } from 'lucide-react'
 import Link from 'next/link'
+import { iconFor } from '@/lib/icons'
 import { renderToString } from 'react-dom/server'
 
 // Custom component to handle map center based on user location
@@ -40,15 +41,16 @@ function LocationMarker({ location }: { location: { lat: number, lng: number } |
   return <Marker position={[location.lat, location.lng]} icon={userIcon} zIndexOffset={1000} />
 }
 
-export default function ExploreMap({ orgs, userLocation }: { orgs: any[], userLocation: { lat: number, lng: number } | null }) {
+export default function ExploreMap({ orgs, userLocation, defaultCenter: configCenter }: { orgs: any[], userLocation: { lat: number, lng: number } | null, defaultCenter?: [number, number] | null }) {
   const [activeOrg, setActiveOrg] = useState<any | null>(null)
   const [activeMap, setActiveMap] = useState<any | null>(null)
   const [routeCoords, setRouteCoords] = useState<[number, number][]>([])
   const [routeData, setRouteData] = useState<{distance: string, duration: string} | null>(null)
   const [isRouting, setIsRouting] = useState(false)
   
-  // Default center (Abidjan if no location)
-  const defaultCenter: [number, number] = [5.320357, -4.016107]
+  // Sans position : centre choisi dans les réglages de la plateforme, sinon le premier établissement
+  const firstOrg = orgs.find(o => o.lat && o.lng)
+  const defaultCenter: [number, number] = configCenter ?? (firstOrg ? [firstOrg.lat, firstOrg.lng] : [0, 0])
 
   // Fetch real route from OSRM when activeOrg changes
   useEffect(() => {
@@ -124,34 +126,18 @@ export default function ExploreMap({ orgs, userLocation }: { orgs: any[], userLo
 
   // Create custom icons for orgs
   const createOrgIcon = (org: any, isActive: boolean) => {
-    let iconStr = ''
-    let colorClass = ''
-
-    if (org.category === 'Pharmacie') {
-      iconStr = renderToString(<PlusSquare size={isActive ? 22 : 18} className="text-white" />)
-      colorClass = 'bg-green-500'
-    } else if (org.category === 'Beauté') {
-      iconStr = renderToString(<Scissors size={isActive ? 22 : 18} className="text-white" />)
-      colorClass = 'bg-pink-500'
-    } else if (org.category === 'Restauration') {
-      iconStr = renderToString(<Utensils size={isActive ? 22 : 18} className="text-white" />)
-      colorClass = 'bg-orange-500'
-    } else if (org.category === 'Banque') {
-      iconStr = renderToString(<Building2 size={isActive ? 22 : 18} className="text-white" />)
-      colorClass = 'bg-gray-600'
-    } else {
-      iconStr = renderToString(<PlusSquare size={isActive ? 22 : 18} className="text-white" />)
-      colorClass = 'bg-blue-500'
-    }
+    // Pictogramme et couleur du secteur de l'établissement (choisis en base)
+    const Icon = iconFor(org.icon, 'building')
+    const iconStr = renderToString(<Icon size={isActive ? 22 : 18} className="text-white" />)
 
     const scaleClass = isActive ? 'scale-125 ring-4 ring-white shadow-[0_10px_30px_rgba(249,115,22,0.4)] z-[9999] active-marker-pulse' : 'hover:scale-110 shadow-lg border-2 border-white'
 
     return L.divIcon({
       className: 'bg-transparent',
       html: `
-        <div class="relative group cursor-pointer flex items-center justify-center w-10 h-10 ${colorClass} rounded-full transform transition-all duration-300 ${scaleClass}">
+        <div style="background:${org.colorHex ?? '#f97316'}" class="relative group cursor-pointer flex items-center justify-center w-10 h-10 rounded-full transform transition-all duration-300 ${scaleClass}">
           ${iconStr}
-          <div class="absolute -bottom-1 w-2 h-2 ${colorClass} rotate-45 border-r-2 border-b-2 border-white"></div>
+          <div style="background:${org.colorHex ?? '#f97316'}" class="absolute -bottom-1 w-2 h-2 rotate-45 border-r-2 border-b-2 border-white"></div>
         </div>
       `,
       iconSize: [40, 40],

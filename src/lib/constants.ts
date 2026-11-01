@@ -1,8 +1,10 @@
-export type Role = 'CLIENT' | 'RECEPTION' | 'AGENT' | 'MANAGER'
+export type Role = 'CLIENT' | 'RECEPTION' | 'AGENT' | 'MANAGER' | 'ORG_ADMIN' | 'VIEWER' | 'SUPER_ADMIN'
 
 // Rôles du personnel d'un établissement, et la page d'arrivée de chacun
 export const STAFF_ROLES: Role[] = ['RECEPTION', 'AGENT', 'MANAGER']
 export function homeForRole(role: Role | undefined) {
+  if (role === 'SUPER_ADMIN') return '/admin'
+  if (role === 'ORG_ADMIN' || role === 'VIEWER') return '/org-admin'
   if (role === 'MANAGER') return '/dashboard'
   if (role === 'AGENT') return '/agent'
   if (role === 'RECEPTION') return '/reception'

@@ -40,3 +40,6 @@ dev.db
 dev.db-journal
 .vercel
 .env*.local
+
+# Identifiants générés localement (jamais commités)
+*.local.txt

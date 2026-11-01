@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, Suspense } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Building2, ArrowRight, ShieldCheck } from 'lucide-react'
 import Link from 'next/link'
 import { homeForRole } from '@/lib/constants'
+import { getPublicConfig } from '@/server/actions/platform'
 
 function ProLoginForm() {
   const router = useRouter()
@@ -16,6 +17,9 @@ function ProLoginForm() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  // Accès démo affichés uniquement si le mode démo est activé dans l'administration
+  const [demoMode, setDemoMode] = useState(false)
+  useEffect(() => { getPublicConfig().then(c => setDemoMode(c.demoMode)).catch(() => {}) }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -59,7 +63,7 @@ function ProLoginForm() {
     }
   }
 
-  const fillDemo = (role: 'manager' | 'agent' | 'accueil') => {
+  const fillDemo = (role: 'manager' | 'agent' | 'accueil' | 'reseau') => {
     setEmail(`${role}@attends.com`)
     setPassword('password123')
   }
@@ -117,9 +121,9 @@ function ProLoginForm() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Adresse email professionnelle</label>
+              <label htmlFor="pro-email" className="block text-sm font-medium text-gray-700 mb-1">Adresse email professionnelle</label>
               <input 
-                type="email" 
+                id="pro-email" type="email" autoComplete="email" 
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -128,9 +132,9 @@ function ProLoginForm() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Mot de passe</label>
+              <label htmlFor="pro-password" className="block text-sm font-medium text-gray-700 mb-1">Mot de passe</label>
               <input 
-                type="password" 
+                id="pro-password" type="password" autoComplete="current-password" 
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -153,9 +157,9 @@ function ProLoginForm() {
           </form>
 
           {/* Boutons démo */}
-          <div className="mt-8 pt-8 border-t border-gray-100">
-            <p className="text-xs text-gray-400 mb-3 text-center uppercase tracking-wider font-semibold">Accès Démo Rapide</p>
-            <div className="grid grid-cols-3 gap-2">
+          {demoMode && <div className="mt-8 pt-8 border-t border-gray-100">
+            <p className="text-xs text-gray-500 mb-3 text-center uppercase tracking-wider font-semibold">Accès Démo Rapide</p>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               <button onClick={() => fillDemo('manager')} type="button" className="text-xs py-2 px-3 bg-gray-50 text-gray-600 rounded-md border border-gray-200 hover:bg-gray-100 transition-all font-medium">
                 Remplir Manager
               </button>
@@ -165,13 +169,16 @@ function ProLoginForm() {
               <button onClick={() => fillDemo('accueil')} type="button" className="text-xs py-2 px-3 bg-gray-50 text-gray-600 rounded-md border border-gray-200 hover:bg-gray-100 transition-all font-medium">
                 Remplir Accueil
               </button>
+              <button onClick={() => fillDemo('reseau')} type="button" className="text-xs py-2 px-3 bg-gray-50 text-gray-600 rounded-md border border-gray-200 hover:bg-gray-100 transition-all font-medium">
+                Remplir Réseau
+              </button>
             </div>
-          </div>
+          </div>}
 
           <div className="mt-8 text-center">
             <p className="text-sm text-gray-500">
               Vous êtes un client ?{' '}
-              <Link href="/auth/login" className="font-semibold text-orange-600 hover:text-orange-500">
+              <Link href="/auth/login" className="font-semibold text-orange-700 hover:text-orange-800">
                 Retour à l'application
               </Link>
             </p>
