@@ -156,7 +156,7 @@ export const GUIDE: GuideSection[] = [
     steps: [
       'Mot de passe oublié : sur la page de connexion, « Mot de passe oublié ? ». Avec un e-mail, vous recevez un lien valable 1 heure ; avec un numéro, un code par SMS.',
       'Un collaborateur créé dans « Équipe & agents » reçoit un mot de passe provisoire (affiché une fois et envoyé par e-mail). Il doit le remplacer à sa première connexion.',
-      'Double authentification : depuis « Sécurité du compte » (bouton bouclier ou fenêtre « Mon profil »), activez un code à 6 chiffres via une application comme Google Authenticator. Elle est obligatoire pour les administrateurs de réseau et de la plateforme. Notez vos 8 codes de secours.',
+      'Double authentification : depuis « Sécurité du compte » (bouton bouclier ou fenêtre « Mon profil »), activez un code à 6 chiffres via une application comme Google Authenticator. Elle est fortement conseillée aux administrateurs de réseau et de la plateforme (un bandeau le rappelle) et deviendra obligatoire pour eux en production. Notez vos 8 codes de secours.',
       'Appareils connectés : « Sécurité du compte » liste les appareils ouverts sur votre compte ; vous pouvez en déconnecter un, ou tous les autres.',
       'Les postes du personnel inactifs depuis 12 heures sont déconnectés automatiquement.'
     ],

@@ -52,6 +52,14 @@ branche de travail ──► staging ──(tests verts + vérification)──�
 BASE_URL=https://lerena1.vercel.app npm run test:smoke
 ```
 
+### Variable de production
+
+Sur le projet Vercel de **production** uniquement : . Elle rend la double authentification obligatoire pour les super-administrateurs et les administrateurs de réseau (sans elle, simple bandeau de rappel), désactive les SMS simulés et protège la base contre les scripts de démonstration.  ou  force ce réglage indépendamment.
+
+### Variable de production
+
+Sur le projet Vercel de **production** uniquement : `ATTENDS_ENV=production`. Elle rend la double authentification obligatoire pour les super-administrateurs et les administrateurs de réseau (sans elle, simple bandeau de rappel), désactive les SMS simulés et protège la base contre les scripts de démonstration. `ENFORCE_2FA=1` ou `0` force ce réglage indépendamment.
+
 ## 3. Commandes utiles
 
 | Commande | Rôle |

@@ -3,7 +3,8 @@
 import bcrypt from 'bcryptjs'
 import QRCode from 'qrcode'
 import { getServerSession } from 'next-auth'
-import { authOptions, TWO_FACTOR_ROLES } from '@/lib/auth'
+import { authOptions } from '@/lib/auth'
+import { twoFactorRequiredFor } from '@/lib/two-factor-policy'
 import { prisma } from '@/lib/prisma'
 import { getSessionUser } from '@/lib/session'
 import { hashSecret, isPlausibleSecret, newSecret } from '@/lib/secrets'
@@ -137,7 +138,7 @@ export async function getSecurityOverview() {
   return {
     email: user.email,
     twoFactorEnabled: user.twoFactorEnabled,
-    twoFactorRequired: TWO_FACTOR_ROLES.includes(user.role as Role),
+    twoFactorRequired: twoFactorRequiredFor(user.role),
     recoveryCodesLeft: user.twoFactorRecovery.length,
     mustChangePassword: user.mustChangePassword,
     sessions: sessions.map(s => ({ ...s, current: s.id === sid, createdAt: s.createdAt.toISOString(), lastSeenAt: s.lastSeenAt.toISOString() }))
@@ -173,7 +174,7 @@ export async function confirmTwoFactor(code: string) {
 export async function disableTwoFactor(code: string) {
   const user = await currentUser()
   if (!user?.twoFactorEnabled || !user.twoFactorSecret) return { success: false, error: 'Double authentification non active' }
-  if (TWO_FACTOR_ROLES.includes(user.role as Role)) return { success: false, error: 'Obligatoire pour votre rôle : elle ne peut pas être désactivée' }
+  if (twoFactorRequiredFor(user.role)) return { success: false, error: 'Obligatoire pour votre rôle : elle ne peut pas être désactivée' }
   if (!verifyTotp(decryptSecret(user.twoFactorSecret), code)) return { success: false, error: 'Code incorrect' }
   await prisma.user.update({ where: { id: user.id }, data: { twoFactorEnabled: false, twoFactorSecret: null, twoFactorRecovery: [] } })
   await audit({ action: 'TWO_FACTOR_DISABLED', targetType: 'User', targetId: user.id })

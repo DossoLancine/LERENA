@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { getNetworkContext } from '@/lib/session'
 import { AdminShell } from '@/components/admin/admin-shell'
+import { TwoFactorNotice } from '@/components/account/two-factor-notice'
 
 // Espace réseau : administrateur (ORG_ADMIN) ou lecteur (VIEWER) d'un groupe d'établissements
 export default async function OrgAdminLayout({ children }: { children: ReactNode }) {
@@ -20,6 +21,7 @@ export default async function OrgAdminLayout({ children }: { children: ReactNode
         { href: '/org-admin/report', label: 'Rapport mensuel' }
       ]}
     >
+      <TwoFactorNotice userId={ctx.userId} />
       {children}
     </AdminShell>
   )

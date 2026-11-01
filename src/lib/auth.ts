@@ -17,8 +17,8 @@ const INVALID = 'Identifiant ou mot de passe incorrect'
 // Message attendu par les pages de connexion pour afficher le champ « code de vérification »
 export const TWO_FACTOR_REQUIRED = '2FA_REQUIRED'
 
-// Rôles pour lesquels la double authentification est obligatoire
-export const TWO_FACTOR_ROLES: Role[] = ['SUPER_ADMIN', 'ORG_ADMIN']
+// Rôles sensibles (double authentification recommandée, obligatoire en production) : voir two-factor-policy
+export { TWO_FACTOR_ROLES } from '@/lib/two-factor-policy'
 
 // Contrôle des sessions : toutes les 5 minutes, et expiration après 12 h d'inactivité sur les postes du personnel
 const CHECK_EVERY_MS = 5 * 60_000

@@ -1,5 +1,6 @@
 import { withAuth } from "next-auth/middleware"
 import { NextResponse } from "next/server"
+import { twoFactorRequiredFor } from "@/lib/two-factor-policy"
 
 export default withAuth(
   function middleware(req) {
@@ -22,8 +23,8 @@ export default withAuth(
       return NextResponse.redirect(new URL('/account/password?required=1', req.url))
     }
 
-    // Administration de la plateforme et des réseaux : double authentification obligatoire
-    const needsTwoFactor = token?.role === 'SUPER_ADMIN' || token?.role === 'ORG_ADMIN'
+    // Administration de la plateforme et des réseaux : double authentification obligatoire en production
+    const needsTwoFactor = twoFactorRequiredFor(token?.role as string | undefined)
     if ((path.startsWith('/admin') || path.startsWith('/org-admin')) && needsTwoFactor && !(token as any)?.tfa) {
       return NextResponse.redirect(new URL('/account/security?required=1', req.url))
     }
