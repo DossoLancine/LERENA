@@ -1,6 +1,10 @@
+// Identifiant de la version mise en ligne : les écrans restés ouverts le comparent pour se recharger
+const BUILD_ID = process.env.VERCEL_DEPLOYMENT_ID || process.env.VERCEL_GIT_COMMIT_SHA || String(Date.now())
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  env: { NEXT_PUBLIC_BUILD_ID: BUILD_ID },
   // Redirection au niveau du serveur : une redirection dans une page fait planter le routeur de Next 14.2
   // lors d'une navigation côté navigateur
   async redirects() {

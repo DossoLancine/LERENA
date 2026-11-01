@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Tv, Tablet, Loader2 } from 'lucide-react'
 import { getDeviceStatus, startPairing, type DeviceType } from '@/server/actions/devices'
 import { usePolling } from '@/hooks/use-polling'
@@ -22,6 +22,7 @@ export function PairingScreen({ type, onPaired }: {
 }) {
   const [code, setCode] = useState<string | null>(null)
   const [token, setToken] = useState<string | null>(null)
+  const failures = useRef(0)
 
   // Jeton existant (appareil déjà enregistré), sinon nouvelle demande de code
   useEffect(() => {
@@ -40,7 +41,16 @@ export function PairingScreen({ type, onPaired }: {
 
   const check = useCallback(async () => {
     if (!token) return
-    const status = await getDeviceStatus(token)
+    let status: Awaited<ReturnType<typeof getDeviceStatus>>
+    try {
+      status = await getDeviceStatus(token)
+      failures.current = 0
+    } catch (error) {
+      // Serveur injoignable plusieurs fois de suite (souvent : nouvelle version en ligne) :
+      // on recharge pour ne jamais laisser affiché un code périmé
+      if (++failures.current >= 3) location.reload()
+      throw error
+    }
     if (!status) {
       // Jeton inconnu (appareil retiré) : on repart de zéro
       try { localStorage.removeItem(deviceTokenKey(type)) } catch {}
