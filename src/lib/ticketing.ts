@@ -30,13 +30,30 @@ export interface IssueTicketInput {
 
 export class TicketError extends Error {}
 
-// File d'un service : par nom ou par préfixe, sinon la première file de l'agence
+// Nom comparable : minuscules, sans accents ni « File » devant
+const normalize = (name: string) =>
+  name.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/^files+/, '').replace(/s+/g, ' ').trim()
+
+/**
+ * File d'un service. La correspondance la plus précise l'emporte : même nom d'abord
+ * (« CONSULTATION » → « File CONSULTATION », jamais « File Consultation générale »),
+ * puis le nom le plus proche, puis la lettre du ticket, sinon la première file de l'agence.
+ */
 export function queueForService<Q extends { name: string; prefix: string }>(service: { name: string; branch: { queues: Q[] } }): Q {
-  return service.branch.queues.find(q =>
-    service.name.toLowerCase().includes(q.name.toLowerCase()) ||
-    q.name.toLowerCase().includes(service.name.toLowerCase()) ||
-    q.prefix.toUpperCase() === service.name.trim()[0]?.toUpperCase()
-  ) || service.branch.queues[0]
+  const target = normalize(service.name)
+  let best: Q | undefined
+  let bestScore = 0
+  for (const q of service.branch.queues) {
+    const name = normalize(q.name)
+    let score = 0
+    if (name === target) score = 1000
+    else if (name.includes(target) || target.includes(name)) {
+      // Plus les deux noms ont une longueur proche, plus la correspondance est précise
+      score = 100 + Math.round((Math.min(name.length, target.length) / Math.max(name.length, target.length)) * 100)
+    } else if (q.prefix.toUpperCase() === service.name.trim()[0]?.toUpperCase()) score = 10
+    if (score > bestScore) { best = q; bestScore = score }
+  }
+  return best ?? service.branch.queues[0]
 }
 
 export async function issueTicket({ orgId, serviceId, priorityId, staff = false, lat, lng, owner }: IssueTicketInput) {
