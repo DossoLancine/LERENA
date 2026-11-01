@@ -3,12 +3,29 @@ import { NextResponse } from "next/server"
 
 export default withAuth(
   function middleware(req) {
-    const token = req.nextauth.token
+    // Une session révoquée ou expirée garde un jeton vide : elle compte comme « non connecté »
+    const token = req.nextauth.token?.id ? req.nextauth.token : null
     const path = req.nextUrl.pathname
 
     const isB2BRoute = ['/dashboard', '/agent', '/reception', '/org-admin', '/admin'].some(p => path.startsWith(p))
     if (isB2BRoute && !token) {
       return NextResponse.redirect(new URL('/pro/login', req.url))
+    }
+
+    // Sécurité du compte (changement de mot de passe, double authentification) : il faut être connecté
+    if (path.startsWith('/account') && !token) {
+      return NextResponse.redirect(new URL(`/auth/login?callbackUrl=${encodeURIComponent(path)}`, req.url))
+    }
+
+    // Mot de passe provisoire : à changer avant d'accéder à son espace
+    if (isB2BRoute && (token as any)?.mcp) {
+      return NextResponse.redirect(new URL('/account/password?required=1', req.url))
+    }
+
+    // Administration de la plateforme et des réseaux : double authentification obligatoire
+    const needsTwoFactor = token?.role === 'SUPER_ADMIN' || token?.role === 'ORG_ADMIN'
+    if ((path.startsWith('/admin') || path.startsWith('/org-admin')) && needsTwoFactor && !(token as any)?.tfa) {
+      return NextResponse.redirect(new URL('/account/security?required=1', req.url))
     }
 
     if (path.startsWith('/dashboard') && token?.role !== 'MANAGER') {
@@ -49,5 +66,5 @@ export default withAuth(
 )
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/agent/:path*', '/reception/:path*', '/org-admin/:path*', '/admin/:path*', '/favorites/:path*']
+  matcher: ['/dashboard/:path*', '/agent/:path*', '/reception/:path*', '/org-admin/:path*', '/admin/:path*', '/favorites/:path*', '/account/:path*']
 }

@@ -13,12 +13,16 @@ function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get('callbackUrl')
+  const justReset = searchParams.get('reset') === '1'
   
   const [email, setEmail] = useState('')
   const [demoMode, setDemoMode] = useState(false)
   useEffect(() => { getPublicConfig().then(c => setDemoMode(c.demoMode)).catch(() => {}) }, [])
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  // Double authentification : le champ « code » apparaît quand le serveur le demande
+  const [needOtp, setNeedOtp] = useState(false)
+  const [otp, setOtp] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -30,9 +34,15 @@ function LoginForm() {
       const res = await signIn('credentials', {
         redirect: false,
         identifier: email.trim(),
+        otp: needOtp ? otp.trim() : '',
         password
       })
 
+      if (res?.error === '2FA_REQUIRED') {
+        setNeedOtp(true)
+        setIsLoading(false)
+        return
+      }
       if (res?.error) {
         setError(res.error === 'CredentialsSignin' ? 'Identifiants incorrects' : res.error)
         setIsLoading(false)
@@ -104,6 +114,8 @@ function LoginForm() {
           </div>
         </div>}
 
+        {justReset && !error && <p role="status" className="mb-4 rounded-xl bg-green-50 p-3 text-sm font-medium text-green-800">Mot de passe modifié : connectez-vous avec le nouveau.</p>}
+
         {error && (
           <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-xl text-sm font-medium border border-red-100">
             {error}
@@ -128,7 +140,18 @@ function LoginForm() {
               className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-orange-500 focus:bg-white transition-all text-lg tracking-widest"
               placeholder="••••••"
             />
+            <Link href="/auth/forgot" className="mt-2 inline-block text-sm font-medium text-orange-700">Code PIN oublié ?</Link>
           </div>
+          {needOtp && (
+            <div className="animate-rise-in">
+              <label htmlFor="login-otp" className="block text-sm font-medium text-gray-700 mb-1">Code de vérification</label>
+              <input id="login-otp" inputMode="numeric" autoComplete="one-time-code" autoFocus required value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-orange-500 focus:bg-white text-lg tracking-widest"
+                placeholder="123456" />
+              <p className="mt-1 text-xs text-gray-500">Code à 6 chiffres de votre application d’authentification, ou un code de secours.</p>
+            </div>
+          )}
           
           <button 
             type="submit" 

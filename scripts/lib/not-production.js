@@ -1,9 +1,10 @@
 // Garde-fou : les scripts de démonstration et de remise à zéro ne tournent JAMAIS sur la base de production.
-// La production est reconnue par l'identifiant de son projet Supabase (ce n'est pas un secret).
+// La production est désignée par PRODUCTION_DB_REF (identifiant du projet Supabase de production, à définir
+// le jour de la mise en production) ou par ATTENDS_ENV=production. La base actuelle est la base de TEST.
 const fs = require('fs')
 const path = require('path')
 
-const PRODUCTION_DB_REF = process.env.PRODUCTION_DB_REF || 'cbfydcuvbciofkttdwlt'
+const PRODUCTION_DB_REF = process.env.PRODUCTION_DB_REF || ''
 
 // Variables du fichier .env (Prisma les chargerait de toute façon) : le garde-fou doit voir la même base
 function loadDotEnv() {
@@ -23,7 +24,7 @@ function assertNotProduction(scriptName) {
     console.error(`⛔ ${scriptName} : DATABASE_URL absent.`)
     process.exit(1)
   }
-  if (url.includes(PRODUCTION_DB_REF)) {
+  if (process.env.ATTENDS_ENV === 'production' || (PRODUCTION_DB_REF && url.includes(PRODUCTION_DB_REF))) {
     console.error(`⛔ ${scriptName} refusé : DATABASE_URL pointe vers la base de PRODUCTION.`)
     console.error('   Ces données de démonstration (mots de passe connus, remises à zéro) sont réservées à la base de test.')
     process.exit(1)

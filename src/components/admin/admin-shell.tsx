@@ -4,7 +4,7 @@ import { useRef, type ReactNode } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { signOut } from 'next-auth/react'
-import { LogOut } from 'lucide-react'
+import { LogOut, ShieldCheck } from 'lucide-react'
 import { Badge } from '@/components/ui'
 import { cn } from '@/lib/cn'
 import { useSlidingIndicator } from '@/hooks/use-sliding-indicator'
@@ -33,10 +33,15 @@ export function AdminShell({ eyebrow, title, badge, tabs, children }: {
               {badge && <Badge tone="info">{badge}</Badge>}
             </div>
           </div>
+          <div className="flex items-center gap-1">
+          <Link href="/account/security" aria-label="Sécurité du compte" title="Sécurité du compte" className="inline-flex min-h-touch items-center rounded-control px-3 text-ink-muted hover:bg-gray-100">
+            <ShieldCheck size={18} aria-hidden="true" />
+          </Link>
           <button onClick={() => signOut({ callbackUrl: '/pro/login' })}
             className="inline-flex min-h-touch items-center gap-2 rounded-control px-3 text-sm font-semibold text-ink-muted hover:bg-gray-100">
             <LogOut size={16} aria-hidden="true" /> Déconnexion
           </button>
+          </div>
         </div>
         <nav ref={navRef} aria-label={eyebrow} className="hide-scrollbar relative mx-auto flex max-w-6xl gap-1 overflow-x-auto px-4 pb-3">
           <span aria-hidden="true" className="pointer-events-none absolute left-0 top-0 rounded-xl bg-brand shadow-sm transition-[transform,width,opacity] duration-500 ease-spring" style={indicator} />

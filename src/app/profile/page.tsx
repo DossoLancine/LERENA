@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useSession, signOut } from 'next-auth/react'
 import { InstallAppButton } from '@/components/pwa/install'
-import { LogOut, Type, Contrast, Languages, Bell, Trash2, BarChart3, Headset, Pencil } from 'lucide-react'
+import { LogOut, Type, Contrast, Languages, Bell, Trash2, BarChart3, Headset, Pencil, ShieldCheck } from 'lucide-react'
 import UserProfileForm from '@/components/profile/user-profile-form'
 import { Button, Card, Dialog, BottomSheet, useToast } from '@/components/ui'
 import { getMySummary, deleteMyAccount } from '@/server/actions/me'
@@ -160,6 +160,9 @@ export default function ProfilePage() {
 
         {session?.user && (
           <div className="space-y-3">
+            <Link href="/account/security" className="flex min-h-touch items-center justify-center gap-2 rounded-control border border-gray-200 bg-white text-sm font-semibold text-ink">
+              <ShieldCheck size={16} aria-hidden="true" /> Sécurité du compte
+            </Link>
             <Button variant="secondary" fullWidth icon={<LogOut size={16} />} onClick={() => signOut({ callbackUrl: '/' })}>{t('common.logout')}</Button>
             {role === 'CLIENT' && (
               <button onClick={() => setConfirmDelete(true)} className="flex w-full items-center justify-center gap-2 py-3 text-sm font-medium text-danger">

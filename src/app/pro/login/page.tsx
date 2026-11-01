@@ -12,10 +12,14 @@ function ProLoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get('callbackUrl')
+  const justReset = searchParams.get('reset') === '1'
   
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  // Double authentification : le champ « code » apparaît quand le serveur le demande
+  const [needOtp, setNeedOtp] = useState(false)
+  const [otp, setOtp] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   // Accès démo affichés uniquement si le mode démo est activé dans l'administration
   const [demoMode, setDemoMode] = useState(false)
@@ -29,10 +33,16 @@ function ProLoginForm() {
     try {
       const res = await signIn('credentials', {
         redirect: false,
-        identifier: email.trim(), // Le backend gère identifier
+        identifier: email.trim(),
+        otp: needOtp ? otp.trim() : '', // Le backend gère identifier
         password
       })
 
+      if (res?.error === '2FA_REQUIRED') {
+        setNeedOtp(true)
+        setIsLoading(false)
+        return
+      }
       if (res?.error) {
         setError(res.error === 'CredentialsSignin' ? 'Identifiants incorrects' : res.error)
         setIsLoading(false)
@@ -113,6 +123,8 @@ function ProLoginForm() {
             <p className="text-sm text-gray-500">Connectez-vous à votre espace de gestion.</p>
           </div>
 
+          {justReset && !error && <p role="status" className="mb-4 rounded-xl bg-green-50 p-3 text-sm font-medium text-green-800">Mot de passe modifié : connectez-vous avec le nouveau.</p>}
+
           {error && (
             <div className="mb-6 p-3 bg-red-50 text-red-600 rounded-lg text-sm border border-red-100 flex items-center gap-2">
               <span className="font-medium">{error}</span>
@@ -141,7 +153,18 @@ function ProLoginForm() {
                 className="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all sm:text-sm"
                 placeholder="••••••••"
               />
+              <Link href="/auth/forgot" className="mt-2 inline-block text-sm font-medium text-orange-700 hover:text-orange-800">Mot de passe oublié ?</Link>
             </div>
+            {needOtp && (
+              <div className="animate-rise-in">
+                <label htmlFor="pro-otp" className="block text-sm font-medium text-gray-700 mb-1">Code de vérification</label>
+                <input id="pro-otp" inputMode="numeric" autoComplete="one-time-code" autoFocus required value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                  className="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-gray-900 tracking-widest focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="123456" />
+                <p className="mt-1 text-xs text-gray-500">Code à 6 chiffres de votre application d’authentification, ou un code de secours.</p>
+              </div>
+            )}
 
             <button 
               type="submit" 

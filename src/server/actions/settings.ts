@@ -159,7 +159,9 @@ export async function addMemberToOrganization(orgId: string, data: {
           name: data.name,
           phone: data.phone || null,
           password: await bcrypt.hash(defaultPassword, 10),
-          role
+          role,
+          // Mot de passe généré : à changer à la première connexion
+          mustChangePassword: !!generatedPassword
         },
         include: { memberships: { select: { organizationId: true } } }
       })
