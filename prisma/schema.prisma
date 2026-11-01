@@ -31,29 +31,32 @@ model User {
 }
 
 model Organization {
-  id              String   @id @default(cuid())
-  name            String
-  category        String
-  description     String?
-  address         String?
-  city            String?
-  lat             Float?
-  lng             Float?
-  phone           String?
-  email           String?
-  logo            String?
-  isActive        Boolean  @default(true)
-  tvVideoUrl      String?
-  tvMode          String   @default("HYBRID")
-  tvQueueDuration Int      @default(30)
-  tvVideoDuration Int      @default(30)
-  maxRadiusKm     Float    @default(10.0)
-  requireGps      Boolean  @default(false)
-  bookingMode     String   @default("QUEUE_ONLY") // Options: "QUEUE_ONLY", "APPOINTMENT_ONLY", "HYBRID"
-  networkId       String?
-  sectorId        String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                   String   @id @default(cuid())
+  name                 String
+  category             String
+  description          String?
+  address              String?
+  city                 String?
+  lat                  Float?
+  lng                  Float?
+  phone                String?
+  email                String?
+  logo                 String?
+  isActive             Boolean  @default(true)
+  tvVideoUrl           String?
+  tvMode               String   @default("HYBRID")
+  tvQueueDuration      Int      @default(30)
+  tvVideoDuration      Int      @default(30)
+  maxRadiusKm          Float    @default(10.0)
+  requireGps           Boolean  @default(false)
+  bookingMode          String   @default("QUEUE_ONLY") // Options: "QUEUE_ONLY", "APPOINTMENT_ONLY", "HYBRID"
+  // Le visiteur peut-il choisir lui-même une priorité ? (par défaut non : elle s'attribue à l'accueil)
+  visitorPriorityApp   Boolean  @default(false)
+  visitorPriorityKiosk Boolean  @default(false)
+  networkId            String?
+  sectorId             String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
   members            OrganizationMember[]
   branches           Branch[]

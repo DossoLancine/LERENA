@@ -4,6 +4,13 @@ export { PRIORITY_LEVELS, priorityText } from '@/lib/priority-text'
 // Priorités : chaque établissement définit ses motifs (Paramètres → Priorités).
 // Niveau 1 = sans priorité, 2 = prioritaire, 3 = très prioritaire. Dans une file, un niveau plus élevé
 // passe devant ; à niveau égal, l'ordre d'arrivée dans la file (un client transféré se place derrière le dernier arrivé).
+//
+// Qui attribue une priorité :
+// - l'accueil (personnel) : tous les motifs actifs ;
+// - le visiteur, dans l'application ou à la borne : seulement si l'établissement a activé ce canal
+//   (désactivé par défaut) et seulement les motifs « proposés aux visiteurs ».
+
+export type PriorityChannel = 'staff' | 'app' | 'kiosk'
 
 // Motifs créés pour chaque nouvel établissement (modifiables ensuite)
 export const DEFAULT_PRIORITIES = [
@@ -15,27 +22,38 @@ export const DEFAULT_PRIORITIES = [
 
 export class PriorityError extends Error {}
 
+/** Le visiteur peut-il choisir une priorité sur ce canal ? (réglage de l'établissement) */
+async function channelOpen(orgId: string, channel: PriorityChannel) {
+  if (channel === 'staff') return true
+  const org = await prisma.organization.findUnique({
+    where: { id: orgId },
+    select: { visitorPriorityApp: true, visitorPriorityKiosk: true }
+  })
+  return channel === 'app' ? !!org?.visitorPriorityApp : !!org?.visitorPriorityKiosk
+}
+
 /**
  * Niveau et motif d'un ticket, décidés côté serveur à partir du motif choisi.
- * staff = accueil ou agent : peut attribuer tous les motifs ; sinon seulement ceux ouverts au visiteur.
+ * Une demande de priorité sur un canal fermé est ignorée : le ticket reste normal.
  */
-export async function resolvePriority(orgId: string, priorityId: string | null | undefined, staff: boolean) {
-  if (!priorityId) return { score: 1, reason: null as string | null }
+export async function resolvePriority(orgId: string, priorityId: string | null | undefined, channel: PriorityChannel) {
+  const none = { score: 1, reason: null as string | null }
+  if (!priorityId || !(await channelOpen(orgId, channel))) return none
   const category = await prisma.priorityCategory.findFirst({
     where: { id: priorityId, organizationId: orgId, isActive: true },
     select: { label: true, level: true, selfService: true }
   })
   if (!category) throw new PriorityError('Ce motif de priorité n’existe plus. Choisissez-en un autre.')
-  if (!staff && !category.selfService) throw new PriorityError('Cette priorité est attribuée par l’accueil.')
+  if (channel !== 'staff' && !category.selfService) return none
   return { score: Math.min(3, Math.max(2, category.level)), reason: category.label }
 }
 
-/** Motifs proposés : au visiteur (application, borne) ou au personnel (accueil). */
-export async function priorityOptions(orgId: string, audience: 'visitor' | 'staff') {
+/** Motifs proposés sur un canal : tous à l'accueil ; côté visiteur, rien si le canal est fermé. */
+export async function priorityOptions(orgId: string, channel: PriorityChannel = 'staff') {
+  if (!(await channelOpen(orgId, channel))) return []
   return prisma.priorityCategory.findMany({
-    where: { organizationId: orgId, isActive: true, ...(audience === 'visitor' ? { selfService: true } : {}) },
+    where: { organizationId: orgId, isActive: true, ...(channel !== 'staff' ? { selfService: true } : {}) },
     orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
     select: { id: true, label: true, level: true }
   })
 }
-

@@ -137,8 +137,8 @@ export async function getOrganizationById(id: string, userLat?: number, userLng?
         where: { status: 'WAITING', service: { branch: { organizationId: id } } },
         _count: { _all: true }
       }),
-      // Motifs de priorité que le visiteur peut choisir lui-même
-      priorityOptions(id, 'visitor')
+      // Motifs proposés dans l'application (vide si l'établissement ne l'autorise pas)
+      priorityOptions(id, 'app')
     ])
 
     if (!org) return null;

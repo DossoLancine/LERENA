@@ -29,7 +29,7 @@ export async function getReceptionBoard() {
       _count: { _all: true }
     }),
     // L'accueil peut attribuer tous les motifs, y compris ceux réservés au personnel
-    priorityOptions(ctx.orgId, 'staff')
+    priorityOptions(ctx.orgId)
   ])
   if (!org) return null
 
@@ -74,7 +74,7 @@ export async function issueReceptionTicket(input: { serviceId: string; priorityI
       orgId: ctx.orgId,
       serviceId: input.serviceId,
       priorityId: input.priorityId ?? null,
-      staff: true,
+      channel: 'staff',
       owner: { userId: null, name: input.name?.trim().slice(0, 60) || 'Accueil', phone, actorId: ctx.userId }
     })
 
@@ -117,7 +117,7 @@ export async function setTicketPriority(ticketId: string, priorityId: string | n
   if (!ctx) return { success: false }
   let priority: Awaited<ReturnType<typeof resolvePriority>>
   try {
-    priority = await resolvePriority(ctx.orgId, priorityId, true)
+    priority = await resolvePriority(ctx.orgId, priorityId, 'staff')
   } catch {
     return { success: false }
   }
