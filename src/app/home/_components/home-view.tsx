@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { DynamicIcon, sectorColor } from '@/lib/icons'
 import { Search, Compass, Ticket, Heart, User as UserIcon, Home as HomeIcon, MapPin, Clock, Users, ChevronRight } from 'lucide-react'
 import { getOrganizations } from '@/server/actions/orgs'
-import { ClientNav } from '@/components/navigation/client-nav'
 
 type Org = Awaited<ReturnType<typeof getOrganizations>>[number]
 
@@ -111,10 +110,10 @@ export default function HomeView({ userName, activeTicket, initialOrgs, sectors 
             <h2 className="text-lg font-bold text-gray-900">À proximité</h2>
             <Link href="/explore" className="text-sm font-semibold text-orange-500">Voir tout</Link>
           </div>
-          <div className="space-y-3">
+          <div className="stagger space-y-3">
             {popularOrgs.map((org) => (
               <Link key={org.id} href={`/org/${org.id}`}>
-                <div className="bg-white rounded-2xl border border-gray-100 p-4 hover:shadow-md transition-all flex items-center gap-3">
+                <div className="bg-white rounded-2xl border border-gray-100 p-4 lift flex items-center gap-3">
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl ${org.color}`}>
                     <DynamicIcon name={org.icon} size={24} />
                   </div>
@@ -135,7 +134,6 @@ export default function HomeView({ userName, activeTicket, initialOrgs, sectors 
 
       </div>
       
-      <ClientNav />
     </div>
   )
 }

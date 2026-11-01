@@ -28,7 +28,7 @@ export default function DataSettingsPage() {
           type="button"
           onClick={handleExportCSV}
           disabled={exportingCsv}
-          className="flex items-center gap-2 bg-green-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold hover:bg-green-700 active:scale-95 transition-all shadow-md shadow-green-200 disabled:opacity-50 whitespace-nowrap"
+          className="flex items-center gap-2 bg-green-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold hover:bg-green-700 transition-all shadow-md shadow-green-200 disabled:opacity-50 whitespace-nowrap"
         >
           <Download size={15} />
           {exportingCsv ? 'Génération...' : 'Exporter les Tickets (CSV)'}
@@ -51,7 +51,7 @@ export default function DataSettingsPage() {
           type="button"
           onClick={handleResetQueue}
           disabled={resettingQueue}
-          className="flex items-center gap-2 bg-red-50 text-red-600 border border-red-200 px-5 py-2.5 rounded-xl text-xs font-bold hover:bg-red-600 hover:text-white active:scale-95 transition-all disabled:opacity-50 whitespace-nowrap"
+          className="flex items-center gap-2 bg-red-50 text-red-600 border border-red-200 px-5 py-2.5 rounded-xl text-xs font-bold hover:bg-red-600 hover:text-white transition-all disabled:opacity-50 whitespace-nowrap"
         >
           <RefreshCw size={15} className={resettingQueue ? 'animate-spin' : ''} />
           {resettingQueue ? 'Réinitialisation...' : 'Remettre la File à Zéro'}

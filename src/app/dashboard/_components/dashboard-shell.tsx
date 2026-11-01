@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, type ReactNode } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { signOut } from 'next-auth/react'
@@ -10,6 +10,7 @@ import { Button, Dialog, IconButton, DashboardSkeleton } from '@/components/ui'
 import { cn } from '@/lib/cn'
 import { t, type MessageKey } from '@/lib/i18n'
 import { useDashboard } from './dashboard-context'
+import { useSlidingIndicator } from '@/hooks/use-sliding-indicator'
 
 const TABS: { href: string; label: MessageKey }[] = [
   { href: '/dashboard', label: 'dashboard.tabs.overview' },
@@ -32,6 +33,8 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   const pathname = usePathname()
   const { stats, loading, toggleOpen } = useDashboard()
   const [showProfile, setShowProfile] = useState(false)
+  const navRef = useRef<HTMLElement>(null)
+  const indicator = useSlidingIndicator(navRef, `${pathname}:${!!stats}`)
 
   if (loading && !stats) return <DashboardSkeleton />
 
@@ -51,7 +54,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
               aria-pressed={isOpen}
               aria-label={t('dashboard.toggleOpen')}
               className={cn(
-                'flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all active:scale-95',
+                'flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all',
                 isOpen ? 'border-green-200 bg-success-soft text-success-ink' : 'border-red-200 bg-danger-soft text-danger-ink'
               )}
             >
@@ -59,7 +62,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
               {isOpen ? t('common.open') : t('common.closed')}
             </button>
             <Link href="/dashboard/settings" aria-label={t('dashboard.settingsShortcut')} title={t('dashboard.settingsShortcut')}
-              className={cn('inline-flex h-10 w-10 items-center justify-center rounded-full transition-all active:scale-95',
+              className={cn('inline-flex h-10 w-10 items-center justify-center rounded-full transition-all',
                 pathname.startsWith('/dashboard/settings') ? 'bg-brand text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200')}>
               <Settings size={18} />
             </Link>
@@ -69,7 +72,8 @@ export function DashboardShell({ children }: { children: ReactNode }) {
           </div>
         </div>
 
-        <nav className="hide-scrollbar mx-auto flex max-w-5xl gap-1 overflow-x-auto px-4 pb-3" aria-label={t('dashboard.eyebrow')}>
+        <nav ref={navRef} className="hide-scrollbar relative mx-auto flex max-w-5xl gap-1 overflow-x-auto px-4 pb-3" aria-label={t('dashboard.eyebrow')}>
+          <span aria-hidden="true" className="pointer-events-none absolute left-0 top-0 rounded-xl bg-brand shadow-sm transition-[transform,width,opacity] duration-500 ease-spring" style={indicator} />
           {TABS.map(tab => {
             const active = isActive(pathname, tab.href)
             return (
@@ -78,8 +82,8 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                 href={tab.href}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  'shrink-0 rounded-xl px-4 py-2 text-sm font-medium transition-all',
-                  active ? 'bg-brand text-white shadow-sm' : 'text-ink-muted hover:bg-gray-100'
+                  'relative z-10 shrink-0 rounded-xl px-4 py-2 text-sm font-medium transition-colors',
+                  active ? 'text-white' : 'text-ink-muted hover:bg-gray-100'
                 )}
               >
                 {t(tab.label)}

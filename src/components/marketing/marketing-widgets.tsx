@@ -182,7 +182,7 @@ export function PromoCarousel({
               <button
                 onClick={() => handleClaim(promo.id)}
                 disabled={isClaiming}
-                className="w-full py-2.5 px-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 active:scale-[0.99] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition-all"
+                className="w-full py-2.5 px-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition-all"
               >
                 <Sparkles size={14} />
                 {isClaiming ? 'Activation en cours...' : 'Ajouter à ma visite (Payer au guichet)'}

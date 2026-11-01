@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { DynamicIcon } from '@/lib/icons'
 import { getOrganizations } from '@/server/actions/orgs'
 import dynamic from 'next/dynamic'
-import { ClientNav } from '@/components/navigation/client-nav'
 
 // Dynamic import for Leaflet (SSR disabled)
 const ExploreMap = dynamic(() => import('@/components/maps/explore-map'), {
@@ -117,11 +116,11 @@ export default function ExploreView({ initialOrgs, sectors, defaultCenter }: { i
         {isMapView ? (
           <ExploreMap orgs={filtered} userLocation={location} defaultCenter={defaultCenter} />
         ) : (
-          <div className="max-w-lg mx-auto px-4 py-4 space-y-3 pb-24">
+          <div className="stagger max-w-lg mx-auto px-4 py-4 space-y-3 pb-24">
         <p className="text-sm text-gray-500">{filtered.length} établissement{filtered.length > 1 ? 's' : ''}</p>
         {filtered.map((org) => (
           <Link key={org.id} href={`/org/${org.id}`}>
-            <div className="bg-white rounded-2xl border border-gray-100 p-4 hover:shadow-md transition-all flex items-center gap-3">
+            <div className="bg-white rounded-2xl border border-gray-100 p-4 lift flex items-center gap-3">
               <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl ${org.color}`}>
                 <DynamicIcon name={org.icon} size={24} />
               </div>
@@ -155,7 +154,6 @@ export default function ExploreView({ initialOrgs, sectors, defaultCenter }: { i
           </div>
         )}
       </div>
-      <ClientNav />
     </div>
   )
 }

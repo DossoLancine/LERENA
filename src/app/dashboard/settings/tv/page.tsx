@@ -284,7 +284,7 @@ export default function TvSettingsPage() {
         <button
           type="submit"
           disabled={saving}
-          className="flex items-center gap-2 bg-orange-500 text-white font-semibold px-6 py-2.5 rounded-xl hover:bg-orange-600 active:scale-95 transition-all text-sm shadow-md shadow-orange-200 disabled:opacity-50"
+          className="flex items-center gap-2 bg-orange-500 text-white font-semibold px-6 py-2.5 rounded-xl hover:bg-orange-600 transition-all text-sm shadow-md shadow-orange-200 disabled:opacity-50"
         >
           <Save size={16} />
           {saving ? 'Enregistrement...' : 'Enregistrer la configuration TV'}

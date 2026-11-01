@@ -220,7 +220,7 @@ export default function OrgView({ params, initialOrg, initialIsFavorite }: {
         {/* Services */}
         <div className="bg-white rounded-2xl border border-gray-100 p-4 mb-4">
           <h2 className="font-semibold text-gray-900 mb-3">Choisissez un service</h2>
-          <div className="space-y-2">
+          <div className="stagger space-y-2">
             {services.map((svc: any) => (
               <button
                 key={svc.id}
@@ -230,7 +230,7 @@ export default function OrgView({ params, initialOrg, initialIsFavorite }: {
                 disabled={!org.isActive}
                 className={`w-full flex items-center justify-between p-3 rounded-xl border-2 transition-all text-left ${
                   selectedService === svc.id
-                    ? 'border-orange-500 bg-orange-50'
+                    ? 'border-brand bg-orange-50 shadow-[0_6px_20px_-10px_rgba(194,65,12,0.45)]'
                     : 'border-gray-100 hover:border-gray-200 bg-gray-50'
                 } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
@@ -250,7 +250,7 @@ export default function OrgView({ params, initialOrg, initialIsFavorite }: {
                 <div className="text-right shrink-0 ml-3">
                   <span className="text-sm font-semibold text-orange-500">~{svc.waitMin || 0} min</span>
                   {selectedService === svc.id && (
-                    <CheckCircle2 size={16} className="text-orange-500 mt-1 ml-auto" />
+                    <CheckCircle2 size={16} className="text-brand mt-1 ml-auto animate-pop-in" />
                   )}
                 </div>
               </button>
@@ -312,7 +312,7 @@ export default function OrgView({ params, initialOrg, initialIsFavorite }: {
             <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 safe-bottom z-30">
               <div className="max-w-lg mx-auto">
                 {selectedService && service ? (
-                  <div className="mb-3 p-3 bg-orange-50 rounded-xl flex items-center justify-between">
+                  <div key={service.id} className="mb-3 p-3 bg-orange-50 rounded-xl flex items-center justify-between animate-rise-in">
                     <div>
                       <p className="text-xs text-gray-500">Service sélectionné</p>
                       <p className="text-sm font-semibold text-gray-900">{service.name}</p>

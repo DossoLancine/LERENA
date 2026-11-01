@@ -38,8 +38,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       disabled={disabled || loading}
       aria-busy={loading || undefined}
       className={cn(
-        'inline-flex items-center justify-center rounded-control font-semibold transition-all duration-150',
-        'active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100',
+        'inline-flex items-center justify-center rounded-control font-semibold',
+        ' disabled:cursor-not-allowed disabled:opacity-50',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2',
         variants[variant],
         sizes[size],
@@ -73,7 +73,7 @@ export const IconButton = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTM
         aria-label={label}
         title={label}
         className={cn(
-          'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-all active:scale-95',
+          'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2',
           tone === 'neutral' && 'bg-gray-100 text-gray-700 hover:bg-gray-200',
           tone === 'brand' && 'bg-brand-50 text-brand-600 hover:bg-brand-100',

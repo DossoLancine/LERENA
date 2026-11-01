@@ -147,7 +147,7 @@ export default function ReceptionPage() {
                   <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label={t('reception.priority')}>
                     {PRIORITIES.map(p => (
                       <button key={p.value} role="radio" aria-checked={priority === p.value} onClick={() => { haptics.tap(); setPriority(p.value) }}
-                        className={cn('flex min-h-touch items-center justify-center gap-2 rounded-2xl border-2 px-3 py-3 text-sm font-bold transition-all active:scale-95',
+                        className={cn('flex min-h-touch items-center justify-center gap-2 rounded-2xl border-2 px-3 py-3 text-sm font-bold transition-all',
                           priority === p.value
                             ? p.value === 'VIP' ? 'border-danger bg-danger-soft text-danger-ink' : p.value === 'PRIORITY' ? 'border-info bg-info-soft text-info-ink' : 'border-brand bg-brand-50 text-brand-700'
                             : 'border-surface-line text-ink-muted')}>
@@ -175,7 +175,7 @@ export default function ReceptionPage() {
                   <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                     {board.services.map(s => (
                       <button key={s.id} onClick={() => issue(s.id)} disabled={!!busyService}
-                        className={cn('relative flex min-h-[120px] flex-col justify-between rounded-card border-2 bg-white p-5 text-left shadow-card transition-all hover:border-brand active:scale-[0.98] disabled:opacity-60',
+                        className={cn('relative flex min-h-[120px] flex-col justify-between rounded-card border-2 bg-white p-5 text-left shadow-card transition-all hover:border-brand disabled:opacity-60',
                           s.id === quietest && board.services.length > 1 ? 'border-green-300' : 'border-surface-line')}>
                         {s.id === quietest && board.services.length > 1 && (
                           <span className="absolute right-3 top-3 rounded-full bg-success-soft px-2 py-0.5 text-[11px] font-bold text-success-ink">{t('reception.quietest')}</span>

@@ -1,5 +1,6 @@
 import type { HTMLAttributes, ReactNode } from 'react'
 import { cn } from '@/lib/cn'
+import { AnimatedNumber } from './animated-number'
 
 /** Carte blanche standard. */
 export function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
@@ -47,7 +48,7 @@ export function StatCard({ label, value, icon, hint, hintTone = 'neutral' }: {
           </span>
         )}
       </div>
-      <p className="text-3xl font-black tabular-nums text-ink">{value}</p>
+      <p className="text-3xl font-black tabular-nums text-ink">{typeof value === 'number' ? <AnimatedNumber value={value} /> : value}</p>
       <p className="mt-1 text-xs text-ink-muted">{label}</p>
     </Card>
   )

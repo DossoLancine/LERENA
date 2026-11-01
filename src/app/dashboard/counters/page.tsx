@@ -90,7 +90,7 @@ export default function DashboardCountersPage() {
                 return (
                   <button key={svc.id} aria-pressed={on}
                     onClick={() => update(counter.id, { serviceIds: on ? counter.serviceIds.filter(x => x !== svc.id) : [...counter.serviceIds, svc.id] })}
-                    className={cn('rounded-full border px-3 py-1.5 text-xs font-semibold transition-all active:scale-95',
+                    className={cn('rounded-full border px-3 py-1.5 text-xs font-semibold transition-all',
                       on ? 'border-brand bg-brand-50 text-brand-700' : 'border-gray-200 text-ink-muted hover:bg-gray-50')}>
                     {svc.name}
                   </button>

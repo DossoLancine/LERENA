@@ -84,7 +84,7 @@ export default function AppointmentBookingForm({ orgId, serviceId, orgName }: { 
             const active = day === d
             return (
               <button key={d} role="radio" aria-checked={active} onClick={() => { haptics.tap(); setDay(d) }}
-                className={cn('flex min-w-[70px] flex-col items-center justify-center rounded-xl border-2 p-3 transition-all active:scale-95',
+                className={cn('flex min-w-[70px] flex-col items-center justify-center rounded-xl border-2 p-3 transition-all',
                   active ? 'border-brand bg-brand-50 text-brand-700' : 'border-surface-line text-ink-muted hover:border-gray-200')}>
                 <span className="text-xs font-medium uppercase">{date.toLocaleDateString('fr-FR', { weekday: 'short', timeZone: 'UTC' })}</span>
                 <span className="text-xl font-bold">{date.getUTCDate()}</span>
@@ -107,7 +107,7 @@ export default function AppointmentBookingForm({ orgId, serviceId, orgName }: { 
               {slots.map(s => (
                 <button key={s.time} role="radio" aria-checked={time === s.time} disabled={!s.available}
                   onClick={() => { haptics.tap(); setTime(s.time) }}
-                  className={cn('min-h-[44px] rounded-lg border-2 px-1 text-sm font-semibold transition-all active:scale-95 disabled:cursor-not-allowed disabled:border-transparent disabled:bg-gray-50 disabled:text-gray-300 disabled:line-through',
+                  className={cn('min-h-[44px] rounded-lg border-2 px-1 text-sm font-semibold transition-all disabled:cursor-not-allowed disabled:border-transparent disabled:bg-gray-50 disabled:text-gray-300 disabled:line-through',
                     time === s.time ? 'border-brand bg-brand-50 text-brand-700' : 'border-surface-line text-gray-700 hover:border-gray-200')}>
                   {s.time}
                 </button>

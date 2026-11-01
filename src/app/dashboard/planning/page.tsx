@@ -70,13 +70,13 @@ export default function DashboardPlanningPage() {
       <Card className="flex flex-wrap items-center justify-between gap-3 p-4">
         <div className="flex items-center gap-2">
           <button onClick={() => setMonday(m => new Date(m.getTime() - 7 * 86400_000))} aria-label={t('planning.prevWeek')}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 active:scale-95"><ChevronLeft size={18} /></button>
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100"><ChevronLeft size={18} /></button>
           <div className="min-w-[180px] text-center">
             <p className="text-xs text-ink-muted">{t('planning.title')}</p>
             <p className="font-bold text-ink">{weekLabel}</p>
           </div>
           <button onClick={() => setMonday(m => new Date(m.getTime() + 7 * 86400_000))} aria-label={t('planning.nextWeek')}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 active:scale-95"><ChevronRight size={18} /></button>
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100"><ChevronRight size={18} /></button>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="secondary" size="sm" className="whitespace-nowrap" onClick={() => setMonday(mondayOf(new Date()))}>{t('planning.thisWeek')}</Button>
