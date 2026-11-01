@@ -60,7 +60,7 @@ export default function TicketsPage() {
     haptics.tap()
     setAppointments(a => a.filter(x => x.id !== id))
     const res = await cancelMyAppointment(id)
-    toast(res.success ? t('tickets.appointmentCancelled') : t('errors.generic.title'), res.success ? 'success' : 'error')
+    toast(res.success ? t('tickets.appointmentCancelled') : ('error' in res && res.error) || t('errors.generic.title'), res.success ? 'success' : 'error')
     if (!res.success) load()
   }
 
@@ -120,6 +120,7 @@ export default function TicketsPage() {
                         {new Date(a.scheduledDate).toLocaleString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}
                       </p>
                       {a.service && <p className="text-xs text-ink-subtle">{a.service.name}</p>}
+                      {a.code && <p className="mt-1 text-xs text-ink-muted">Code d’arrivée : <span className="font-mono font-bold tracking-widest text-ink">{a.code}</span></p>}
                     </div>
                     <Button variant="ghost" size="sm" onClick={() => cancel(a.id)} className="text-danger">{t('common.cancel')}</Button>
                   </Card>

@@ -13,6 +13,7 @@ import { useOrgRealtime } from '@/hooks/use-org-realtime'
 import { haptics } from '@/lib/haptics'
 import { cn } from '@/lib/cn'
 import { SiteSwitcher } from '@/components/sites/site-switcher'
+import { TodayAppointments } from '@/components/booking/today-appointments'
 import { t, type MessageKey } from '@/lib/i18n'
 
 type Board = NonNullable<Awaited<ReturnType<typeof getReceptionBoard>>>
@@ -194,6 +195,9 @@ export default function ReceptionPage() {
             )}
           </main>
 
+          <div className="space-y-4">
+          {/* Rendez-vous du jour : arrivée → ticket placé à l'heure du rendez-vous */}
+          <TodayAppointments onIssued={() => load()} />
           {/* Derniers tickets : retrouver et corriger une priorité */}
           <aside className="rounded-card border border-surface-line bg-white shadow-card">
             <p className="border-b border-surface-line px-4 py-3 text-xs font-semibold uppercase tracking-wider text-ink-muted">{t('reception.recent')}</p>
@@ -219,6 +223,7 @@ export default function ReceptionPage() {
               ))}
             </ul>
           </aside>
+          </div>
         </div>
       </div>
     </div>

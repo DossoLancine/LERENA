@@ -4,10 +4,10 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import QRCode from 'qrcode'
 import {
   Ticket, Users, Clock,
-  Volume2, ArrowLeft, WifiOff, Hand, Loader2, ChevronRight, UserRound, Accessibility
+  Volume2, ArrowLeft, WifiOff, Hand, Loader2, ChevronRight, UserRound, Accessibility, CalendarCheck, Delete
 } from 'lucide-react'
 import { PairingScreen, readDeviceToken, adoptDeviceRole } from '@/components/devices/pairing-screen'
-import { getDeviceStatus, getKioskBoard, issueKioskTicket } from '@/server/actions/devices'
+import { getDeviceStatus, getKioskBoard, issueKioskTicket, kioskCheckIn } from '@/server/actions/devices'
 import { usePolling } from '@/hooks/use-polling'
 import { useOrgRealtime } from '@/hooks/use-org-realtime'
 import { useWakeLock } from '@/hooks/use-wake-lock'
@@ -19,7 +19,7 @@ import { t } from '@/lib/i18n'
 type Board = NonNullable<Awaited<ReturnType<typeof getKioskBoard>>>
 type Issued = Extract<Awaited<ReturnType<typeof issueKioskTicket>>, { success: true }>['ticket']
 // L'étape « priorité » n'existe que si l'établissement autorise le choix d'une priorité à la borne
-type Step = 'welcome' | 'service' | 'priority' | 'ticket'
+type Step = 'welcome' | 'service' | 'priority' | 'appointment' | 'ticket'
 
 const IDLE_MS = 30_000
 const TICKET_SCREEN_MS = 15_000
@@ -45,6 +45,8 @@ export default function KioskPage() {
   const [qr, setQr] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Code d'arrivée d'un rendez-vous, tapé sur le pavé numérique
+  const [apptCode, setApptCode] = useState('')
   const idleTimer = useRef<ReturnType<typeof setTimeout>>()
 
   useWakeLock(true)
@@ -78,6 +80,7 @@ export default function KioskPage() {
     setServiceId(null)
     setIssued(null)
     setError(null)
+    setApptCode('')
   }, [])
 
   // Retour automatique à l'accueil après une période sans contact
@@ -126,6 +129,27 @@ export default function KioskPage() {
     }
   }
 
+  const arriveWithCode = async (code: string) => {
+    if (!token || busy) return
+    setBusy(true)
+    setError(null)
+    try {
+      const res = await kioskCheckIn(token, code)
+      if (!res.success) { setError(res.error); setApptCode(''); return }
+      haptics.success()
+      setIssued(res.ticket)
+      setQr(await QRCode.toDataURL(`${window.location.origin}/ticket/${res.ticket.id}`, { width: 240, margin: 1 }))
+      setStep('ticket')
+      speak(`Votre ticket : ${res.ticket.displayNum.split('').join(', ')}. Vous serez appelé à l'heure de votre rendez-vous.`)
+      setTimeout(() => window.print(), 300)
+      load()
+    } catch {
+      setError(t('kiosk.networkError'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
   if (paired === null) return <main className="min-h-screen bg-gray-950" />
   if (!paired) {
     return <PairingScreen type="KIOSK" onPaired={status => {
@@ -162,7 +186,7 @@ export default function KioskPage() {
           {board?.orgName ?? 'ATTENDS'}
         </span>
         {step !== 'welcome' && step !== 'ticket' && (
-          <button onClick={() => (step === 'priority' ? setStep('service') : reset())}
+          <button onClick={() => (step === 'priority' || step === 'appointment' ? setStep('service') : reset())}
             className="flex min-h-touch items-center gap-2 rounded-2xl bg-gray-100 px-6 text-lg font-semibold text-ink">
             <ArrowLeft size={22} /> {t('kiosk.back')}
           </button>
@@ -195,6 +219,10 @@ export default function KioskPage() {
           <div className="flex min-h-0 w-full max-w-7xl flex-1 flex-col">
             <h1 className={cn('mb-4 text-center font-black text-ink md:mb-6 [@media(max-height:700px)]:mb-3 [@media(max-height:700px)]:text-2xl', dense ? 'text-3xl' : 'text-4xl')}>{t('kiosk.chooseService')}</h1>
             {error && <p role="alert" className="mb-4 rounded-2xl bg-danger-soft p-4 text-center text-lg font-semibold text-danger-ink">{error}</p>}
+            <button onClick={() => { haptics.tap(); setError(null); setApptCode(''); setStep('appointment') }}
+              className="mb-4 flex min-h-[72px] w-full items-center justify-center gap-3 rounded-2xl border-2 border-info bg-info-soft px-4 text-xl font-bold text-info-ink">
+              <CalendarCheck size={28} aria-hidden="true" /> J’ai un rendez-vous
+            </button>
             <ul className={cn('stagger grid content-start gap-3 overflow-y-auto overscroll-contain pb-4 md:grid-cols-2', board.services.length > 6 && 'xl:grid-cols-3')}>
               {board.services.map(s => {
                 // Pictogramme choisi pour le service (sinon celui du secteur) : la borne se comprend sans lire
@@ -231,6 +259,28 @@ export default function KioskPage() {
                 )
               })}
             </ul>
+          </div>
+        ) : step === 'appointment' ? (
+          /* Arrivée d'un rendez-vous : code à 6 chiffres reçu par SMS */
+          <div className="w-full max-w-md text-center">
+            <h1 className="text-3xl font-black text-ink">Votre code de rendez-vous</h1>
+            <p className="mt-2 text-lg text-ink-muted">6 chiffres, reçus par SMS à la réservation</p>
+            <p aria-live="polite" className="my-6 flex justify-center gap-2">
+              {Array.from({ length: 6 }, (_, i) => (
+                <span key={i} className="flex h-16 w-12 items-center justify-center rounded-xl border-2 border-surface-line bg-white font-mono text-4xl font-black text-ink">{apptCode[i] ?? ''}</span>
+              ))}
+            </p>
+            <div className="grid grid-cols-3 gap-3">
+              {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(d => (
+                <button key={d} onClick={() => { haptics.tap(); setApptCode(c => (c + d).slice(0, 6)) }} disabled={busy}
+                  className="h-20 rounded-2xl border-2 border-surface-line bg-white text-3xl font-black text-ink active:border-brand">{d}</button>
+              ))}
+              <button onClick={() => setApptCode(c => c.slice(0, -1))} aria-label="Effacer" className="flex h-20 items-center justify-center rounded-2xl bg-gray-100 text-ink"><Delete size={28} /></button>
+              <button onClick={() => { haptics.tap(); setApptCode(c => (c + '0').slice(0, 6)) }} disabled={busy} className="h-20 rounded-2xl border-2 border-surface-line bg-white text-3xl font-black text-ink">0</button>
+              <button onClick={() => arriveWithCode(apptCode)} disabled={apptCode.length !== 6 || busy}
+                className="flex h-20 items-center justify-center rounded-2xl bg-brand text-xl font-black text-white disabled:opacity-40">{busy ? <Loader2 className="animate-spin" /> : 'OK'}</button>
+            </div>
+            {error && <p role="alert" className="mt-6 rounded-2xl bg-danger-soft p-4 text-lg font-semibold text-danger-ink">{error}</p>}
           </div>
         ) : step === 'priority' && serviceId ? (
           /* Écran 2 (facultatif) : priorité */

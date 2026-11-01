@@ -23,6 +23,8 @@ export interface IssueTicketInput {
   priorityId?: string | null
   // Canal d'émission : l'accueil attribue tous les motifs ; l'application et la borne seulement si l'établissement l'autorise
   channel?: PriorityChannel
+  // Arrivée d'un visiteur avec rendez-vous : priorité « Rendez-vous », placé selon l'heure prévue
+  appointment?: { scheduledDate: Date }
   lat?: number
   lng?: number
   owner: TicketOwner
@@ -56,13 +58,13 @@ export function queueForService<Q extends { name: string; prefix: string }>(serv
   return best ?? service.branch.queues[0]
 }
 
-export async function issueTicket({ orgId, serviceId, priorityId, channel = 'app', lat, lng, owner }: IssueTicketInput) {
+export async function issueTicket({ orgId, serviceId, priorityId, channel = 'app', appointment, lat, lng, owner }: IssueTicketInput) {
   const org = await prisma.organization.findUnique({ where: { id: orgId } })
   if (!org) throw new TicketError('Établissement introuvable')
   if (!org.isActive) throw new TicketError('Cet établissement est fermé pour le moment')
 
-  // Protection anti-abus : position exigée par certains établissements
-  if (org.requireGps) {
+  // Protection anti-abus : position exigée par certains établissements (sauf à l'accueil et à la borne : la personne est sur place)
+  if (org.requireGps && channel === 'app') {
     if (!lat || !lng) throw new TicketError('GPS_REQUIRED')
     if (org.lat && org.lng && distanceKm(lat, lng, org.lat, org.lng) > org.maxRadiusKm) {
       throw new TicketError('OUT_OF_BOUNDS')
@@ -92,7 +94,7 @@ export async function issueTicket({ orgId, serviceId, priorityId, channel = 'app
 
   let priority: Awaited<ReturnType<typeof resolvePriority>>
   try {
-    priority = await resolvePriority(orgId, priorityId, channel)
+    priority = appointment ? { score: 2, reason: 'Rendez-vous' } : await resolvePriority(orgId, priorityId, channel)
   } catch (error) {
     if (error instanceof PriorityError) throw new TicketError(error.message)
     throw error
@@ -117,6 +119,8 @@ export async function issueTicket({ orgId, serviceId, priorityId, channel = 'app
         displayNum: `${queue.prefix}${newNumber.toString().padStart(3, '0')}`,
         priorityScore: priority.score,
         priorityReason: priority.reason,
+        // Un rendez-vous passe selon son heure : arrivé en avance ou à l'heure, il prend la place de son créneau
+        ...(appointment ? { queuedAt: new Date(Math.min(Date.now(), appointment.scheduledDate.getTime())) } : {}),
         status: 'WAITING',
         position: waiting + 1
       }

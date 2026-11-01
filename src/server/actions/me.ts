@@ -33,7 +33,7 @@ export async function getMyAppointments() {
     where: { userId: user.id, status: 'CONFIRMED', scheduledDate: { gte: new Date(Date.now() - 3600_000) } },
     orderBy: { scheduledDate: 'asc' },
     select: {
-      id: true, scheduledDate: true, status: true,
+      id: true, scheduledDate: true, status: true, code: true,
       organization: { select: { id: true, name: true, address: true } },
       service: { select: { name: true } }
     }
@@ -43,9 +43,15 @@ export async function getMyAppointments() {
 export async function cancelMyAppointment(id: string) {
   const user = await getSessionUser()
   if (!user) return { success: false }
+  // Annulation en ligne jusqu'au délai fixé par l'établissement
+  const appt = await prisma.appointment.findFirst({ where: { id, userId: user.id, status: 'CONFIRMED' }, select: { scheduledDate: true, organization: { select: { apptCancelHours: true } } } })
+  if (!appt) return { success: false }
+  if (appt.scheduledDate.getTime() - Date.now() < appt.organization.apptCancelHours * 3600_000) {
+    return { success: false, error: `Annulation en ligne possible jusqu’à ${appt.organization.apptCancelHours} h avant : contactez l’établissement.` }
+  }
   const res = await prisma.appointment.updateMany({
     where: { id, userId: user.id, status: 'CONFIRMED' },
-    data: { status: 'CANCELLED' }
+    data: { status: 'CANCELLED', cancelledAt: new Date() }
   })
   revalidatePath('/tickets')
   revalidatePath('/dashboard')

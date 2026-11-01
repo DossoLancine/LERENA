@@ -1,11 +1,14 @@
 'use server'
 
 import { prisma } from "@/lib/prisma"
+import { runAppointmentJobs } from "@/lib/appointments"
 import { ACTIVE_TICKET_STATUSES, counterLabel } from "@/lib/constants"
 
 /** File affichée par l'écran : celle de son site (siteId), ou de tout l'établissement. */
 export async function getTVQueue(orgId: string, siteId?: string | null) {
   try {
+    // Rappels et absences de rendez-vous : déclenchés par l'activité des écrans (au plus toutes les 5 min)
+    await runAppointmentJobs().catch(() => null)
     const org = await prisma.organization.findUnique({
       where: { id: orgId },
       include: {

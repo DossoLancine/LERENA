@@ -5,8 +5,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { Calendar, Clock, CheckCircle2, ChevronRight } from 'lucide-react'
-import { createAppointment, getAvailableSlots, getBookingDays } from '@/server/actions/appointments'
-import { Button, Card } from '@/components/ui'
+import { createAppointment, createGuestAppointment, getAvailableSlots, getBookingDays } from '@/server/actions/appointments'
+import { Button, Card, TextInput } from '@/components/ui'
 import { cn } from '@/lib/cn'
 import { haptics } from '@/lib/haptics'
 import { t } from '@/lib/i18n'
@@ -20,7 +20,12 @@ export default function AppointmentBookingForm({ orgId, serviceId, orgName }: { 
   const [slots, setSlots] = useState<{ time: string; available: boolean }[] | null>(null)
   const [time, setTime] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const [success, setSuccess] = useState(false)
+  // Réservation faite : code d'arrivée et lien pour reporter ou annuler
+  const [success, setSuccess] = useState<{ code: string; manageUrl: string; when: string } | null>(null)
+  // Sans compte : prénom et téléphone
+  const [guest, setGuest] = useState(false)
+  const [guestName, setGuestName] = useState('')
+  const [guestPhone, setGuestPhone] = useState('')
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -35,21 +40,23 @@ export default function AppointmentBookingForm({ orgId, serviceId, orgName }: { 
 
   const book = async () => {
     if (!serviceId || !day || !time) return
-    if (!session?.user) {
-      router.push(`/auth/login?callbackUrl=/org/${orgId}`)
+    if (!session?.user && !guest) {
+      setGuest(true)
       return
     }
     haptics.tap()
     setSubmitting(true)
     setError(null)
-    const res = await createAppointment(orgId, serviceId, new Date(`${day}T${time}:00Z`))
+    const when = new Date(`${day}T${time}:00Z`)
+    const res = session?.user
+      ? await createAppointment(orgId, serviceId, when)
+      : await createGuestAppointment({ orgId, serviceId, scheduledDate: when, name: guestName, phone: guestPhone })
     if (res.success) {
       haptics.success()
-      setSuccess(true)
-      setTimeout(() => router.push('/tickets'), 1800)
+      setSuccess({ code: res.appointment.code, manageUrl: res.appointment.manageUrl, when: when.toLocaleString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }) })
       return
     }
-    setError(res.error ?? t('errors.generic.title'))
+    setError(res.error === 'CODE_INVALID' ? 'Vérification par SMS requise : créez un compte ou contactez l’établissement.' : res.error ?? t('errors.generic.title'))
     setSubmitting(false)
     // Le créneau a pu être pris entre-temps : on rafraîchit la liste
     getAvailableSlots(orgId, serviceId, day).then(setSlots)
@@ -60,7 +67,14 @@ export default function AppointmentBookingForm({ orgId, serviceId, orgName }: { 
       <Card className="mb-4 p-6 text-center animate-pop-in">
         <CheckCircle2 size={48} className="mx-auto mb-3 text-success" />
         <h3 className="mb-1 text-lg font-bold text-ink">{t('booking.confirmed')}</h3>
-        <p className="text-sm text-ink-muted">{t('booking.confirmedText', { org: orgName })}</p>
+        <p className="text-sm text-ink-muted">{orgName} · {success.when}</p>
+        <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-ink-muted">Code d’arrivée</p>
+        <p className="text-4xl font-black tracking-[0.3em] text-ink">{success.code}</p>
+        <p className="mt-2 text-xs text-ink-muted">Donnez-le à l’accueil ou tapez-le à la borne en arrivant : vous serez appelé à l’heure de votre rendez-vous.</p>
+        <div className="mt-4 flex flex-col gap-2">
+          <a href={new URL(success.manageUrl).pathname} className="rounded-control bg-gray-900 py-3 text-sm font-bold text-white">Voir, reporter ou annuler</a>
+          {session?.user && <Link href="/tickets" className="text-sm font-semibold text-brand">Mes rendez-vous</Link>}
+        </div>
       </Card>
     )
   }
@@ -117,14 +131,21 @@ export default function AppointmentBookingForm({ orgId, serviceId, orgName }: { 
         </>
       )}
 
+      {guest && !session?.user && (
+        <div className="mb-4 space-y-3 rounded-2xl bg-surface-sunken p-3 animate-rise-in">
+          <TextInput label="Votre prénom" value={guestName} onChange={e => setGuestName(e.target.value)} autoComplete="given-name" />
+          <TextInput label="Votre téléphone" type="tel" value={guestPhone} onChange={e => setGuestPhone(e.target.value)} autoComplete="tel" hint="Pour la confirmation et le rappel par SMS" />
+        </div>
+      )}
+
       {error && <p role="alert" className="mb-4 rounded-lg bg-danger-soft p-3 text-center text-sm text-danger-ink">{error}</p>}
 
       <Button variant="dark" size="lg" fullWidth loading={submitting} disabled={!day || !time} onClick={book}>
-        {session?.user ? t('booking.confirm') : t('booking.loginToBook')} <ChevronRight size={16} />
+        {session?.user || guest ? t('booking.confirm') : 'Réserver sans compte'} <ChevronRight size={16} />
       </Button>
       {!session?.user && (
         <p className="mt-3 text-center text-xs text-ink-muted">
-          {t('booking.accountNeeded')} <Link href="/auth/register" className="font-semibold text-brand">{t('tickets.createAccount')}</Link>
+          Déjà inscrit ? <Link href={`/auth/login?callbackUrl=/org/${orgId}`} className="font-semibold text-brand">Se connecter</Link>
         </p>
       )}
     </Card>

@@ -7,6 +7,7 @@ import { prisma } from '@/lib/prisma'
 import { getManagerContext } from '@/lib/session'
 import { siteForWrite, siteScope } from '@/lib/sites'
 import { priorityOptions } from '@/lib/priorities'
+import { AppointmentError, checkIn } from '@/lib/appointments'
 import { issueTicket, TicketError } from '@/lib/ticketing'
 import { audit } from "@/lib/audit"
 
@@ -328,4 +329,30 @@ export async function redeemSetupLink(secret: string, role: DeviceType) {
   await audit({ action: 'DEVICE_PAIRED', targetType: 'Device', targetId: device.id, organizationId: link.organizationId, details: `${role} (lien d’installation)` })
   revalidatePath('/dashboard/settings/devices')
   return { success: true as const, token, orgId: link.organizationId, siteId: link.branchId, type: role }
+}
+
+/** Arrivée d'un rendez-vous à la borne : le code à 6 chiffres donne un ticket placé à l'heure du RDV. */
+export async function kioskCheckIn(token: string, code: string) {
+  const device = await kioskDevice(token)
+  if (!device) return { success: false as const, error: 'Borne non reconnue' }
+  const clean = code.replace(/\D/g, '')
+  if (clean.length !== 6) return { success: false as const, error: 'Le code fait 6 chiffres' }
+  const appt = await prisma.appointment.findFirst({ where: { code: clean, organizationId: device.organizationId! }, select: { id: true } })
+  if (!appt) return { success: false as const, error: 'Code inconnu : vérifiez le SMS de confirmation, ou adressez-vous à l’accueil.' }
+  try {
+    const res = await checkIn(appt.id, device.organizationId!)
+    const ticket = await prisma.ticket.findUnique({ where: { id: res.ticketId }, select: { id: true, displayNum: true, createdAt: true, queueId: true, priorityScore: true, queuedAt: true, service: { select: { name: true, avgDurationMin: true } } } })
+    if (!ticket) return { success: false as const, error: 'Ticket introuvable' }
+    const ahead = await prisma.ticket.count({
+      where: { queueId: ticket.queueId, status: 'WAITING', OR: [{ priorityScore: { gt: ticket.priorityScore } }, { priorityScore: ticket.priorityScore, queuedAt: { lt: ticket.queuedAt } }] }
+    })
+    return {
+      success: true as const,
+      ticket: { id: ticket.id, displayNum: ticket.displayNum, serviceName: ticket.service.name, ahead, waitMin: ahead * ticket.service.avgDurationMin, issuedAt: ticket.createdAt.toISOString() }
+    }
+  } catch (error) {
+    if (error instanceof AppointmentError) return { success: false as const, error: error.message }
+    console.error('kioskCheckIn error:', error)
+    return { success: false as const, error: 'Une erreur est survenue' }
+  }
 }
