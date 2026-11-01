@@ -1,3 +1,5 @@
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+require('../scripts/lib/not-production').assertNotProduction('prisma/seed.ts')
 import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()

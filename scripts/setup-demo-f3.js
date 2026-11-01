@@ -1,3 +1,4 @@
+require('./lib/not-production').assertNotProduction('scripts/setup-demo-f3.js')
 // Données de démonstration du sprint F3 : guichets de l'Hôpital Mère-Enfant et compte d'accueil.
 // Idempotent : peut être relancé sans créer de doublons.
 const { PrismaClient } = require('@prisma/client')

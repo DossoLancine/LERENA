@@ -1,4 +1,5 @@
-﻿const { PrismaClient } = require('@prisma/client');
+require('../scripts/lib/not-production').assertNotProduction('prisma/seed-complete.js')
+const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 
 const prisma = new PrismaClient();

@@ -1,3 +1,4 @@
+require('./lib/not-production').assertNotProduction('scripts/create-demo-orgs.js')
 const { PrismaClient } = require('@prisma/client')
 const prisma = new PrismaClient()
 
