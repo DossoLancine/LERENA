@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { signOut } from 'next-auth/react'
-import { LogOut, ShieldCheck, Headset, ConciergeBell } from 'lucide-react'
+import { LogOut, ShieldCheck, Headset, ConciergeBell, CreditCard } from 'lucide-react'
 import UserProfileForm from '@/components/profile/user-profile-form'
 import { Button, Dialog, DashboardSkeleton } from '@/components/ui'
 import { cn } from '@/lib/cn'
@@ -11,6 +11,7 @@ import { t } from '@/lib/i18n'
 import { useDashboard } from './dashboard-context'
 import { SiteSwitcher } from '@/components/sites/site-switcher'
 import { SidebarShell, type SidebarGroup } from '@/components/layout/sidebar-shell'
+import { getBillingBanner } from '@/server/actions/billing'
 
 const GROUPS: SidebarGroup[] = [
   {
@@ -44,6 +45,8 @@ const GROUPS: SidebarGroup[] = [
 export function DashboardShell({ children }: { children: ReactNode }) {
   const { stats, loading, toggleOpen } = useDashboard()
   const [showProfile, setShowProfile] = useState(false)
+  const [banner, setBanner] = useState<Awaited<ReturnType<typeof getBillingBanner>>>(null)
+  useEffect(() => { getBillingBanner().then(setBanner).catch(() => null) }, [])
 
   if (loading && !stats) return <DashboardSkeleton />
   const isOpen = !!stats?.isOpen
@@ -79,6 +82,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
         </Link>
       </div>}
     >
+      {banner && <BillingBanner {...banner} />}
       {children}
 
       <Dialog open={showProfile} onClose={() => setShowProfile(false)} title={t('dashboard.myProfile')}>
@@ -93,5 +97,22 @@ export function DashboardShell({ children }: { children: ReactNode }) {
         </div>
       </Dialog>
     </SidebarShell>
+  )
+}
+
+/** Rappel d'abonnement en haut de chaque page : essai bientôt terminé, paiement en retard, service suspendu. */
+function BillingBanner({ state, daysLeft, until }: NonNullable<Awaited<ReturnType<typeof getBillingBanner>>>) {
+  const day = until ? new Date(until).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', timeZone: 'UTC' }) : ''
+  const urgent = state === 'SUSPENDED' || state === 'CANCELLED'
+  const text = state === 'TRIAL' ? `Votre essai gratuit se termine dans ${daysLeft} jour${daysLeft === 1 ? '' : 's'}. Choisissez votre forfait pour continuer sans interruption.`
+    : state === 'GRACE' ? `Paiement en retard : le service en ligne sera suspendu le ${day}.`
+    : state === 'CANCELLED' ? 'Abonnement résilié : les visiteurs ne peuvent plus prendre de ticket en ligne.'
+    : 'Service en ligne suspendu : les visiteurs ne peuvent plus prendre de ticket. Réglez votre facture pour le rétablir.'
+  return (
+    <div role={urgent ? 'alert' : 'status'} className={cn('flex animate-rise-in flex-wrap items-center justify-between gap-3 rounded-2xl px-4 py-3 text-sm',
+      urgent ? 'bg-danger-soft text-danger-ink' : state === 'GRACE' ? 'bg-warning-soft text-warning-ink' : 'bg-info-soft text-info-ink')}>
+      <p className="flex items-center gap-2 font-medium"><CreditCard size={18} aria-hidden="true" />{text}</p>
+      <Link href="/dashboard/billing" className="rounded-lg bg-white/70 px-3 py-1.5 font-semibold hover:bg-white">{state === 'TRIAL' ? 'Voir les forfaits' : 'Régler'}</Link>
+    </div>
   )
 }

@@ -12,7 +12,7 @@ export type MessagePurpose =
   | 'RESET_PASSWORD' | 'OTP' | 'WELCOME' | 'TEMP_PASSWORD' | 'TURN_SOON'
   | 'APPOINTMENT_CONFIRMED' | 'APPOINTMENT_REMINDER' | 'APPOINTMENT_CANCELLED' | 'INVOICE' | 'ANNOUNCEMENT'
 
-type Status = 'SENT' | 'FAILED' | 'SIMULATED'
+type Status = 'SENT' | 'FAILED' | 'SIMULATED' | 'SKIPPED'
 
 async function log(entry: { channel: 'SMS' | 'EMAIL'; to: string; subject?: string; body: string; purpose: MessagePurpose; status: Status; provider?: string; error?: string; organizationId?: string | null; ticketId?: string | null }) {
   try {
@@ -56,6 +56,14 @@ export async function sendEmail(input: { to: string; subject: string; text: stri
 /** SMS. Sans fournisseur, le message est simulé (journalisé) et la fonction renvoie false. */
 export async function sendSmsMessage(input: { to: string; text: string; purpose: MessagePurpose; organizationId?: string | null; ticketId?: string | null }) {
   const base = { channel: 'SMS' as const, to: input.to, body: input.text, purpose: input.purpose, organizationId: input.organizationId, ticketId: input.ticketId }
+  // SMS d'un établissement : quota mensuel du forfait, puis packs achetés (import tardif : billing utilise ce module)
+  if (input.organizationId) {
+    const { consumeSms } = await import('@/lib/billing')
+    if (!(await consumeSms(input.organizationId).catch(() => true))) {
+      await log({ ...base, status: 'SKIPPED', error: 'Plus de SMS : quota du mois et packs épuisés' })
+      return false
+    }
+  }
   if (!process.env.SMS_PROVIDER) {
     await log({ ...base, status: 'SIMULATED' })
     return false

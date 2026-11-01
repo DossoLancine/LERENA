@@ -11,8 +11,8 @@ export interface SectorService {
 }
 
 export const getPlatformConfig = cache(async () => {
-  const config = await prisma.platformConfig.findUnique({ where: { id: 'default' } })
-  return config ?? { id: 'default', appName: 'Lerena', defaultCountryCode: '+225', defaultCity: null, defaultLat: null, defaultLng: null, demoMode: false, updatedAt: new Date() }
+  // Ligne unique créée au premier besoin, avec les valeurs par défaut du schéma
+  return prisma.platformConfig.upsert({ where: { id: 'default' }, create: { id: 'default' }, update: {} })
 })
 
 export const getActiveSectors = cache(async () => {

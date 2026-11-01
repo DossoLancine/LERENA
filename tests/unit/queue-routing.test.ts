@@ -1,4 +1,7 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+
+// cache() de React n'existe qu'au rendu serveur
+vi.mock('react', () => ({ cache: (fn: unknown) => fn }))
 import { queueForService } from '@/lib/ticketing'
 
 // Files réelles de l'Hôpital Mère-Enfant (cas qui a révélé le bug « CONSULTATION » → « Consultation générale »)

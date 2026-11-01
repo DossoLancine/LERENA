@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Search, Filter, MapPin, Clock, Users, Star, ChevronRight, Home, Compass, Ticket, Heart, User as UserIcon, Map as MapIcon, List as ListIcon } from 'lucide-react'
+import { Search, Filter, MapPin, Clock, Users, Star, ChevronRight, Home, Compass, Ticket, Heart, User as UserIcon, Map as MapIcon, List as ListIcon, Sparkles } from 'lucide-react'
 import Link from 'next/link'
 import { DynamicIcon } from '@/lib/icons'
 import { getOrganizations } from '@/server/actions/orgs'
@@ -120,13 +120,13 @@ export default function ExploreView({ initialOrgs, sectors, defaultCenter }: { i
         <p className="text-sm text-gray-500">{filtered.length} établissement{filtered.length > 1 ? 's' : ''}</p>
         {filtered.map((org) => (
           <Link key={org.id} href={`/org/${org.id}`}>
-            <div className="bg-white rounded-2xl border border-gray-100 p-4 lift flex items-center gap-3">
+            <div className={`bg-white rounded-2xl border p-4 lift flex items-center gap-3 ${org.featured ? 'border-amber-200 ring-1 ring-amber-100 bg-gradient-to-r from-amber-50/60 to-white' : 'border-gray-100'}`}>
               <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl ${org.color}`}>
                 <DynamicIcon name={org.icon} size={24} />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
-                  <p className="font-semibold text-gray-900 text-sm">{org.name}</p>
+                  <p className="font-semibold text-gray-900 text-sm">{org.name}{org.featured && <span className="ml-1.5 inline-flex items-center gap-0.5 rounded-full bg-amber-100 px-1.5 py-0.5 align-middle text-[10px] font-bold uppercase tracking-wide text-amber-800"><Sparkles size={10} aria-hidden="true" /> À la une</span>}</p>
                   <div className="flex items-center gap-1">
                     <Star size={11} className="text-amber-400 fill-amber-400" />
                     <span className="text-xs font-medium text-gray-700">

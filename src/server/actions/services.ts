@@ -5,6 +5,7 @@ import { getManagerContext } from "@/lib/session"
 import { siteForWrite } from "@/lib/sites"
 import { notifyOrg } from "@/lib/realtime"
 import { revalidatePath } from "next/cache"
+import { assertCanAddService, checkLimit } from '@/lib/billing'
 
 // 1. Organisation du manager connecté (isolation stricte, sans repli)
 async function getManagerOrg() {
@@ -53,6 +54,9 @@ export async function createOrganizationService(data: {
         include: { queues: true, services: true }
       })
     }
+
+    const limit = await checkLimit(() => assertCanAddService(org.id, branch.id))
+    if (limit) return { success: false, error: limit }
 
     const avgDuration = Number(data.avgDurationMin) > 0 ? Number(data.avgDurationMin) : 15
     const prefix = (data.prefix || data.name[0] || 'A').toUpperCase().trim()

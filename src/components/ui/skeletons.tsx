@@ -78,11 +78,13 @@ export function DashboardSkeleton() {
       <div className="flex items-center gap-3 border-b border-surface-line bg-white px-4 py-3 lg:hidden">
         <Bar className="h-9 w-9" /><Bar className="h-8 w-40" />
       </div>
-      <div className="mx-auto max-w-6xl space-y-6 p-4 lg:pl-[18rem] lg:pr-8 lg:pt-7">
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          {Array.from({ length: 4 }, (_, i) => <Bar key={i} className="h-28" />)}
+      <div className="lg:pl-64">
+        <div className="mx-auto max-w-6xl space-y-6 px-4 py-5 lg:px-8 lg:py-7">
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+            {Array.from({ length: 4 }, (_, i) => <Bar key={i} className="h-28" />)}
+          </div>
+          <Bar className="h-64 w-full" />
         </div>
-        <Bar className="h-64 w-full" />
       </div>
     </div>
   )
