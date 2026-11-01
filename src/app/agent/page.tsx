@@ -103,7 +103,15 @@ export default function AgentPage() {
   const mine = (tk: QueueTicket) => counterLabel(tk.counterName) === name
   const current = queue.find(tk => (tk.status === 'SERVING' || tk.status === 'CALLED') && mine(tk))
   const onHold = queue.filter(tk => tk.status === 'ON_HOLD' && mine(tk))
-  const waiting = queue.filter(tk => tk.status === 'WAITING' && (!myServiceIds || myServiceIds.has(tk.serviceId)))
+  // Un autre guichet ouvert peut-il traiter ce service ? (sinon ce guichet garde le client, même transféré par lui)
+  const otherCounterServes = (serviceId: string) =>
+    counters.some(c => c.id !== realCounter?.id && c.name !== name && (c.serviceIds.length === 0 || c.serviceIds.includes(serviceId)))
+  const waiting = queue.filter(tk =>
+    tk.status === 'WAITING' &&
+    (!myServiceIds || myServiceIds.has(tk.serviceId)) &&
+    // Le guichet qui vient de transférer un client ne le rappelle pas : il est laissé au service suivant
+    !(tk.route.transferredBy === name && otherCounterServes(tk.serviceId))
+  )
 
   // Action instantanée : l'écran change dès l'appui, le serveur confirme ensuite
   const act = useCallback(async (ticketId: string, status: TicketStatus, label: string) => {
@@ -378,7 +386,7 @@ export default function AgentPage() {
                   <span className={cn('flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold', i === 0 ? 'bg-brand text-white' : dark ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600')}>{i + 1}</span>
                   <div className="min-w-0">
                     <p className={cn('truncate text-sm', strong)}><span className="font-mono font-bold">{tk.displayNum}</span> · {tk.guestName || tk.user?.name}</p>
-                    <p className={cn('truncate text-xs', muted)}>{tk.service.name} · {t('agent.since', { time: elapsed(tk.queuedAt, now) })}</p>
+                    <p className={cn('truncate text-xs', muted)}>{tk.service.name} · {t('agent.since', { time: elapsed(tk.queuedAt, now) })}{tk.route.step > 1 && ` · ↪ depuis ${tk.route.done.at(-1)}`}</p>
                   </div>
                 </div>
                 {priorityBadge(tk.priorityScore, tk.priorityReason)}
@@ -406,12 +414,17 @@ export default function AgentPage() {
       <Dialog open={showTransfer} onClose={() => setShowTransfer(false)} title={t('agent.transferTitle')}>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-2">
-            {services.filter(s => s.id !== current?.serviceId).map(s => (
-              <button key={s.id} onClick={() => doTransfer(s.id)}
-                className="min-h-touch rounded-xl border-2 border-surface-line p-3 text-sm font-semibold text-ink transition-all hover:border-brand">
-                {s.name}
-              </button>
-            ))}
+            {services.filter(s => s.id !== current?.serviceId).map(s => {
+              // Aucun autre guichet ne traite ce service : le client restera chez ce guichet
+              const onlyHere = !otherCounterServes(s.id)
+              return (
+                <button key={s.id} onClick={() => doTransfer(s.id)}
+                  className="flex min-h-touch flex-col items-start rounded-xl border-2 border-surface-line p-3 text-left text-sm font-semibold text-ink transition-all hover:border-brand">
+                  {s.name}
+                  {onlyHere && <span className="mt-0.5 text-[11px] font-medium text-warning-ink">Traité seulement par votre guichet</span>}
+                </button>
+              )
+            })}
           </div>
           <TextArea label={t('agent.transferNote')} value={transferNote} onChange={e => setTransferNote(e.target.value)} maxLength={500} />
         </div>
