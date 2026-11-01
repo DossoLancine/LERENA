@@ -95,7 +95,8 @@ export default function LocationPickerMap({
         <MapContainer 
           center={position} 
           zoom={15} 
-          className="w-full h-full"
+          // Le bloc parent n'a qu'une hauteur minimale : la carte le remplit en position absolue
+          className="absolute inset-0 z-0"
         >
           <TileLayer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

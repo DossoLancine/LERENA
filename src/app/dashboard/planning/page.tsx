@@ -78,9 +78,9 @@ export default function DashboardPlanningPage() {
           <button onClick={() => setMonday(m => new Date(m.getTime() + 7 * 86400_000))} aria-label={t('planning.nextWeek')}
             className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 active:scale-95"><ChevronRight size={18} /></button>
         </div>
-        <div className="flex gap-2">
-          <Button variant="secondary" size="sm" onClick={() => setMonday(mondayOf(new Date()))}>{t('planning.thisWeek')}</Button>
-          <Button variant="secondary" size="sm" icon={<Copy size={14} />} onClick={copyWeek}>{t('planning.copyPrevious')}</Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="secondary" size="sm" className="whitespace-nowrap" onClick={() => setMonday(mondayOf(new Date()))}>{t('planning.thisWeek')}</Button>
+          <Button variant="secondary" size="sm" className="whitespace-nowrap" icon={<Copy size={14} />} onClick={copyWeek}>{t('planning.copyPrevious')}</Button>
         </div>
       </Card>
 

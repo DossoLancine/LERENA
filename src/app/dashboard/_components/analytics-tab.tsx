@@ -21,12 +21,15 @@ const BAR_PEAK = '#f97316'
 
 type MetricKey = keyof PeriodMetrics
 
+// Nombres au format français : 0,2 min et non 0.2 min
+const fr = (n: number) => n.toLocaleString('fr-FR', { maximumFractionDigits: 1 })
+
 // Pour l'attente, les abandons et la durée de service, une baisse est une bonne nouvelle
 const LOWER_IS_BETTER: MetricKey[] = ['avgWaitMin', 'dropOffRate', 'avgServiceMin']
 
 function Delta({ metric, current, previous }: { metric: MetricKey; current: number | null; previous: number | null }) {
   if (current === null || previous === null || previous === 0) {
-    return <span className="text-xs text-ink-subtle">{t('analytics.noComparison')}</span>
+    return <span className="text-xs text-ink-subtle" title={t('analytics.noComparison')}>—<span className="sr-only">{t('analytics.noComparison')}</span></span>
   }
   const change = Math.round(((current - previous) / previous) * 100)
   if (change === 0) return <span className="flex items-center gap-0.5 text-xs text-ink-subtle"><Minus size={12} />0 %</span>
@@ -56,10 +59,10 @@ export default function AnalyticsTab() {
   const kpis: { key: MetricKey; label: MessageKey; icon: React.ReactNode; format: (m: PeriodMetrics) => string }[] = [
     { key: 'totalTickets', label: 'analytics.tickets', icon: <Ticket size={16} className="text-brand" />, format: m => String(m.totalTickets) },
     { key: 'completedCount', label: 'analytics.served', icon: <CheckCircle2 size={16} className="text-success" />, format: m => String(m.completedCount) },
-    { key: 'avgWaitMin', label: 'analytics.avgWait', icon: <Clock size={16} className="text-info" />, format: m => `${m.avgWaitMin} min` },
-    { key: 'avgServiceMin', label: 'analytics.avgService', icon: <Timer size={16} className="text-purple-500" />, format: m => `${m.avgServiceMin} min` },
-    { key: 'dropOffRate', label: 'analytics.dropOff', icon: <UserX size={16} className="text-danger" />, format: m => `${m.dropOffRate} %` },
-    { key: 'nps', label: 'analytics.satisfaction', icon: <Star size={16} className="text-warning" />, format: m => (m.nps === null ? '—' : `${m.nps}/5`) },
+    { key: 'avgWaitMin', label: 'analytics.avgWait', icon: <Clock size={16} className="text-info" />, format: m => `${fr(m.avgWaitMin)} min` },
+    { key: 'avgServiceMin', label: 'analytics.avgService', icon: <Timer size={16} className="text-purple-500" />, format: m => `${fr(m.avgServiceMin)} min` },
+    { key: 'dropOffRate', label: 'analytics.dropOff', icon: <UserX size={16} className="text-danger" />, format: m => `${fr(m.dropOffRate)} %` },
+    { key: 'nps', label: 'analytics.satisfaction', icon: <Star size={16} className="text-warning" />, format: m => (m.nps === null ? '—' : `${fr(m.nps)}/5`) },
   ]
 
   const hourly = data?.hourlyAffluence.filter(h => h.hour >= 6 && h.hour <= 21) ?? []
@@ -75,7 +78,7 @@ export default function AnalyticsTab() {
         <div className="flex gap-1 rounded-xl bg-white p-1 shadow-card" role="radiogroup" aria-label={t('analytics.period')}>
           {PERIODS.map(p => (
             <button key={p.value} role="radio" aria-checked={days === p.value} onClick={() => setDays(p.value)}
-              className={cn('rounded-lg px-3 py-1.5 text-sm font-medium transition-all', days === p.value ? 'bg-brand text-white' : 'text-ink-muted hover:bg-gray-100')}>
+              className={cn('whitespace-nowrap rounded-lg px-2.5 py-1.5 text-sm font-medium transition-all sm:px-3', days === p.value ? 'bg-brand text-white' : 'text-ink-muted hover:bg-gray-100')}>
               {t(p.label)}
             </button>
           ))}
@@ -169,7 +172,7 @@ export default function AnalyticsTab() {
                   <thead><tr className="text-left text-xs text-ink-muted"><th className="px-5 py-2 font-medium">{t('analytics.service')}</th><th className="px-5 py-2 text-right font-medium">{t('analytics.served')}</th><th className="px-5 py-2 text-right font-medium">{t('analytics.duration')}</th></tr></thead>
                   <tbody className="divide-y divide-surface-line">
                     {data.aht.map(s => (
-                      <tr key={s.name}><td className="px-5 py-2.5 text-ink">{s.name}</td><td className="px-5 py-2.5 text-right tabular-nums text-ink-muted">{s.count}</td><td className="px-5 py-2.5 text-right font-semibold tabular-nums text-ink">{s.avgMinutes} min</td></tr>
+                      <tr key={s.name}><td className="px-5 py-2.5 text-ink">{s.name}</td><td className="px-5 py-2.5 text-right tabular-nums text-ink-muted">{s.count}</td><td className="px-5 py-2.5 text-right font-semibold tabular-nums text-ink">{fr(s.avgMinutes)} min</td></tr>
                     ))}
                   </tbody>
                 </table>
@@ -185,7 +188,7 @@ export default function AnalyticsTab() {
                   <thead><tr className="text-left text-xs text-ink-muted"><th className="px-5 py-2 font-medium">{t('analytics.counter')}</th><th className="px-5 py-2 text-right font-medium">{t('analytics.served')}</th><th className="px-5 py-2 text-right font-medium">{t('analytics.duration')}</th></tr></thead>
                   <tbody className="divide-y divide-surface-line">
                     {data.counters.map(c => (
-                      <tr key={c.name}><td className="px-5 py-2.5 text-ink">{c.name}</td><td className="px-5 py-2.5 text-right tabular-nums text-ink-muted">{c.served}</td><td className="px-5 py-2.5 text-right font-semibold tabular-nums text-ink">{c.avgMinutes} min</td></tr>
+                      <tr key={c.name}><td className="px-5 py-2.5 text-ink">{c.name}</td><td className="px-5 py-2.5 text-right tabular-nums text-ink-muted">{c.served}</td><td className="px-5 py-2.5 text-right font-semibold tabular-nums text-ink">{fr(c.avgMinutes)} min</td></tr>
                     ))}
                   </tbody>
                 </table>
