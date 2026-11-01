@@ -1,14 +1,14 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Tv, Tablet, Loader2 } from 'lucide-react'
-import { getDeviceStatus, startPairing, type DeviceType } from '@/server/actions/devices'
+import { Tv, Tablet, MonitorSmartphone, Loader2 } from 'lucide-react'
+import { getDeviceStatus, startPairing, type DeviceType, type PairingType } from '@/server/actions/devices'
 import { usePolling } from '@/hooks/use-polling'
 import { t } from '@/lib/i18n'
 
-export const deviceTokenKey = (type: DeviceType) => `attends_device_${type.toLowerCase()}`
+export const deviceTokenKey = (type: PairingType) => `attends_device_${type.toLowerCase()}`
 
-export function readDeviceToken(type: DeviceType) {
+export function readDeviceToken(type: PairingType) {
   try { return localStorage.getItem(deviceTokenKey(type)) } catch { return null }
 }
 
@@ -17,12 +17,14 @@ export function readDeviceToken(type: DeviceType) {
  * saisit dans le tableau de bord. L'appareil se connecte seul dès que le code est validé.
  */
 export function PairingScreen({ type, onPaired }: {
-  type: DeviceType
-  onPaired: (status: { orgId: string; name: string | null }) => void
+  type: PairingType
+  onPaired: (status: { orgId: string; name: string | null; type: DeviceType; token: string }) => void
 }) {
   const [code, setCode] = useState<string | null>(null)
   const [token, setToken] = useState<string | null>(null)
   const failures = useRef(0)
+  // Une fois connecté, on arrête de vérifier : sinon la navigation vers l'écran repartirait toutes les 3 s
+  const done = useRef(false)
 
   // Jeton existant (appareil déjà enregistré), sinon nouvelle demande de code
   useEffect(() => {
@@ -40,7 +42,7 @@ export function PairingScreen({ type, onPaired }: {
   }, [type])
 
   const check = useCallback(async () => {
-    if (!token) return
+    if (!token || done.current) return
     let status: Awaited<ReturnType<typeof getDeviceStatus>>
     try {
       status = await getDeviceStatus(token)
@@ -62,20 +64,23 @@ export function PairingScreen({ type, onPaired }: {
       }
       return
     }
-    if (status.paired) onPaired({ orgId: status.orgId!, name: status.name ?? null })
+    if (status.paired) {
+      done.current = true
+      onPaired({ orgId: status.orgId!, name: status.name ?? null, type: status.type === 'KIOSK' ? 'KIOSK' : 'TV', token })
+    }
     else setCode(status.code ?? null)
   }, [token, type, onPaired])
 
-  usePolling(check, 3000, !!token)
+  usePolling(check, 3000, !!token && !done.current)
 
   const origin = typeof window !== 'undefined' ? window.location.host : ''
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-gray-950 px-8 text-center text-white">
       <span className="mb-8 flex h-20 w-20 items-center justify-center rounded-3xl bg-brand">
-        {type === 'TV' ? <Tv size={40} /> : <Tablet size={40} />}
+        {type === 'TV' ? <Tv size={40} /> : type === 'KIOSK' ? <Tablet size={40} /> : <MonitorSmartphone size={40} />}
       </span>
-      <h1 className="text-3xl font-bold">{type === 'TV' ? t('pairing.titleTv') : t('pairing.titleKiosk')}</h1>
+      <h1 className="text-3xl font-bold">{type === 'TV' ? t('pairing.titleTv') : type === 'KIOSK' ? t('pairing.titleKiosk') : t('pairing.titleAny')}</h1>
       <p className="mt-3 max-w-xl text-lg text-white/70">{t('pairing.instructions')}</p>
 
       <div className="my-10 flex gap-3" aria-live="polite" aria-label={t('pairing.codeLabel')}>
@@ -94,4 +99,16 @@ export function PairingScreen({ type, onPaired }: {
       <p className="mt-6 text-xs text-white/30">{origin} · {t('pairing.waiting')}</p>
     </main>
   )
+}
+
+/**
+ * Après l'appairage : range le jeton sous le rôle choisi par le responsable et renvoie l'adresse à ouvrir.
+ * Le rôle choisi l'emporte sur le lien ouvert sur l'appareil.
+ */
+export function adoptDeviceRole({ orgId, type, token }: { orgId: string; type: DeviceType; token: string }) {
+  try {
+    for (const key of ['TV', 'KIOSK', 'ANY'] as const) if (key !== type) localStorage.removeItem(deviceTokenKey(key))
+    localStorage.setItem(deviceTokenKey(type), token)
+  } catch {}
+  return type === 'TV' ? `/tv/${orgId}` : '/kiosk'
 }

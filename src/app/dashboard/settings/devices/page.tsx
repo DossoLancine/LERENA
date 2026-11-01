@@ -5,6 +5,7 @@ import { Tv, Tablet, Trash2, Link2 } from 'lucide-react'
 import { listDevices, pairDevice, removeDevice, renameDevice } from '@/server/actions/devices'
 import { Button, Card, CardHeader, EmptyState, TextInput, useToast } from '@/components/ui'
 import { usePolling } from '@/hooks/use-polling'
+import QRCode from 'qrcode'
 import { cn } from '@/lib/cn'
 import { t } from '@/lib/i18n'
 
@@ -23,6 +24,8 @@ export default function DevicesSettingsPage() {
   const [code, setCode] = useState('')
   const [name, setName] = useState('')
   const [pairing, setPairing] = useState(false)
+  const [role, setRole] = useState<'TV' | 'KIOSK'>('TV')
+  const [qr, setQr] = useState<string | null>(null)
 
   const load = useCallback(() => listDevices().then(setDevices), [])
   useEffect(() => { load() }, [load])
@@ -32,7 +35,7 @@ export default function DevicesSettingsPage() {
   const pair = async (e: React.FormEvent) => {
     e.preventDefault()
     setPairing(true)
-    const res = await pairDevice(code, name)
+    const res = await pairDevice(code, name, role)
     setPairing(false)
     if (!res.success) return toast(res.error ?? t('errors.generic.title'), 'error')
     setCode('')
@@ -48,22 +51,65 @@ export default function DevicesSettingsPage() {
     toast(t('devices.removed'))
   }
 
-  const origin = typeof window !== 'undefined' ? window.location.origin : ''
+  const host = typeof window !== 'undefined' ? window.location.host : ''
+
+  // QR code du lien unique, pour les tablettes (une TV ne scanne pas : on y tape l'adresse)
+  useEffect(() => {
+    QRCode.toDataURL(`${window.location.origin}/appareil`, { margin: 1, width: 224 }).then(setQr).catch(() => {})
+  }, [])
 
   return (
     <div className="space-y-4">
       <Card>
         <CardHeader title={t('devices.title')} subtitle={t('devices.subtitle')} />
         <div className="space-y-4 p-5">
-          <div className="grid gap-2 rounded-xl bg-surface-sunken p-4 text-sm sm:grid-cols-2">
-            <p><span className="text-ink-muted">{t('devices.openOnTv')}</span> <span className="font-mono font-semibold text-ink">{origin}/tv/pair</span></p>
-            <p><span className="text-ink-muted">{t('devices.openOnKiosk')}</span> <span className="font-mono font-semibold text-ink">{origin}/kiosk</span></p>
+          {/* Un seul lien pour tous les appareils ; le rôle se choisit ici */}
+          <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
+            <ol className="space-y-3 text-sm">
+              <li className="flex gap-3">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand text-xs font-bold text-white">1</span>
+                <p className="pt-1 text-ink">{t('devices.step1')} <span className="select-all rounded-lg bg-surface-sunken px-2 py-0.5 font-mono font-bold text-ink">{host}/appareil</span></p>
+              </li>
+              <li className="flex gap-3">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand text-xs font-bold text-white">2</span>
+                <p className="pt-1 text-ink">{t('devices.step2')}</p>
+              </li>
+              <li className="flex gap-3">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand text-xs font-bold text-white">3</span>
+                <p className="pt-1 text-ink">{t('devices.step3')}</p>
+              </li>
+            </ol>
+            {qr && (
+              <div className="hidden flex-col items-center gap-1 sm:flex" aria-hidden="true">
+                <img src={qr} alt="" className="h-28 w-28 rounded-xl border border-surface-line" />
+                <span className="max-w-[140px] text-center text-[11px] text-ink-muted">{t('devices.scanHint')}</span>
+              </div>
+            )}
           </div>
-          <form onSubmit={pair} className="grid gap-3 sm:grid-cols-[160px_1fr_auto] sm:items-end">
-            <TextInput label={t('devices.code')} value={code} inputMode="numeric" maxLength={6} placeholder="123456"
-              onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} className="font-mono text-lg tracking-widest" />
+
+          <form onSubmit={pair} className="space-y-4 rounded-2xl border border-surface-line p-4">
+            <TextInput label={t('devices.code')} value={code} inputMode="numeric" autoComplete="one-time-code" maxLength={6} placeholder="123456"
+              onChange={e => setCode(e.target.value.replace(/D/g, '').slice(0, 6))} className="text-center font-mono text-2xl tracking-[0.5em]" />
+
+            <fieldset>
+              <legend className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink-muted">{t('devices.role')}</legend>
+              <div className="grid grid-cols-2 gap-2">
+                {([['TV', Tv, t('devices.roleTv'), t('devices.roleTvHint')], ['KIOSK', Tablet, t('devices.roleKiosk'), t('devices.roleKioskHint')]] as const).map(([value, Icon, label, hint]) => (
+                  <label key={value} className={cn('flex cursor-pointer items-start gap-3 rounded-xl border-2 p-3 transition-colors',
+                    role === value ? 'border-brand bg-brand-50' : 'border-surface-line hover:border-gray-300')}>
+                    <input type="radio" name="role" value={value} checked={role === value} onChange={() => setRole(value)} className="sr-only" />
+                    <Icon size={22} className={role === value ? 'text-brand' : 'text-ink-muted'} aria-hidden="true" />
+                    <span>
+                      <span className="block text-sm font-semibold text-ink">{label}</span>
+                      <span className="block text-xs text-ink-muted">{hint}</span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+
             <TextInput label={t('devices.name')} value={name} onChange={e => setName(e.target.value)} placeholder={t('devices.namePlaceholder')} />
-            <Button type="submit" loading={pairing} disabled={code.length !== 6} icon={<Link2 size={16} />}>{t('devices.pair')}</Button>
+            <Button type="submit" fullWidth loading={pairing} disabled={code.length !== 6} icon={<Link2 size={16} />}>{t('devices.pair')}</Button>
           </form>
         </div>
       </Card>

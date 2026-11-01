@@ -345,19 +345,20 @@
   "pairing": {
     "titleTv": "Connecter cet écran",
     "titleKiosk": "Connecter cette borne",
-    "instructions": "Le responsable de l’établissement saisit ce code dans son tableau de bord. L’appareil se connecte ensuite tout seul.",
+    "instructions": "Saisissez ce code dans le tableau de bord (Paramètres → Écrans et bornes) et choisissez son rôle. L’appareil se connecte ensuite tout seul.",
     "codeLabel": "Code d’appairage",
     "path": "Tableau de bord → Paramètres → Écrans & bornes",
-    "waiting": "En attente de validation…"
+    "waiting": "En attente de validation…",
+    "titleAny": "Connecter cet appareil"
   },
   "devices": {
     "title": "Écrans TV et bornes",
-    "subtitle": "Ouvrez l’adresse ci-dessous sur la TV ou la tablette : un code s’affiche. Saisissez-le ici.",
+    "subtitle": "Un écran affiche les numéros appelés, une borne permet aux clients de prendre un ticket. Chacun se connecte à l’établissement, indépendamment des autres.",
     "openOnTv": "Sur la TV :",
     "openOnKiosk": "Sur la borne :",
     "code": "Code affiché",
-    "name": "Nom de l’appareil",
-    "namePlaceholder": "TV salle d’attente, Borne entrée…",
+    "name": "Nom (facultatif)",
+    "namePlaceholder": "Facultatif — ex. TV salle d’attente",
     "pair": "Connecter",
     "paired": "Appareil connecté",
     "none": "Aucun appareil connecté pour le moment.",
@@ -369,7 +370,16 @@
     "never": "jamais vu",
     "remove": "Retirer",
     "confirmRemove": "Retirer « {name} » ? Il reviendra à l’écran de code.",
-    "removed": "Appareil retiré"
+    "removed": "Appareil retiré",
+    "step1": "Sur la TV ou la tablette, ouvrez",
+    "step2": "Un code à 6 chiffres s’affiche : tapez-le ici",
+    "step3": "Choisissez son rôle, puis Connecter",
+    "scanHint": "Tablette : scannez ce QR code avec l’appareil photo",
+    "role": "Rôle de l’appareil",
+    "roleTv": "Écran d’affichage",
+    "roleTvHint": "Numéros appelés, annonces vocales",
+    "roleKiosk": "Borne de tickets",
+    "roleKioskHint": "Les clients prennent leur ticket"
   },
   "kiosk": {
     "back": "Retour",
