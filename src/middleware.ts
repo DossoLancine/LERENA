@@ -43,7 +43,8 @@ export default withAuth(
         return true // Le middleware s'occupe des redirections
       },
     },
-    secret: process.env.NEXTAUTH_SECRET || "attends-super-secret-jwt-key-2026-xK9mP2nL",
+    // Clé obligatoire (aucune valeur de secours) : sans elle, aucune session n’est reconnue
+    secret: process.env.NEXTAUTH_SECRET,
   }
 )
 
