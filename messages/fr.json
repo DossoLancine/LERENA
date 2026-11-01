@@ -370,5 +370,23 @@
     "remove": "Retirer",
     "confirmRemove": "Retirer « {name} » ? Il reviendra à l’écran de code.",
     "removed": "Appareil retiré"
+  },
+  "kiosk": {
+    "back": "Retour",
+    "touch": "Touchez pour prendre un ticket",
+    "touchText": "Rapide, gratuit, sans inscription",
+    "chooseService": "Pour quel service ?",
+    "listen": "Écouter : {name}",
+    "priorityTitle": "Votre situation",
+    "standard": "Standard",
+    "priority": "Prioritaire",
+    "priorityText": "Personne âgée, enceinte ou en situation de handicap",
+    "yourTicket": "Votre numéro",
+    "takeTicket": "Prenez votre ticket imprimé, ou scannez le code pour suivre votre tour sur votre téléphone.",
+    "done": "Terminé",
+    "closed": "Établissement fermé",
+    "closedText": "La prise de ticket reprendra à l’ouverture.",
+    "offline": "Réseau indisponible : adressez-vous à l’accueil.",
+    "networkError": "Le ticket n’a pas pu être créé. Adressez-vous à l’accueil."
   }
 }

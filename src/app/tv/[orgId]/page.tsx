@@ -4,6 +4,11 @@ import { useEffect, useState, useRef, useMemo, useCallback } from 'react'
 import { getTVQueue } from '@/server/actions/tv'
 import { usePolling } from '@/hooks/use-polling'
 import { useOrgRealtime } from '@/hooks/use-org-realtime'
+import { useWakeLock } from '@/hooks/use-wake-lock'
+import { useRouter } from 'next/navigation'
+import { getDeviceStatus } from '@/server/actions/devices'
+import { readDeviceToken } from '@/components/devices/pairing-screen'
+import { History, WifiOff } from 'lucide-react'
 import {
   Volume2,
   Tv,
@@ -72,6 +77,8 @@ function playFuturisticChime() {
 }
 
 export default function TVPage({ params }: { params: { orgId: string } }) {
+  const router = useRouter()
+  const [offline, setOffline] = useState(false)
   const [data, setData] = useState<any>(null)
   const [currentTime, setCurrentTime] = useState(new Date())
 
@@ -128,7 +135,22 @@ export default function TVPage({ params }: { params: { orgId: string } }) {
 
   // Polling des données en temps réel
   const fetchData = useCallback(async () => {
-    const res = await getTVQueue(params.orgId)
+    let res: Awaited<ReturnType<typeof getTVQueue>> = null
+    try {
+      res = await getTVQueue(params.orgId)
+    } catch {
+      // Réseau coupé : on garde l'affichage précédent et on le signale discrètement
+      setOffline(true)
+      return
+    }
+    setOffline(!res)
+
+    // Écran appairé : signe de vie ; s'il a été retiré du tableau de bord, retour à l'écran de code
+    const token = readDeviceToken('TV')
+    if (token) {
+      getDeviceStatus(token).then(status => { if (!status || !status.paired) router.replace('/tv/pair') }).catch(() => {})
+    }
+
     if (res) {
       setData(res)
 
@@ -159,21 +181,27 @@ export default function TVPage({ params }: { params: { orgId: string } }) {
         try {
           if ('speechSynthesis' in window) {
             const counterLabel = newCalledTicket.counter || 'Guichet 1'
-            const utterance = new SpeechSynthesisUtterance(
-              `Ticket numéro ${newCalledTicket.displayNum}. Veuillez vous rendre au ${counterLabel}.`
-            )
-            utterance.lang = 'fr-FR'
-            utterance.rate = 0.95
-            window.speechSynthesis.speak(utterance)
+            // « P002 » est épelé « P, 0, 0, 2 » : un nombre lu d'un bloc se comprend mal dans une salle bruyante
+            const spelled = String(newCalledTicket.displayNum).split('').join(', ')
+            const text = `Ticket ${spelled}. Présentez-vous au ${counterLabel}.`
+            window.speechSynthesis.cancel()
+            for (let i = 0; i < 2; i++) {
+              const utterance = new SpeechSynthesisUtterance(text)
+              utterance.lang = 'fr-FR'
+              utterance.rate = 0.85
+              window.speechSynthesis.speak(utterance)
+            }
           }
         } catch (e) {}
       }
 
       prevActiveRef.current = currentActiveIds
     }
-  }, [params.orgId])
+  }, [params.orgId, router])
 
   const live = useOrgRealtime(params.orgId, fetchData)
+  // Une TV de salle d'attente ne doit jamais se mettre en veille
+  useWakeLock(true)
   usePolling(fetchData, live ? 30000 : 3000)
 
   // Moteur d'horloge absolue et de rotation multi-vidéos
@@ -521,22 +549,25 @@ export default function TVPage({ params }: { params: { orgId: string } }) {
       {/* ========================================================= */}
       {/* BARRE DE TÉLÉMÉTRIE HORIZON 2050 EN BAS D'ÉCRAN */}
       {/* ========================================================= */}
-      <footer className="h-7 shrink-0 bg-[#03050a] border-t border-gray-900 px-8 flex items-center justify-between text-[10px] font-mono text-gray-500 z-20">
+      <footer className="h-8 shrink-0 bg-[#03050a] border-t border-gray-900 px-8 flex items-center justify-between text-xs text-gray-500 z-20">
         <div className="flex items-center gap-4">
-          <span className="text-cyan-400 flex items-center gap-1">
-            <Wifi size={11} /> QUANTUM LINK ACTIVE
-          </span>
-          <span>LATENCY: 8ms</span>
-          <span>ROUTING ENGINE: ATTENDS v4.8</span>
+          {offline ? (
+            <span className="flex items-center gap-1.5 text-amber-400"><WifiOff size={13} /> Connexion perdue · affichage conservé, reconnexion automatique</span>
+          ) : (
+            <span className={`flex items-center gap-1.5 ${live ? 'text-emerald-400' : 'text-gray-400'}`}>
+              <Wifi size={13} /> {live ? 'En direct' : 'Mise à jour automatique'}
+            </span>
+          )}
+          {data?.updatedAt && <span>Mis à jour à {new Date(data.updatedAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>}
         </div>
         <div className="flex items-center gap-4">
           {playlist.length > 0 && (
             <span className="text-gray-400 flex items-center gap-1">
-              <ListVideo size={11} className="text-orange-400" />
-              PLAYLIST: {playlistIndex + 1}/{playlist.length} ({currentVideo?.title || 'Clip'})
+              <ListVideo size={12} className="text-orange-400" />
+              {playlistIndex + 1}/{playlist.length} · {currentVideo?.title || 'Vidéo'}
             </span>
           )}
-          <span className="text-gray-600">HORIZON 2050 SMART SIGNAGE</span>
+          <span className="text-gray-600">ATTENDS</span>
         </div>
       </footer>
     </div>
@@ -667,6 +698,23 @@ function QueueDisplay({ data }: { data: any }) {
             ))
           )}
         </div>
+
+        {/* Derniers appels : pour ceux qui ont manqué l'annonce */}
+        {data.recentCalls?.length > 0 && (
+          <div className="border-t border-gray-800/80 px-5 py-4">
+            <h3 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-gray-400">
+              <History size={14} className="text-cyan-400" /> Derniers appels
+            </h3>
+            <ul className="grid grid-cols-2 gap-2">
+              {data.recentCalls.slice(0, 6).map((call: any) => (
+                <li key={call.id} className="flex items-center justify-between rounded-xl bg-[#050814] px-3 py-2">
+                  <span className="font-mono text-xl font-black text-gray-100">{call.displayNum}</span>
+                  <span className="truncate pl-2 text-right text-xs text-gray-400">{call.counter}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     </div>
   )
