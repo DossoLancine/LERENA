@@ -182,9 +182,10 @@ body {
 
 /* Le ticket « sort de la fente » à la prise de ticket */
 @keyframes ticket-print {
-  0% { transform: translateY(-38px); clip-path: inset(0 0 100% 0); opacity: 0.6; }
-  70% { transform: translateY(4px); clip-path: inset(0 0 0 0); opacity: 1; }
-  100% { transform: translateY(0); clip-path: inset(0 0 0 0); }
+  /* La découpe finale déborde largement : elle ne doit pas rogner l'ombre du ticket */
+  0% { transform: translateY(-38px); clip-path: inset(-60px -60px 100% -60px); opacity: 0.6; }
+  70% { transform: translateY(4px); clip-path: inset(-60px -60px -80px -60px); opacity: 1; }
+  100% { transform: translateY(0); clip-path: inset(-60px -60px -80px -60px); }
 }
 .animate-ticket-print { animation: ticket-print 900ms var(--ease-spring) both; }
 
