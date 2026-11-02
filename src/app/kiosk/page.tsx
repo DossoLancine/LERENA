@@ -14,6 +14,7 @@ import { useWakeLock } from '@/hooks/use-wake-lock'
 import { haptics } from '@/lib/haptics'
 import { cn } from '@/lib/cn'
 import { iconFor } from '@/lib/icons'
+import { OrgMark } from '@/components/branding/org-mark'
 import { t } from '@/lib/i18n'
 
 type Board = NonNullable<Awaited<ReturnType<typeof getKioskBoard>>>
@@ -71,6 +72,27 @@ export default function KioskPage() {
     }
   }, [token])
 
+  // Coupure réseau : bandeau immédiat ; au retour du réseau, la borne se recharge seule
+  useEffect(() => {
+    const goOffline = () => setOffline(true)
+    const goOnline = () => { setOffline(false); load() }
+    window.addEventListener('offline', goOffline)
+    window.addEventListener('online', goOnline)
+    if (!navigator.onLine) setOffline(true)
+    return () => { window.removeEventListener('offline', goOffline); window.removeEventListener('online', goOnline) }
+  }, [load])
+
+  // Après une longue coupure, un rechargement complet repart d'une version à jour
+  const offlineSince = useRef<number | null>(null)
+  useEffect(() => {
+    if (!offline) { offlineSince.current = null; return }
+    offlineSince.current ??= Date.now()
+    const timer = setInterval(() => {
+      if (navigator.onLine && offlineSince.current && Date.now() - offlineSince.current > 5 * 60_000) location.reload()
+    }, 30_000)
+    return () => clearInterval(timer)
+  }, [offline])
+
   const live = useOrgRealtime(board?.orgId, load)
   usePolling(load, live ? 30_000 : 10_000, !!paired)
 
@@ -104,6 +126,7 @@ export default function KioskPage() {
 
   const issue = async (sid: string, priorityId: string | null = null) => {
     if (!token || busy) return
+    if (offline || !navigator.onLine) { setError(t('kiosk.offline')); return }
     haptics.tap()
     setServiceId(sid)
     setBusy(true)
@@ -169,6 +192,8 @@ export default function KioskPage() {
       {/* Ticket imprimé (format 80 mm) */}
       {issued && (
         <div className="hidden print:block">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          {board?.logo && <img src={board.logo} alt="" style={{ height: 48, display: 'block', margin: '0 auto 4px', filter: 'grayscale(1)' }} />}
           <p style={{ fontSize: 14, fontWeight: 700, textAlign: 'center' }}>{board?.orgName}</p>
           <p style={{ fontSize: 48, fontWeight: 900, textAlign: 'center', margin: '8px 0' }}>{issued.displayNum}</p>
           <p style={{ fontSize: 13, textAlign: 'center' }}>{issued.serviceName}</p>
@@ -182,7 +207,7 @@ export default function KioskPage() {
 
       <header className="flex shrink-0 items-center justify-between bg-white px-5 py-4 shadow-card md:px-8 md:py-5 print:hidden">
         <span className="flex items-center gap-3 text-2xl font-black text-ink">
-          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand text-white"><Ticket size={24} /></span>
+          {board ? <OrgMark name={board.orgName} logo={board.logo} color={board.brandColor} size={44} /> : <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand text-white"><Ticket size={24} /></span>}
           {board?.orgName ?? 'Lerena'}
         </span>
         {step !== 'welcome' && step !== 'ticket' && (
@@ -315,7 +340,11 @@ export default function KioskPage() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             {qr && <img src={qr} alt={t('reception.scanToFollow')} className="mx-auto my-6 h-44 w-44" />}
             <p className="text-lg text-ink-muted">{t('kiosk.takeTicket')}</p>
-            <button onClick={reset} className={cn('mt-8 min-h-touch rounded-2xl bg-gray-900 px-10 py-4 text-xl font-bold text-white')}>
+            {/* Imprimante en panne de papier ou ticket mal sorti : nouvelle impression du même ticket */}
+            <button onClick={() => window.print()} className="mt-6 min-h-touch rounded-2xl bg-gray-100 px-8 py-3 text-lg font-semibold text-ink">
+              Réimprimer le ticket
+            </button>
+            <button onClick={reset} className={cn('mt-4 min-h-touch rounded-2xl bg-gray-900 px-10 py-4 text-xl font-bold text-white')}>
               {t('kiosk.done')}
             </button>
           </div>

@@ -1,12 +1,12 @@
 'use client'
 
 import { useEffect, useState, Suspense } from 'react'
-import { signIn } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Building2, ArrowRight, ShieldCheck } from 'lucide-react'
 import Link from 'next/link'
 import { homeForRole } from '@/lib/constants'
 import { getPublicConfig } from '@/server/actions/platform'
+import { signInWithCredentials } from '@/lib/sign-in'
 import { LegalLinks } from '@/components/legal/legal-links'
 
 function ProLoginForm() {
@@ -32,8 +32,7 @@ function ProLoginForm() {
     setError('')
 
     try {
-      const res = await signIn('credentials', {
-        redirect: false,
+      const res = await signInWithCredentials({
         identifier: email.trim(),
         otp: needOtp ? otp.trim() : '', // Le backend gère identifier
         password

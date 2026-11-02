@@ -52,7 +52,8 @@ model Organization {
   lng                  Float?
   phone                String?
   email                String?
-  logo                 String?
+  logo                 String? // logo en data URL (256 px max, 150 Ko max)
+  brandColor           String? // couleur de marque #rrggbb (forfaits avec couleurs personnalisées)
   isActive             Boolean   @default(true)
   tvVideoUrl           String?
   tvMode               String    @default("HYBRID")

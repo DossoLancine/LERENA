@@ -97,6 +97,8 @@ export async function getTicketById(id: string) {
       initialPosition: ticket.position, // Position at creation
       position: realPosition,           // Current dynamic position
       orgName: ticket.queue?.branch?.organization?.name || 'Établissement Inconnu',
+      orgLogo: ticket.queue?.branch?.organization?.logo ?? null,
+      orgColor: ticket.queue?.branch?.organization?.brandColor ?? null,
       serviceName: ticket.service?.name || 'Service Inconnu',
       route,
     }

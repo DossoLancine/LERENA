@@ -24,6 +24,8 @@ export default function PosterSettingsPage() {
             <div className="inline-flex items-center gap-1.5 bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-bold mb-3 uppercase tracking-wider">
               <Clock size={14} /> Service Rapide
             </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            {org?.logo && <img src={org.logo} alt="" className="mx-auto mb-2 h-16 w-auto object-contain" />}
             <h3 className="text-xl font-black text-gray-900 mb-1">{org?.name}</h3>
             <p className="text-xs text-gray-500 mb-5">Scannez pour prendre votre ticket sans attendre</p>
 

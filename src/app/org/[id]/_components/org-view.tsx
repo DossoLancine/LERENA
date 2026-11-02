@@ -13,6 +13,7 @@ import AppointmentBookingForm from '@/components/booking/appointment-booking-for
 import { BottomSheet } from '@/components/ui/bottom-sheet'
 import { GuestTicketSheet } from '@/components/booking/guest-ticket-sheet'
 import { haptics } from '@/lib/haptics'
+import { OrgMark } from '@/components/branding/org-mark'
 import { useToast } from '@/components/ui'
 
 type OrgDetails = NonNullable<Awaited<ReturnType<typeof getOrganizationById>>>
@@ -152,8 +153,9 @@ export default function OrgView({ params, initialOrg, initialIsFavorite }: {
     <div className="min-h-screen bg-gray-50">
       {/* Hero */}
       <div className="relative bg-white">
-        <div className="h-48 bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
-          {emoji}
+        {/* Couleur et logo de l'établissement s'il en a, sinon l'icône de son secteur */}
+        <div className="h-48 bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center" style={org.brandColor ? { background: `linear-gradient(135deg, ${org.brandColor}cc, ${org.brandColor})` } : undefined}>
+          {org.logo ? <OrgMark name={org.name} logo={org.logo} size={96} className="animate-pop-in shadow-lg" /> : emoji}
         </div>
 
         {/* Back button */}
