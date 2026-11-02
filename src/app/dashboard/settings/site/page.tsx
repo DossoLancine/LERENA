@@ -7,11 +7,14 @@ import {
   MapPin
 } from 'lucide-react'
 import { useSettings } from '../_components/settings-provider'
+import { BrandingCard } from '@/components/branding/branding-card'
 
 export default function SiteSettingsPage() {
   const { saving, formData, setFormData, handleSaveProfile, sectors } = useSettings()
 
   return (
+    <div className="space-y-4">
+    <BrandingCard />
     <form onSubmit={handleSaveProfile} className="bg-white rounded-3xl border border-gray-100 p-6 space-y-6 shadow-sm">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-5">
         <div>
@@ -185,5 +188,6 @@ export default function SiteSettingsPage() {
         </button>
       </div>
     </form>
+    </div>
   )
 }

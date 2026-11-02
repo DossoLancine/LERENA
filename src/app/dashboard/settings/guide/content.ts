@@ -1,7 +1,7 @@
 // Guide d'utilisation affiché dans Paramètres → Guide d'utilisation.
 // À METTRE À JOUR à chaque évolution de l'application (nouvel écran, nouvelle étape, changement de nom).
 
-export const GUIDE_UPDATED_AT = '2 novembre 2026 (données des visiteurs, documents légaux)'
+export const GUIDE_UPDATED_AT = '2 novembre 2026 (assistant de démarrage, logo, matériel)'
 
 export interface GuideSection {
   id: string
@@ -22,6 +22,27 @@ export const GUIDE: GuideSection[] = [
       'Services : créez les services proposés (ex. « Consultation », « Caisse »), avec leur durée moyenne et leur lettre de ticket.',
       'Guichets : créez vos guichets et indiquez quels services chacun traite.',
       'Paramètres → Équipe & agents : ajoutez vos agents et votre agent d’accueil. Chacun reçoit un mot de passe provisoire, affiché une seule fois.'
+    ]
+  },
+  {
+    id: 'demarrage-assistant',
+    title: 'Assistant de démarrage et logo',
+    intro: 'En haut de la vue d’ensemble, l’assistant liste les 8 étapes pour être prêt ; chacune se coche toute seule.',
+    steps: [
+      'Cliquez sur une étape pour ouvrir la bonne page ; « Continuer » mène directement à la suivante.',
+      'Logo : Paramètres → Établissement → « Logo et couleur ». Il apparaît sur l’écran TV, la borne, le ticket imprimé, le ticket du visiteur, votre fiche et l’affiche.',
+      'La couleur personnalisée est comprise dans le forfait Entreprise.',
+      'Une fois tout coché, masquez l’assistant avec la croix.'
+    ]
+  },
+  {
+    id: 'materiel',
+    title: 'Matériel conseillé',
+    steps: [
+      'Écran : TV Android 43" ou plus, ou TV existante avec un boîtier Android (en vente ou location dans Abonnement → Boutique).',
+      'Borne : tablette Android 10" avec support antivol ; imprimante thermique 80 mm facultative. Le bouton « Réimprimer le ticket » relance l’impression si le papier a manqué.',
+      'Réseau : la stabilité compte plus que la vitesse ; une box 4G de secours est conseillée. Après une coupure, la borne et l’écran reprennent seuls.',
+      'Le guide complet (réglages d’impression, kit type) vous est remis à l’installation.'
     ]
   },
   {

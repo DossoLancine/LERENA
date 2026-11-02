@@ -1,13 +1,13 @@
 'use client'
 
 import { useEffect, useState, Suspense } from 'react'
-import { signIn } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Clock, Zap, Briefcase, Headphones, User } from 'lucide-react'
 import PhoneInput from '@/components/ui/phone-input'
 import { homeForRole } from '@/lib/constants'
 import { getPublicConfig } from '@/server/actions/platform'
+import { signInWithCredentials } from '@/lib/sign-in'
 import { LegalLinks } from '@/components/legal/legal-links'
 
 function LoginForm() {
@@ -32,8 +32,7 @@ function LoginForm() {
     setError('')
 
     try {
-      const res = await signIn('credentials', {
-        redirect: false,
+      const res = await signInWithCredentials({
         identifier: email.trim(),
         otp: needOtp ? otp.trim() : '',
         password

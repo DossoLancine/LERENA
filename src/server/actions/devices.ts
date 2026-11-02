@@ -170,7 +170,7 @@ export async function getKioskBoard(token: string) {
 
   const orgId = device.organizationId!
   const [org, services, waiting, priorities] = await Promise.all([
-    prisma.organization.findUnique({ where: { id: orgId }, select: { name: true, isActive: true, sector: { select: { icon: true } } } }),
+    prisma.organization.findUnique({ where: { id: orgId }, select: { name: true, isActive: true, logo: true, brandColor: true, sector: { select: { icon: true } } } }),
     prisma.service.findMany({
       // Services du site de la borne (de tout l'établissement si la borne n'est pas rattachée à un site)
       where: { isActive: true, branch: device.branchId ? { id: device.branchId } : { organizationId: orgId } },
@@ -190,6 +190,8 @@ export async function getKioskBoard(token: string) {
     orgId,
     priorities,
     orgName: org.name,
+    logo: org.logo,
+    brandColor: org.brandColor,
     isOpen: org.isActive,
     services: services.map(s => {
       const count = waiting.find(w => w.serviceId === s.id)?._count._all ?? 0

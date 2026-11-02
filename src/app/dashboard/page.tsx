@@ -8,6 +8,7 @@ import { updateCounter } from '@/server/actions/counters'
 import { cn } from '@/lib/cn'
 import { haptics } from '@/lib/haptics'
 import { t } from '@/lib/i18n'
+import { OnboardingChecklist } from '@/components/onboarding/onboarding-checklist'
 import { useDashboard } from './_components/dashboard-context'
 
 // Au-delà de ce délai, une file est signalée au responsable
@@ -48,6 +49,7 @@ export default function DashboardOverviewPage() {
 
   return (
     <>
+      <OnboardingChecklist />
       <div className="stagger grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label={t('dashboard.kpi.waiting')} value={stats?.currentWaiting ?? 0} icon={<Users size={18} className="text-brand" />} />
         <StatCard

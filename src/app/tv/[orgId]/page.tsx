@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation'
 import { getDeviceStatus } from '@/server/actions/devices'
 import { readDeviceToken } from '@/components/devices/pairing-screen'
 import { History, WifiOff } from 'lucide-react'
+import { OrgMark } from '@/components/branding/org-mark'
 import {
   Volume2,
   Tv,
@@ -408,9 +409,7 @@ export default function TVPage({ params }: { params: { orgId: string } }) {
       {/* ========================================================= */}
       <header className="h-20 shrink-0 bg-[#060913]/90 backdrop-blur-md px-8 flex items-center justify-between border-b border-gray-800/80 z-20">
         <div className="flex items-center gap-4">
-          <div className="w-11 h-11 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-2xl flex items-center justify-center font-black text-xl shadow-[0_0_20px_rgba(6,182,212,0.3)] text-white">
-            A
-          </div>
+          <OrgMark name={data.orgName} logo={data.logo} color={data.brandColor} size={44} className="shadow-[0_0_20px_rgba(6,182,212,0.3)]" />
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-black tracking-tight text-white">{data.orgName}</h1>

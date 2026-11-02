@@ -85,6 +85,8 @@ export async function getTVQueue(orgId: string, siteId?: string | null) {
     return {
       orgId: org.id,
       orgName: org.name,
+      logo: org.logo,
+      brandColor: org.brandColor,
       siteName: siteId ? org.branches[0]?.name ?? null : null,
       active,
       waiting,

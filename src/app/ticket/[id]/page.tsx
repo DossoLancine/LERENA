@@ -38,6 +38,7 @@ import { LeaveNowCard, SpeakPositionButton } from '@/components/ticket/leave-now
 import { NPSWidget, PromoCarousel } from '@/components/marketing/marketing-widgets'
 import { usePolling } from '@/hooks/use-polling'
 import { useOrgRealtime } from '@/hooks/use-org-realtime'
+import { OrgMark } from '@/components/branding/org-mark'
 import { useRef } from 'react'
 
 export default function TicketPage({ params }: { params: { id: string } }) {
@@ -190,6 +191,7 @@ export default function TicketPage({ params }: { params: { id: string } }) {
           <div className="p-5">
             {/* Ticket number */}
             <div className="text-center mb-6">
+              {(ticket.orgLogo || ticket.orgColor) && <OrgMark name={ticket.orgName} logo={ticket.orgLogo} color={ticket.orgColor} size={48} className="mx-auto mb-3" />}
               <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-1">Votre ticket</p>
               <div className="text-7xl font-black text-gray-900 tracking-tight leading-none">
                 {ticket.displayNum}
