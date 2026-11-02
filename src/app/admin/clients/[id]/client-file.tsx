@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Ban, CalendarPlus, FilePlus2, KeyRound, LogOut, MessageSquarePlus, Play, Receipt, ShieldOff, Sparkles, Trash2, XCircle } from 'lucide-react'
+import { ArrowLeft, Ban, FlaskConical, CalendarPlus, FilePlus2, KeyRound, LogOut, MessageSquarePlus, Play, Receipt, ShieldOff, Sparkles, Trash2, XCircle } from 'lucide-react'
 import {
   addPayment, adjustSmsCredits, cancelSubscription, createCustomInvoice, extendTrial, invoiceSubscription, setFeatured,
   setSuspended, supportUserAction, updateSubscription, type getClient
@@ -76,6 +76,7 @@ export function ClientFile({ data }: { data: Data }) {
           <Button size="sm" variant="secondary" icon={<CalendarPlus size={15} />} onClick={() => setDialog('trial')}>Prolonger l’essai</Button>
           <Button size="sm" variant="secondary" icon={<Sparkles size={15} />} onClick={() => setDialog('featured')}>Mise en avant</Button>
           <Button size="sm" variant="secondary" icon={<MessageSquarePlus size={15} />} onClick={() => setDialog('sms')}>Crédits SMS</Button>
+          <Link href={`/admin/clients/${org.id}/pilot`} className="inline-flex h-9 items-center gap-1.5 rounded-control border border-gray-200 bg-white px-3 text-sm font-semibold text-ink hover:bg-gray-50"><FlaskConical size={15} /> Pilote</Link>
           <span className="flex-1" />
           {suspended && sub.status !== 'SUSPENDED'
             ? <span className="self-center text-xs font-medium text-danger">Suspendu faute de paiement : encaissez la facture ou prolongez l’essai</span>

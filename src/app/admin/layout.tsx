@@ -9,7 +9,10 @@ import { TwoFactorNotice } from '@/components/account/two-factor-notice'
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const admin = await getSuperAdmin()
   if (!admin) redirect('/pro/login?callbackUrl=/admin')
-  const overdue = await prisma.invoice.count({ where: { status: 'SENT', dueAt: { lt: new Date() } } })
+  const [overdue, newLeads] = await Promise.all([
+    prisma.invoice.count({ where: { status: 'SENT', dueAt: { lt: new Date() } } }),
+    prisma.lead.count({ where: { status: 'NEW' } })
+  ])
   return (
     <AdminShell
       eyebrow="Console Lerena"
@@ -19,6 +22,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
           { href: '/admin', label: 'Vue d’ensemble', icon: 'LayoutDashboard', exact: true }
         ] },
         { label: 'Clients', items: [
+          { href: '/admin/leads', label: 'Prospects', icon: 'Headset', count: newLeads },
           { href: '/admin/clients', label: 'Établissements', icon: 'Building2' },
           { href: '/admin/networks', label: 'Réseaux', icon: 'Network' },
           { href: '/admin/users', label: 'Utilisateurs', icon: 'Users' }

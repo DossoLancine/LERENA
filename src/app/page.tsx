@@ -96,9 +96,12 @@ export default async function LandingPage() {
         <section className="rounded-card border border-surface-line bg-white p-5 text-center">
           <p className="font-semibold text-ink">{t('landing.proTitle')}</p>
           <p className="mt-1 text-sm text-ink-muted">{t('landing.proText')}</p>
-          <Link href="/pro/login" className="mt-4 inline-flex items-center gap-1 text-sm font-bold text-brand">
-            {t('landing.proCta')} <ChevronRight size={16} />
-          </Link>
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+            <Link href="/tarifs" className="pressable inline-flex items-center gap-1 rounded-control bg-brand px-4 py-2.5 text-sm font-bold text-white">Tarifs et démo <ChevronRight size={16} /></Link>
+            <Link href="/pro/login" className="inline-flex items-center gap-1 text-sm font-bold text-brand">
+              {t('landing.proCta')} <ChevronRight size={16} />
+            </Link>
+          </div>
         </section>
       </div>
       <LegalLinks className="pb-8 pt-2" />

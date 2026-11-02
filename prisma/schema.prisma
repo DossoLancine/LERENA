@@ -75,6 +75,11 @@ model Organization {
   sectorId             String?
   smsCredits           Int       @default(0) // SMS achetés en packs, consommés après le quota mensuel du forfait
   featuredUntil        DateTime? // « mise en avant » payée : en tête de la recherche jusqu'à cette date
+  // Pilote : date de mise en service et mesures relevées sur place avant Lerena (pour le rapport avant / après)
+  pilotStartedAt       DateTime?
+  pilotBaselineWaitMin Int?
+  pilotBaselineDaily   Int?
+  pilotNotes           String?
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 
@@ -736,4 +741,23 @@ model RateEvent {
   createdAt DateTime @default(now())
 
   @@index([key, createdAt])
+}
+
+// Prospect : demande de démonstration envoyée depuis la page Tarifs, suivie dans la console
+model Lead {
+  id           String   @id @default(cuid())
+  contactName  String
+  organization String
+  sector       String?
+  city         String?
+  phone        String
+  email        String?
+  sites        Int?
+  message      String?
+  status       String   @default("NEW") // NEW | CONTACTED | DEMO | WON | LOST
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([status, createdAt])
 }
