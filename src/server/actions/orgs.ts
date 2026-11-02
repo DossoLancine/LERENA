@@ -168,6 +168,8 @@ export async function getOrganizationById(id: string, userLat?: number, userLng?
     // Heure de fermeture du jour, d'après les horaires saisis par l'établissement
     const today = org.branches.flatMap(b => b.businessHours).find(h => h.dayOfWeek === new Date().getDay())
     const closeTime = today && !today.isClosed ? today.closeTime : null
+    const openTime = today && !today.isClosed ? today.openTime : null
+    const busy = await busyHoursToday(id, openTime, closeTime)
 
     let distanceStr = "À proximité";
     let distanceNum = Infinity;
@@ -184,6 +186,8 @@ export async function getOrganizationById(id: string, userLat?: number, userLng?
       waitMin,
       isOpen: org.isActive,
       closeTime,
+      openTime,
+      busy,
       sectorIcon: org.sector?.icon ?? "building",
       rating,
       reviewCount,
@@ -195,4 +199,36 @@ export async function getOrganizationById(id: string, userLat?: number, userLng?
     console.error("Failed to fetch organization:", error)
     return null
   }
+}
+
+/**
+ * Affluence du jour, heure par heure : moyenne des 4 derniers mêmes jours de la semaine, et le réel d'aujourd'hui.
+ * Sert la courbe « Affluence » de la fiche et le conseil « meilleur moment pour venir ».
+ */
+async function busyHoursToday(orgId: string, openTime: string | null, closeTime: string | null) {
+  const now = new Date()
+  const dow = now.getUTCDay()
+  const since = new Date(now.getTime() - 28 * 86400_000)
+  const startOfDay = new Date(now.toISOString().slice(0, 10) + 'T00:00:00Z')
+  const rows = await prisma.$queryRaw<{ h: number; past: bigint; today: bigint }[]>`
+    SELECT extract(hour from t."createdAt")::int AS h,
+           count(*) FILTER (WHERE t."createdAt" < ${startOfDay}) AS past,
+           count(*) FILTER (WHERE t."createdAt" >= ${startOfDay}) AS today
+    FROM "Ticket" t JOIN "Queue" q ON q.id = t."queueId" JOIN "Branch" b ON b.id = q."branchId"
+    WHERE b."organizationId" = ${orgId} AND t."createdAt" >= ${since} AND extract(dow from t."createdAt") = ${dow}
+    GROUP BY 1`
+  const from = openTime ? Number(openTime.slice(0, 2)) : 7
+  const to = closeTime ? Math.max(from + 1, Number(closeTime.slice(0, 2)) + (closeTime.slice(3) === '00' ? 0 : 1)) : 18
+  const byHour = new Map(rows.map(r => [r.h, r]))
+  const hours = Array.from({ length: Math.max(1, to - from) }, (_, i) => {
+    const h = from + i
+    const r = byHour.get(h)
+    return { hour: h, usual: r ? Math.round((Number(r.past) / 4) * 10) / 10 : 0, today: r ? Number(r.today) : 0 }
+  })
+  const total = hours.reduce((sum, h) => sum + h.usual + h.today, 0)
+  if (total === 0) return null
+  // Meilleur moment : l'heure la plus calme parmi celles qui restent aujourd'hui
+  const left = hours.filter(h => h.hour > now.getUTCHours())
+  const best = left.length ? left.reduce((a, b) => (b.usual < a.usual ? b : a)) : null
+  return { hours, nowHour: now.getUTCHours(), bestHour: best?.hour ?? null }
 }

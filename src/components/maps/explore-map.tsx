@@ -41,8 +41,20 @@ function LocationMarker({ location }: { location: { lat: number, lng: number } |
   return <Marker position={[location.lat, location.lng]} icon={userIcon} zIndexOffset={1000} />
 }
 
-export default function ExploreMap({ orgs, userLocation, defaultCenter: configCenter }: { orgs: any[], userLocation: { lat: number, lng: number } | null, defaultCenter?: [number, number] | null }) {
-  const [activeOrg, setActiveOrg] = useState<any | null>(null)
+// Couleur du repère selon l'attente : vert (< 10 min), orange (< 30 min), rouge au-delà, gris si fermé
+const waitColor = (org: any) => (!org.isOpen ? '#9ca3af' : org.waitMin < 10 ? '#16a34a' : org.waitMin < 30 ? '#ea580c' : '#dc2626')
+
+export default function ExploreMap({ orgs, userLocation, defaultCenter: configCenter, className, onActiveChange }: {
+  orgs: any[]
+  userLocation: { lat: number, lng: number } | null
+  defaultCenter?: [number, number] | null
+  /** Taille de la carte (par défaut : hauteur de l'écran moins l'en-tête) */
+  className?: string
+  /** Prévient la page quand un établissement est sélectionné sur la carte (pour replier la liste) */
+  onActiveChange?: (org: any | null) => void
+}) {
+  const [activeOrg, setActiveOrgState] = useState<any | null>(null)
+  const setActiveOrg = (org: any | null) => { setActiveOrgState(org); onActiveChange?.(org) }
   const [activeMap, setActiveMap] = useState<any | null>(null)
   const [routeCoords, setRouteCoords] = useState<[number, number][]>([])
   const [routeData, setRouteData] = useState<{distance: string, duration: string} | null>(null)
@@ -135,9 +147,10 @@ export default function ExploreMap({ orgs, userLocation, defaultCenter: configCe
     return L.divIcon({
       className: 'bg-transparent',
       html: `
-        <div style="background:${org.colorHex ?? '#f97316'}" class="relative group cursor-pointer flex items-center justify-center w-10 h-10 rounded-full transform transition-all duration-300 ${scaleClass}">
+        <div style="background:${waitColor(org)}" class="relative group cursor-pointer flex items-center justify-center w-10 h-10 rounded-full transform transition-all duration-300 ${scaleClass}">
           ${iconStr}
-          <div style="background:${org.colorHex ?? '#f97316'}" class="absolute -bottom-1 w-2 h-2 rotate-45 border-r-2 border-b-2 border-white"></div>
+          <div style="background:${waitColor(org)}" class="absolute -bottom-1 w-2 h-2 rotate-45 border-r-2 border-b-2 border-white"></div>
+          ${org.isOpen ? `<span style="color:${waitColor(org)}" class="absolute -right-3 -top-2 rounded-full bg-white px-1.5 text-[10px] font-bold leading-4 shadow">${org.waitMin ? org.waitMin + "'" : '0'}</span>` : ''}
         </div>
       `,
       iconSize: [40, 40],
@@ -146,7 +159,7 @@ export default function ExploreMap({ orgs, userLocation, defaultCenter: configCe
   }
 
   return (
-    <div className="w-full h-[calc(100vh-140px)] relative z-0 overflow-hidden">
+    <div className={className ?? 'w-full h-[calc(100vh-140px)] relative z-0 overflow-hidden'}>
       <MapContainer 
         center={userLocation ? [userLocation.lat, userLocation.lng] : defaultCenter} 
         zoom={13} 
