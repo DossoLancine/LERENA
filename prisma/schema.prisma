@@ -23,6 +23,8 @@ model User {
   twoFactorSecret    String? // secret TOTP chiffré
   twoFactorRecovery  String[]  @default([]) // empreintes des codes de secours
   lastLoginAt        DateTime?
+  termsAcceptedAt    DateTime? // acceptation des CGU et de la politique de confidentialité
+  termsVersion       String?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
@@ -591,6 +593,10 @@ model PlatformConfig {
   companyPhone        String?
   companyEmail        String?
   paymentInstructions String? // numéros Mobile Money, RIB… affichés sur les factures
+  // Conformité (loi ivoirienne n° 2013-450) : durée avant anonymisation des données nominatives
+  retentionMonths     Int      @default(12)
+  dpoEmail            String? // contact « données personnelles » affiché dans la politique de confidentialité
+  artciReference      String? // numéro de déclaration / autorisation ARTCI
   updatedAt           DateTime @updatedAt
 }
 
@@ -701,4 +707,32 @@ model SmsLedger {
   createdAt      DateTime @default(now())
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+// ---- Surveillance ----
+
+// Erreur regroupée par empreinte (même message au même endroit) : une ligne par problème, avec un compteur
+model ErrorEvent {
+  id          String    @id @default(cuid())
+  fingerprint String    @unique
+  source      String // SERVER | CLIENT
+  message     String
+  stack       String?
+  path        String?
+  count       Int       @default(1)
+  firstSeen   DateTime  @default(now())
+  lastSeen    DateTime  @default(now())
+  resolvedAt  DateTime?
+  notifiedAt  DateTime?
+
+  @@index([lastSeen])
+}
+
+// Limite de débit des actions publiques (prise de ticket, réservation, codes…) : une ligne par action
+model RateEvent {
+  id        String   @id @default(cuid())
+  key       String
+  createdAt DateTime @default(now())
+
+  @@index([key, createdAt])
 }

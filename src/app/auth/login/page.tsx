@@ -8,6 +8,7 @@ import { ArrowLeft, Clock, Zap, Briefcase, Headphones, User } from 'lucide-react
 import PhoneInput from '@/components/ui/phone-input'
 import { homeForRole } from '@/lib/constants'
 import { getPublicConfig } from '@/server/actions/platform'
+import { LegalLinks } from '@/components/legal/legal-links'
 
 function LoginForm() {
   const router = useRouter()
@@ -170,6 +171,7 @@ function LoginForm() {
           Nouveau sur Lerena ?{' '}
           <Link href="/auth/register" className="font-bold text-orange-700">Créer un compte</Link>
         </p>
+        <LegalLinks className="mt-4" />
 
         <div className="mt-8 pt-8 border-t border-gray-100 text-center">
           <p className="text-xs text-gray-500">

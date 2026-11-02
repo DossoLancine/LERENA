@@ -12,6 +12,8 @@ import { readPreferences, savePreferences, type Preferences, type TextSize } fro
 import { cn } from '@/lib/cn'
 import { haptics } from '@/lib/haptics'
 import { t, type MessageKey } from '@/lib/i18n'
+import { MyDataCard } from '@/components/account/my-data-card'
+import { LegalLinks } from '@/components/legal/legal-links'
 
 type Summary = Awaited<ReturnType<typeof getMySummary>>
 
@@ -156,6 +158,8 @@ export default function ProfilePage() {
           </Card>
         )}
 
+        {session?.user && <MyDataCard />}
+
         <InstallAppButton />
 
         {session?.user && (
@@ -173,6 +177,7 @@ export default function ProfilePage() {
         )}
 
         <p className="text-center text-xs text-ink-subtle">Lerena · {t('landing.title')}</p>
+        <LegalLinks />
       </main>
 
       <Dialog open={editing} onClose={() => setEditing(false)} title={t('profile.edit')}>

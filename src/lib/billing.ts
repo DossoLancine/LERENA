@@ -7,7 +7,8 @@ import { appUrl, sendEmail } from '@/lib/messaging'
 // Modèle économique : abonnement par site (forfaits modifiables), essai, catalogue (SMS, mise en avant,
 // matériel, installation), factures et paiements enregistrés (Mobile Money, virement, espèces).
 
-export class BillingError extends Error {}
+// Erreur « métier » attendue (message affiché à la personne) : pas un incident à surveiller
+export class BillingError extends Error { readonly expected = true }
 
 /** Message d'une limite de forfait (sinon null), pour les actions qui renvoient { success, error }. */
 export const limitMessage = (e: unknown) => (e instanceof BillingError ? e.message : null)

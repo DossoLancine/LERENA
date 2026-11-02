@@ -1,7 +1,7 @@
 // Guide d'utilisation affiché dans Paramètres → Guide d'utilisation.
 // À METTRE À JOUR à chaque évolution de l'application (nouvel écran, nouvelle étape, changement de nom).
 
-export const GUIDE_UPDATED_AT = '1er novembre 2026 (abonnement et boutique, nouveau menu latéral, Lerena)'
+export const GUIDE_UPDATED_AT = '2 novembre 2026 (données des visiteurs, documents légaux)'
 
 export interface GuideSection {
   id: string
@@ -163,6 +163,18 @@ export const GUIDE: GuideSection[] = [
       'Sans paiement après l’échéance, un délai de grâce s’ouvre (bandeau orange), puis les tickets en ligne sont suspendus. Vos données restent intactes et tout repart dès le paiement.',
       'Boutique : packs SMS (utilisés après les SMS inclus), mise en avant « À la une » en tête de la recherche, matériel en vente ou en location, installation et formation. Une facture est créée ; l’article s’active à son paiement.',
       'Chaque facture s’ouvre en grand et s’imprime ou s’enregistre en PDF (bouton « Imprimer / PDF »).'
+    ]
+  },
+  {
+    id: 'donnees-visiteurs',
+    title: 'Données de vos visiteurs',
+    intro: 'Vous êtes responsable des données de vos visiteurs ; Lerena les traite pour vous, selon le contrat de sous-traitance (lien en bas de la page de connexion).',
+    steps: [
+      'Affichez l’affiche Lerena à l’entrée : elle informe vos visiteurs.',
+      'Nommez vos services sans information sensible (« Consultation » plutôt qu’un examen précis) et n’écrivez pas de diagnostic dans les notes des agents.',
+      'Les écrans n’affichent que le numéro de ticket et le guichet : jamais le nom ni le motif de priorité.',
+      'Après 12 mois, les noms, numéros et notes des tickets sont effacés automatiquement ; vos statistiques restent.',
+      'Un visiteur peut télécharger ou supprimer ses données depuis son profil. Pour toute autre demande, écrivez à l’équipe Lerena : réponse sous 30 jours.'
     ]
   },
   {

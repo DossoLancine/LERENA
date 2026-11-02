@@ -13,6 +13,7 @@ import { verifyOtp } from '@/lib/otp'
 import { branchFilter } from '@/lib/sites'
 import { audit } from '@/lib/audit'
 import { notifyOrg } from '@/lib/realtime'
+import { HOUR, RATE_LIMITED, rateLimitAll, requestIp } from '@/lib/rate-limit'
 
 const fail = (error: unknown) => ({ success: false as const, error: error instanceof AppointmentError ? error.message : 'Une erreur est survenue' })
 
@@ -48,6 +49,10 @@ export async function createGuestAppointment(input: { orgId: string; serviceId: 
   const phone = normalizePhone(input.phone)
   if (!name || name.length < 2) return { success: false as const, error: 'Indiquez votre prénom' }
   if (!phone) return { success: false as const, error: 'Numéro de téléphone invalide' }
+  const addr = requestIp()
+  if (!(await rateLimitAll([{ key: `grdv:p:${phone}`, max: 5, windowMs: HOUR }, { key: addr && `grdv:ip:${addr}`, max: 20, windowMs: HOUR }]))) {
+    return { success: false as const, error: RATE_LIMITED }
+  }
   if (smsEnabled() && (!input.code || !(await verifyOtp(phone, 'GUEST_TICKET', input.code)))) {
     return { success: false as const, error: 'CODE_INVALID' }
   }

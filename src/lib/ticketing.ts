@@ -31,7 +31,8 @@ export interface IssueTicketInput {
   owner: TicketOwner
 }
 
-export class TicketError extends Error {}
+// Erreur « métier » attendue (message affiché à la personne) : pas un incident à surveiller
+export class TicketError extends Error { readonly expected = true }
 
 // Nom comparable : minuscules, sans accents ni « File » devant
 const normalize = (name: string) =>

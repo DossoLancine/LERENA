@@ -15,6 +15,8 @@ import { decryptSecret, encryptSecret, generateRecoveryCodes, generateTotpSecret
 import { audit } from '@/lib/audit'
 import type { Role } from '@/lib/constants'
 import { passwordProblem } from '@/lib/password-policy'
+import { HOUR, RATE_LIMITED, rateLimitAll, requestIp } from '@/lib/rate-limit'
+import { exportUserData } from '@/lib/personal-data'
 
 // Sécurité du compte : mot de passe oublié, changement de mot de passe, double authentification, sessions.
 
@@ -40,6 +42,10 @@ async function setPassword(userId: string, password: string) {
 export async function requestPasswordReset(identifier: string) {
   const raw = identifier?.trim() ?? ''
   if (!raw) return { success: false as const, error: 'Indiquez votre e-mail ou votre numéro' }
+  const addr = requestIp()
+  if (!(await rateLimitAll([{ key: `reset:${raw.toLowerCase()}`, max: 3, windowMs: HOUR }, { key: addr && `reset:ip:${addr}`, max: 10, windowMs: HOUR }]))) {
+    return { success: false as const, error: RATE_LIMITED }
+  }
 
   if (raw.includes('@')) {
     const user = await prisma.user.findUnique({ where: { email: raw.toLowerCase() }, select: { id: true, email: true, name: true } })
@@ -198,4 +204,15 @@ export async function revokeOtherSessions() {
   await prisma.authSession.updateMany({ where: { userId: user.id, revokedAt: null, ...(sid ? { id: { not: sid } } : {}) }, data: { revokedAt: new Date() } })
   await audit({ action: 'SESSIONS_REVOKED', targetType: 'User', targetId: user.id })
   return { success: true }
+}
+
+// ---- Mes données (droits des personnes) ----
+
+/** Export complet du compte, à télécharger en JSON. */
+export async function exportMyData() {
+  const me = await getSessionUser()
+  if (!me) return { success: false as const, error: 'Connectez-vous' }
+  const data = await exportUserData(me.id)
+  await audit({ action: 'DATA_EXPORTED', targetType: 'User', targetId: me.id })
+  return { success: true as const, data }
 }

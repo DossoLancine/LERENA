@@ -20,7 +20,8 @@ export const DEFAULT_PRIORITIES = [
   { label: 'Urgence', level: 3, selfService: false }
 ]
 
-export class PriorityError extends Error {}
+// Erreur « métier » attendue (message affiché à la personne) : pas un incident à surveiller
+export class PriorityError extends Error { readonly expected = true }
 
 /** Le visiteur peut-il choisir une priorité sur ce canal ? (réglage de l'établissement) */
 async function channelOpen(orgId: string, channel: PriorityChannel) {
