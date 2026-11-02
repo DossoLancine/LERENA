@@ -282,36 +282,38 @@ export default function OrgView({ params, initialOrg, initialIsFavorite }: {
           </section>
         )}
 
+        {/* Le service se choisit dans les deux modes : ticket immédiat ou rendez-vous */}
+        <section>
+          <h2 className="mb-2 px-1 font-display text-lg font-bold text-ink">{showTickets ? 'Pour quel service ?' : 'Rendez-vous pour quel service ?'}</h2>
+          <div className="stagger space-y-2.5" role="radiogroup" aria-label="Service">
+            {services.map((svc: any) => {
+              const selected = selectedService === svc.id
+              return (
+                <button key={svc.id} type="button" role="radio" aria-checked={selected} onClick={() => selectService(svc.id)} disabled={!org.isActive}
+                  className={cn('flex w-full items-center gap-3 rounded-[22px] bg-white p-3.5 text-left shadow-card transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-50',
+                    selected ? 'ring-2 ring-brand shadow-[0_10px_28px_-14px_rgba(194,65,12,0.55)]' : 'ring-1 ring-black/[0.03]')}>
+                  <span className={cn('flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl transition-colors', selected ? 'bg-brand text-white' : 'bg-brand-50 text-brand')}>
+                    {selected ? <Check size={20} strokeWidth={3} className="animate-pop-in" /> : <DynamicIcon name={svc.icon ?? org.sectorIcon} size={20} />}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-semibold text-ink">{svc.name}</span>
+                    <span className="mt-0.5 flex items-center gap-2 text-xs text-ink-subtle">
+                      <span className="flex items-center gap-1"><Users size={11} />{svc.waitingCount || 0} en attente</span>
+                      <span aria-hidden="true">·</span>
+                      <span>~{svc.avgDurationMin} min / passage</span>
+                    </span>
+                  </span>
+                  {showTickets && <span className={cn('shrink-0 rounded-xl px-2.5 py-1 text-xs font-bold', svc.waitMin ? 'bg-brand-50 text-brand-700' : 'bg-success-soft text-success-ink')}>{svc.waitMin ? `~${svc.waitMin} min` : 'Libre'}</span>}
+                </button>
+              )
+            })}
+          </div>
+        </section>
+
         {!showTickets ? (
           <AppointmentBookingForm orgId={org.id} serviceId={selectedService} orgName={org.name} />
         ) : (
           <>
-            <section>
-              <h2 className="mb-2 px-1 font-display text-lg font-bold text-ink">Pour quel service ?</h2>
-              <div className="stagger space-y-2.5" role="radiogroup" aria-label="Service">
-                {services.map((svc: any) => {
-                  const selected = selectedService === svc.id
-                  return (
-                    <button key={svc.id} type="button" role="radio" aria-checked={selected} onClick={() => selectService(svc.id)} disabled={!org.isActive}
-                      className={cn('flex w-full items-center gap-3 rounded-[22px] bg-white p-3.5 text-left shadow-card transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-50',
-                        selected ? 'ring-2 ring-brand shadow-[0_10px_28px_-14px_rgba(194,65,12,0.55)]' : 'ring-1 ring-black/[0.03]')}>
-                      <span className={cn('flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl transition-colors', selected ? 'bg-brand text-white' : 'bg-brand-50 text-brand')}>
-                        {selected ? <Check size={20} strokeWidth={3} className="animate-pop-in" /> : <DynamicIcon name={svc.icon ?? org.sectorIcon} size={20} />}
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate font-semibold text-ink">{svc.name}</span>
-                        <span className="mt-0.5 flex items-center gap-2 text-xs text-ink-subtle">
-                          <span className="flex items-center gap-1"><Users size={11} />{svc.waitingCount || 0} en attente</span>
-                          <span aria-hidden="true">·</span>
-                          <span>~{svc.avgDurationMin} min / passage</span>
-                        </span>
-                      </span>
-                      <span className={cn('shrink-0 rounded-xl px-2.5 py-1 text-xs font-bold', svc.waitMin ? 'bg-brand-50 text-brand-700' : 'bg-success-soft text-success-ink')}>{svc.waitMin ? `~${svc.waitMin} min` : 'Libre'}</span>
-                    </button>
-                  )
-                })}
-              </div>
-            </section>
 
             {org.priorities.length > 0 ? (
               /* L'établissement autorise le choix d'une priorité dans l'application */
