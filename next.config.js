@@ -44,6 +44,8 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   experimental: {
+    // Démarrage du serveur : journal d'erreurs intégré (src/instrumentation.ts)
+    instrumentationHook: true,
     // Cache de navigation côté navigateur : revenir sur une page déjà vue est instantané.
     // Les écrans en direct (ticket, agent, TV) se mettent à jour via le temps réel.
     staleTimes: {

@@ -23,7 +23,8 @@ export function BillingSettingsView({ data }: { data: Data }) {
     const res = await saveBillingSettings({
       trialDays: v('trialDays'), trialPlanId: v('trialPlanId'), graceDays: v('graceDays'), paymentTermDays: v('paymentTermDays'), taxRate: v('taxRate'), invoicePrefix: v('invoicePrefix'),
       companyName: v('companyName'), companyAddress: v('companyAddress'), companyTaxId: v('companyTaxId'), companyRccm: v('companyRccm'),
-      companyPhone: v('companyPhone'), companyEmail: v('companyEmail'), paymentInstructions: v('paymentInstructions')
+      companyPhone: v('companyPhone'), companyEmail: v('companyEmail'), paymentInstructions: v('paymentInstructions'),
+      retentionMonths: v('retentionMonths'), dpoEmail: v('dpoEmail'), artciReference: v('artciReference')
     })
     setBusy(false)
     if (!res.success) return toast(res.error, 'error')
@@ -67,6 +68,15 @@ export function BillingSettingsView({ data }: { data: Data }) {
               placeholder={'Orange Money : 07 00 00 00 00 (Lerena)\nWave : 05 00 00 00 00\nVirement : banque, IBAN…'} />
           </div>
         </div>
+      </Card>
+      <Card>
+        <CardHeader title="Données personnelles" subtitle="Repris dans la politique de confidentialité et les mentions légales (loi n° 2013-450)" />
+        <div className="grid gap-4 p-5 sm:grid-cols-3">
+          <TextInput name="dpoEmail" label="Contact données personnelles" type="email" maxLength={80} defaultValue={c.dpoEmail ?? ''} hint="Vide = e-mail de la société" />
+          <TextInput name="artciReference" label="N° de déclaration ARTCI" maxLength={60} defaultValue={c.artciReference ?? ''} hint="Vide = « en cours »" />
+          <TextInput name="retentionMonths" label="Anonymisation des tickets après (mois)" type="number" min={1} max={120} defaultValue={c.retentionMonths} hint="Noms et numéros effacés, statistiques gardées" />
+        </div>
+        <p className="border-t border-surface-line px-5 py-3 text-xs text-ink-muted">Documents publics : <a href="/legal/cgu" target="_blank" className="font-semibold text-brand">CGU</a> · <a href="/legal/cgv" target="_blank" className="font-semibold text-brand">CGV</a> · <a href="/legal/confidentialite" target="_blank" className="font-semibold text-brand">Confidentialité</a> · <a href="/legal/mentions-legales" target="_blank" className="font-semibold text-brand">Mentions légales</a> · <a href="/legal/sous-traitance" target="_blank" className="font-semibold text-brand">Sous-traitance</a></p>
       </Card>
     </form>
   )

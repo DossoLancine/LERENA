@@ -7,6 +7,9 @@ import { issueTicket } from "@/lib/ticketing"
 import { maskPhone } from "@/lib/phone"
 import { notifyOrg } from "@/lib/realtime"
 import { revalidatePath } from "next/cache"
+import { MIN, RATE_LIMITED, rateLimitAll, requestIp } from '@/lib/rate-limit'
+
+const ip = (prefix: string) => { const a = requestIp(); return a ? `${prefix}:${a}` : null }
 
 /** Ticket pris dans l'application ; la priorité n'est retenue que si l'établissement l'autorise dans l'application. */
 export async function joinQueue(serviceId: string, orgId: string, priorityId: string | null = null, userLat?: number, userLng?: number) {
@@ -17,6 +20,11 @@ export async function joinQueue(serviceId: string, orgId: string, priorityId: st
     // Session obsolète (compte supprimé après une réinitialisation de la base)
     const validUser = await prisma.user.findUnique({ where: { id: sessionUser.id }, select: { id: true, phone: true } })
     if (!validUser) throw new Error("SESSION_EXPIRED")
+
+    // Anti-abus : 6 tickets par personne et 40 par adresse en 10 minutes
+    if (!(await rateLimitAll([{ key: `ticket:u:${sessionUser.id}`, max: 6, windowMs: 10 * MIN }, { key: ip(`ticket:ip`), max: 40, windowMs: 10 * MIN }]))) {
+      return { success: false, error: RATE_LIMITED }
+    }
 
     const ticket = await issueTicket({
       orgId, serviceId, priorityId, channel: 'app', lat: userLat, lng: userLng,

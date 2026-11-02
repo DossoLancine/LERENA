@@ -5,11 +5,13 @@ import Link from 'next/link'
 import { WifiOff, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { t } from '@/lib/i18n'
+import { reportClientError } from '@/components/system/error-reporter'
 
 // Erreur dans une page : l'utilisateur garde la main (réessayer ou revenir à l'accueil)
 export default function PageError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
     console.error('Page error:', error)
+    reportClientError(error)
   }, [error])
 
   const offline = typeof navigator !== 'undefined' && !navigator.onLine

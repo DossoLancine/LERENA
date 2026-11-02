@@ -3,8 +3,9 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { KeyRound, LogOut, Search, ShieldOff, Users } from 'lucide-react'
-import { supportUserAction, type searchUsers } from '@/server/actions/billing-admin'
+import { Download, KeyRound, LogOut, Search, ShieldOff, Trash2, Users } from 'lucide-react'
+import { adminDeleteUser, adminExportUser, supportUserAction, type searchUsers } from '@/server/actions/billing-admin'
+import { downloadJson } from '@/components/account/my-data-card'
 import { Badge, Card, EmptyState, useToast } from '@/components/ui'
 import { PageHeader } from '@/components/billing/badges'
 
@@ -23,6 +24,21 @@ export function UsersView({ users, q }: { users: User[]; q: string }) {
     const res = await supportUserAction(u.id, action)
     if (!res.success) return toast(res.error, 'error')
     toast(ok)
+    router.refresh()
+  }
+
+  // Demandes des personnes (loi 2013-450) : export ou suppression, tracés dans le journal
+  const exportUser = async (u: User) => {
+    const res = await adminExportUser(u.id)
+    if (!res.success) return toast(res.error, 'error')
+    downloadJson(res.data, `lerena-donnees-${(u.name ?? u.id).replace(/\W+/g, '-').toLowerCase()}.json`)
+    toast('Export téléchargé')
+  }
+  const deleteUser = async (u: User) => {
+    if (!confirm(`Supprimer définitivement le compte de ${u.name ?? u.phone ?? u.email} ? Ses tickets restent anonymes dans les statistiques.`)) return
+    const res = await adminDeleteUser(u.id)
+    if (!res.success) return toast(res.error, 'error')
+    toast('Compte supprimé')
     router.refresh()
   }
 
@@ -53,6 +69,8 @@ export function UsersView({ users, q }: { users: User[]; q: string }) {
                 <div className="flex gap-1">
                   <button type="button" title="Envoyer un lien de réinitialisation" aria-label={`Réinitialiser le mot de passe de ${u.name ?? u.email}`} onClick={() => act(u, 'RESET_LINK', 'Lien de réinitialisation envoyé')} className="rounded-lg p-2 text-ink-muted hover:bg-gray-100"><KeyRound size={16} /></button>
                   <button type="button" title={`Déconnecter partout (${u.sessions} session${u.sessions > 1 ? 's' : ''})`} aria-label={`Déconnecter ${u.name ?? u.email} partout`} onClick={() => act(u, 'SIGN_OUT', 'Sessions fermées')} className="rounded-lg p-2 text-ink-muted hover:bg-gray-100"><LogOut size={16} /></button>
+                  <button type="button" title="Exporter ses données" aria-label={`Exporter les données de ${u.name ?? u.email}`} onClick={() => exportUser(u)} className="rounded-lg p-2 text-ink-muted hover:bg-gray-100"><Download size={16} /></button>
+                  {u.role === 'CLIENT' && <button type="button" title="Supprimer le compte (demande de la personne)" aria-label={`Supprimer le compte de ${u.name ?? u.email}`} onClick={() => deleteUser(u)} className="rounded-lg p-2 text-ink-muted hover:bg-danger-soft hover:text-danger"><Trash2 size={16} /></button>}
                   {u.twoFactorEnabled && <button type="button" title="Retirer la double authentification" aria-label={`Retirer la double authentification de ${u.name ?? u.email}`} onClick={() => act(u, 'RESET_2FA', 'Double authentification retirée')} className="rounded-lg p-2 text-ink-muted hover:bg-gray-100"><ShieldOff size={16} /></button>}
                 </div>
               </li>

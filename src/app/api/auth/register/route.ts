@@ -2,10 +2,20 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import { passwordProblem } from '@/lib/password-policy'
+import { HOUR, rateLimit, requestIp } from '@/lib/rate-limit'
+import { TERMS_VERSION } from '@/app/legal/content'
 
 export async function POST(req: Request) {
   try {
-    const { name, phone, password } = await req.json()
+    const { name, phone, password, acceptTerms } = await req.json()
+
+    const ip = requestIp()
+    if (ip && !(await rateLimit(`register:${ip}`, 10, HOUR))) {
+      return NextResponse.json({ message: 'Trop d’inscriptions depuis cet appareil : réessayez plus tard.' }, { status: 429 })
+    }
+    if (acceptTerms !== true) {
+      return NextResponse.json({ message: 'Acceptez les conditions d’utilisation et la politique de confidentialité' }, { status: 400 })
+    }
 
     if (!name || !phone || !password) {
       return NextResponse.json({ message: 'Informations manquantes' }, { status: 400 })
@@ -34,7 +44,9 @@ export async function POST(req: Request) {
         name: name.trim(),
         phone,
         password: hashedPassword,
-        role: 'CLIENT'
+        role: 'CLIENT',
+        termsAcceptedAt: new Date(),
+        termsVersion: TERMS_VERSION
       }
     })
 

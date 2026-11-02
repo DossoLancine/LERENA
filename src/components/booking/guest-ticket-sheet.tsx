@@ -113,6 +113,7 @@ export function GuestTicketSheet({ open, onClose, orgId, serviceId, serviceName,
             <p className="text-xs text-ink-subtle">{t('guest.phoneHint')}</p>
           </div>
           {error && <p role="alert" className="rounded-xl bg-danger-soft p-3 text-sm text-danger-ink">{error}</p>}
+          <p className="text-xs text-ink-subtle">Votre prénom et votre numéro servent uniquement à vous appeler et à vous prévenir. <a href="/legal/confidentialite" target="_blank" className="underline">Confidentialité</a></p>
           <Button type="submit" size="lg" fullWidth loading={busy} icon={<Ticket size={20} />}>{t('guest.submit')}</Button>
           <p className="text-center text-sm text-ink-muted">
             {t('guest.haveAccount')}{' '}

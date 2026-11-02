@@ -3,6 +3,8 @@
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { getSessionUser } from '@/lib/session'
+import { deleteUserData, PersonalDataError } from '@/lib/personal-data'
+import { audit } from '@/lib/audit'
 
 // Données personnelles de l'usager connecté : résumé, rendez-vous, suppression du compte
 
@@ -65,15 +67,11 @@ export async function cancelMyAppointment(id: string) {
 export async function deleteMyAccount() {
   const user = await getSessionUser()
   if (!user) return { success: false, error: 'Non connecté' }
-  if (user.role !== 'CLIENT') {
-    return { success: false, error: "Un compte professionnel se supprime par l'administrateur de l'établissement." }
+  try {
+    await audit({ action: 'ACCOUNT_DELETED', targetType: 'User', targetId: user.id, details: 'à la demande de la personne' })
+    await deleteUserData(user.id)
+    return { success: true }
+  } catch (e) {
+    return { success: false, error: e instanceof PersonalDataError ? e.message : 'Suppression impossible' }
   }
-
-  await prisma.$transaction([
-    prisma.ticket.updateMany({ where: { userId: user.id }, data: { userId: null, guestName: 'Compte supprimé', guestPhone: null } }),
-    prisma.appointment.updateMany({ where: { userId: user.id }, data: { userId: null, guestName: null, guestPhone: null } }),
-    prisma.pushSubscription.deleteMany({ where: { userId: user.id } }),
-    prisma.user.delete({ where: { id: user.id } })
-  ])
-  return { success: true }
 }

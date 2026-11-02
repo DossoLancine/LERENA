@@ -5,6 +5,7 @@ import { NavProgress } from '@/components/navigation/nav-progress'
 import { ClientNav } from '@/components/navigation/client-nav'
 import { ServiceWorkerRegister } from '@/components/pwa/install'
 import { DeploymentWatcher } from '@/components/system/deployment-watcher'
+import { ErrorReporter } from '@/components/system/error-reporter'
 
 export const metadata: Metadata = {
   title: 'Lerena — Ne perdez plus votre temps à attendre',
@@ -48,6 +49,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <NavProgress />
         <ServiceWorkerRegister />
         <DeploymentWatcher />
+        <ErrorReporter />
         <NextAuthProvider>
           {children}
           <ClientNav />

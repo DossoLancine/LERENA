@@ -7,6 +7,7 @@ import { Building2, ArrowRight, ShieldCheck } from 'lucide-react'
 import Link from 'next/link'
 import { homeForRole } from '@/lib/constants'
 import { getPublicConfig } from '@/server/actions/platform'
+import { LegalLinks } from '@/components/legal/legal-links'
 
 function ProLoginForm() {
   const router = useRouter()
@@ -178,6 +179,7 @@ function ProLoginForm() {
               )}
             </button>
           </form>
+          <LegalLinks pro className="mt-6" />
 
           {/* Boutons démo */}
           {demoMode && <div className="mt-8 pt-8 border-t border-gray-100">

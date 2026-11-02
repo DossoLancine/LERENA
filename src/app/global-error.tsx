@@ -1,7 +1,11 @@
 'use client'
 
+import { useEffect } from 'react'
+import { reportClientError } from '@/components/system/error-reporter'
+
 // Dernier filet de sécurité : remplace toute la page, donc sans dépendre de la mise en page ni du CSS
-export default function GlobalError({ reset }: { error: Error; reset: () => void }) {
+export default function GlobalError({ error, reset }: { error: Error; reset: () => void }) {
+  useEffect(() => { reportClientError(error) }, [error])
   return (
     <html lang="fr">
       <body style={{ margin: 0, fontFamily: 'system-ui, sans-serif', background: '#f9fafb', color: '#111827' }}>

@@ -48,3 +48,7 @@ dev.db-journal
 .env.production
 .env.*
 !.env.example
+
+# Sauvegardes de base (scripts/backup-db.sh) : jamais versionnées
+backups/
+*.dump

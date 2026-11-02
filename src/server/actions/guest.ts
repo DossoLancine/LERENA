@@ -6,6 +6,7 @@ import { smsEnabled } from '@/lib/sms'
 import { sendOtp, verifyOtp } from '@/lib/otp'
 import { issueTicket, TicketError } from '@/lib/ticketing'
 import { ACTIVE_TICKET_STATUSES, startOfToday } from '@/lib/constants'
+import { HOUR, RATE_LIMITED, rateLimitAll, requestIp } from '@/lib/rate-limit'
 
 // Ticket sans compte : prénom + téléphone. Le code SMS n'est exigé que si un fournisseur SMS est configuré.
 
@@ -41,6 +42,10 @@ export async function joinQueueAsGuest(input: {
     const phone = normalizePhone(input.phone)
     if (name.length < 2) return { success: false, error: 'Indiquez votre prénom' }
     if (!phone) return { success: false, error: 'Numéro de téléphone invalide' }
+    const addr = requestIp()
+    if (!(await rateLimitAll([{ key: `gticket:p:${phone}`, max: 4, windowMs: HOUR }, { key: addr && `gticket:ip:${addr}`, max: 30, windowMs: HOUR }]))) {
+      return { success: false, error: RATE_LIMITED }
+    }
 
     if (smsEnabled()) {
       if (!input.code || !(await verifyOtp(phone, 'GUEST_TICKET', input.code))) {

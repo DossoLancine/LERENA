@@ -5,6 +5,7 @@ import { getSessionUser } from '@/lib/session'
 import { getOrganizations } from '@/server/actions/orgs'
 import { t } from '@/lib/i18n'
 import { homeForRole } from '@/lib/constants'
+import { LegalLinks } from '@/components/legal/legal-links'
 
 // Accueil public : comprendre Lerena en quelques secondes et prendre un ticket sans compte
 export default async function LandingPage() {
@@ -100,6 +101,7 @@ export default async function LandingPage() {
           </Link>
         </section>
       </div>
+      <LegalLinks className="pb-8 pt-2" />
     </main>
   )
 }

@@ -1,17 +1,20 @@
 import { CheckCircle2, AlertTriangle } from 'lucide-react'
-import { getPlatformHealth } from '@/server/actions/admin'
+import { getErrorEvents, getPlatformHealth } from '@/server/actions/admin'
+import { PageHeader } from '@/components/billing/badges'
+import { ErrorsCard } from './errors-card'
 import { Card, CardHeader, StatCard } from '@/components/ui'
 
 export const dynamic = 'force-dynamic'
 
 // État de la plateforme au moment de l'ouverture de la page
 export default async function AdminHealthPage() {
-  const health = await getPlatformHealth()
-  if (!health) return null
+  const [health, errors] = await Promise.all([getPlatformHealth(), getErrorEvents()])
+  if (!health || !errors) return null
   const c = health.counts
 
   return (
     <>
+      <PageHeader title="Santé de la plateforme" subtitle="Services, erreurs et activité. Sonde publique pour la surveillance externe : /api/health" />
       <div className="stagger grid grid-cols-2 gap-3 md:grid-cols-3">
         <StatCard label="Établissements" value={c.orgs} />
         <StatCard label="Comptes" value={c.users.toLocaleString('fr-FR')} />
@@ -39,6 +42,8 @@ export default async function AdminHealthPage() {
           ))}
         </ul>
       </Card>
+
+      <ErrorsCard events={errors} />
     </>
   )
 }

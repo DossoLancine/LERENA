@@ -240,6 +240,24 @@ export async function updatePlatformSettings(data: {
 
 // ---- Santé et journal ----
 
+/** Erreurs regroupées : ouvertes d'abord, puis les plus récentes. */
+export async function getErrorEvents(showResolved = false) {
+  if (!(await getSuperAdmin())) return null
+  const events = await prisma.errorEvent.findMany({
+    where: showResolved ? {} : { resolvedAt: null },
+    orderBy: { lastSeen: 'desc' }, take: 100
+  })
+  return events.map(e => ({ ...e, firstSeen: e.firstSeen.toISOString(), lastSeen: e.lastSeen.toISOString(), resolvedAt: e.resolvedAt?.toISOString() ?? null, notifiedAt: e.notifiedAt?.toISOString() ?? null }))
+}
+
+/** « Réglé » : l'erreur disparaît de la liste ; si elle revient, elle se rouvre et une nouvelle alerte part. */
+export async function resolveErrorEvent(id: string) {
+  if (!(await getSuperAdmin())) return DENIED
+  await prisma.errorEvent.update({ where: { id }, data: { resolvedAt: new Date() } })
+  revalidatePath('/admin/health')
+  return { success: true as const }
+}
+
 export async function getPlatformHealth() {
   if (!(await getSuperAdmin())) return null
   const t0 = Date.now()
@@ -247,6 +265,10 @@ export async function getPlatformHealth() {
   const dbLatencyMs = Date.now() - t0
   const onlineSince = new Date(Date.now() - 2 * 60_000)
 
+  const [jobs, config] = await Promise.all([
+    prisma.jobRun.findUnique({ where: { id: 'appointments' } }),
+    prisma.platformConfig.findUnique({ where: { id: 'default' }, select: { companyEmail: true } })
+  ])
   const [orgs, users, ticketsToday, activeTickets, devices, devicesOnline, pushSubs] = await Promise.all([
     prisma.organization.count(),
     prisma.user.count(),
@@ -264,7 +286,9 @@ export async function getPlatformHealth() {
     { name: 'Notifications push', ok: !!process.env.VAPID_PRIVATE_KEY, detail: `${pushSubs} appareil(s) abonné(s)` },
     { name: 'E-mails', ok: !!process.env.RESEND_API_KEY, detail: process.env.RESEND_API_KEY ? 'Envoi par Resend' : 'Simulés (visibles dans Messages)' },
     { name: 'SMS', ok: !!process.env.SMS_PROVIDER, detail: process.env.SMS_PROVIDER ? `Fournisseur : ${process.env.SMS_PROVIDER}` : 'Simulés (visibles dans Messages)' },
-    { name: 'Clé de double authentification', ok: !!process.env.TWO_FACTOR_KEY, detail: process.env.TWO_FACTOR_KEY ? 'Clé dédiée' : 'Clé dérivée de NEXTAUTH_SECRET : définir TWO_FACTOR_KEY avant la production' }
+    { name: 'Clé de double authentification', ok: !!process.env.TWO_FACTOR_KEY, detail: process.env.TWO_FACTOR_KEY ? 'Clé dédiée' : 'Clé dérivée de NEXTAUTH_SECRET : définir TWO_FACTOR_KEY avant la production' },
+    { name: 'Tâches planifiées', ok: !!jobs && jobs.lastRunAt > new Date(Date.now() - 26 * 3600_000), detail: jobs ? `Dernier passage : ${jobs.lastRunAt.toLocaleString('fr-FR', { timeZone: 'UTC' })} (UTC)${process.env.CRON_SECRET ? '' : ' · CRON_SECRET non défini'}` : 'Jamais lancées' },
+    { name: 'Alertes d’erreur', ok: !!(process.env.ALERT_EMAIL || config?.companyEmail), detail: process.env.ALERT_EMAIL || config?.companyEmail ? 'Un e-mail à chaque nouveau problème' : 'Renseignez l’e-mail de la société (Facturation) ou ALERT_EMAIL' }
   ]
 
   return {

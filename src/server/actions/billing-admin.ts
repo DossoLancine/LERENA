@@ -6,6 +6,7 @@ import { getSuperAdmin } from '@/lib/session'
 import { audit } from '@/lib/audit'
 import { getPlatformConfig } from '@/lib/platform'
 import { requestPasswordReset } from '@/server/actions/account'
+import { deleteUserData, exportUserData } from '@/lib/personal-data'
 import {
   BillingError, FEATURES, PAYMENT_METHODS, billingState, createInvoice, createSubscriptionInvoice, ensureSubscription,
   monthlyRevenue, notifyInvoice, recordPayment, siteCount, smsAllowance, type Feature, type InvoiceLine
@@ -416,6 +417,7 @@ export async function getBillingSettings() {
 export async function saveBillingSettings(data: {
   trialDays: number | string; trialPlanId: string; graceDays: number | string; paymentTermDays: number | string; taxRate: number | string; invoicePrefix: string
   companyName?: string; companyAddress?: string; companyTaxId?: string; companyRccm?: string; companyPhone?: string; companyEmail?: string; paymentInstructions?: string
+  retentionMonths?: number | string; dpoEmail?: string; artciReference?: string
 }) {
   if (!(await getSuperAdmin())) return DENIED
   const prefix = (text(data.invoicePrefix, 8) ?? 'LER').toUpperCase().replace(/[^A-Z0-9]/g, '') || 'LER'
@@ -426,11 +428,13 @@ export async function saveBillingSettings(data: {
       paymentTermDays: int(data.paymentTermDays, 0, 120), taxRate: int(data.taxRate, 0, 50), invoicePrefix: prefix,
       companyName: text(data.companyName, 80), companyAddress: text(data.companyAddress, 200), companyTaxId: text(data.companyTaxId, 40),
       companyRccm: text(data.companyRccm, 40), companyPhone: text(data.companyPhone, 40), companyEmail: text(data.companyEmail, 80),
-      paymentInstructions: text(data.paymentInstructions, 1000)
+      paymentInstructions: text(data.paymentInstructions, 1000),
+      retentionMonths: int(data.retentionMonths ?? 12, 1, 120), dpoEmail: text(data.dpoEmail, 80), artciReference: text(data.artciReference, 60)
     }
   })
   await audit({ action: 'BILLING_SETTINGS_UPDATED', details: `essai ${data.trialDays} j · grâce ${data.graceDays} j · TVA ${data.taxRate} %` })
   refresh()
+  revalidatePath('/legal', 'layout') // coordonnées reprises dans les documents légaux
   return { success: true as const }
 }
 
@@ -473,4 +477,27 @@ export async function supportUserAction(userId: string, action: 'SIGN_OUT' | 'RE
   }
   await audit({ action: `SUPPORT_${action}`, targetType: 'User', targetId: userId, details: user.email ?? user.phone ?? undefined })
   return { success: true as const }
+}
+
+// ---- Demandes des personnes (export, suppression) traitées par l'équipe ----
+
+export async function adminExportUser(userId: string) {
+  if (!(await getSuperAdmin())) return DENIED
+  try {
+    const data = await exportUserData(userId)
+    await audit({ action: 'DATA_EXPORTED', targetType: 'User', targetId: userId, details: 'par l’équipe Lerena' })
+    return { success: true as const, data }
+  } catch (e) { return fail(e) }
+}
+
+export async function adminDeleteUser(userId: string) {
+  const admin = await getSuperAdmin()
+  if (!admin) return DENIED
+  if (admin.id === userId) return { success: false as const, error: 'Impossible de supprimer votre propre compte' }
+  try {
+    await audit({ action: 'ACCOUNT_DELETED', targetType: 'User', targetId: userId, details: 'par l’équipe Lerena, à la demande de la personne' })
+    await deleteUserData(userId)
+    revalidatePath('/admin/users')
+    return { success: true as const }
+  } catch (e) { return fail(e) }
 }

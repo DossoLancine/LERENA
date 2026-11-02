@@ -10,7 +10,8 @@ import { hasFeature } from '@/lib/billing'
 // Rendez-vous : réservation, arrivée sur place (le RDV devient un ticket placé à son heure),
 // rappels automatiques et absences. Utilisé par l'application, les invités, l'accueil et la borne.
 
-export class AppointmentError extends Error {}
+// Erreur « métier » attendue (message affiché à la personne) : pas un incident à surveiller
+export class AppointmentError extends Error { readonly expected = true }
 
 const fmt = (d: Date) => d.toLocaleString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })
 
