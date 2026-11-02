@@ -93,6 +93,7 @@ export const GUIDE: GuideSection[] = [
     steps: [
       'Le visiteur réserve depuis la fiche de l’établissement, avec ou sans compte (prénom et téléphone). Il reçoit un code d’arrivée à 6 chiffres et un lien pour voir, reporter ou annuler son rendez-vous.',
       'Rappels automatiques par SMS la veille et 2 heures avant.',
+      'Chaque nouvelle réservation faite par un visiteur est envoyée par e-mail aux responsables et à l’accueil (et à l’adresse de l’établissement). Dans le menu, une pastille sur « Agenda » compte les nouveaux rendez-vous depuis votre dernière visite.',
       'À l’arrivée : le visiteur tape son code sur la borne (« J’ai un rendez-vous »), ou l’accueil le signale dans « Rendez-vous du jour ». Un ticket est créé et placé à l’heure du rendez-vous : il ne repasse pas derrière la file.',
       'Sans arrivée après le délai fixé (15 minutes par défaut), le rendez-vous est noté « absent ». Vous pouvez bloquer la réservation en ligne après plusieurs absences.',
       'Par service : nombre de personnes reçues sur un même créneau, délai minimum avant un rendez-vous, et jusqu’à combien de jours à l’avance.',

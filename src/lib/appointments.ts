@@ -84,8 +84,27 @@ export async function bookAppointment(input: BookingInput) {
   if (phone) await sendSmsMessage({ to: phone, text, purpose: 'APPOINTMENT_CONFIRMED', organizationId: input.orgId })
   if (input.email) await sendEmail({ to: input.email, subject: `Rendez-vous confirmé — ${org.name}`, text, purpose: 'APPOINTMENT_CONFIRMED', organizationId: input.orgId })
 
+  // L'établissement est prévenu des réservations faites par les visiteurs (pas de celles saisies par l'accueil)
+  if (input.source !== 'RECEPTION') {
+    const visitor = input.guestName ?? (input.userId ? (await prisma.user.findUnique({ where: { id: input.userId }, select: { name: true } }))?.name : null) ?? 'Un visiteur'
+    await alertTeamOfBooking({ orgId: input.orgId, orgName: org.name, siteName: service.branch.name, serviceName: service.name, date, visitor, phone, code }).catch(() => null)
+  }
+
   await notifyOrg(input.orgId)
   return { id: appointment.id, code, manageUrl, token, scheduledDate: date.toISOString() }
+}
+
+/** E-mail aux responsables et à l'accueil (et à l'adresse de l'établissement) pour chaque nouveau rendez-vous. */
+async function alertTeamOfBooking(b: { orgId: string; orgName: string; siteName: string | null; serviceName: string; date: Date; visitor: string; phone: string | null | undefined; code: string }) {
+  const org = await prisma.organization.findUnique({
+    where: { id: b.orgId },
+    select: { email: true, members: { where: { role: { in: ['MANAGER', 'RECEPTION'] } }, select: { user: { select: { email: true } } } } }
+  })
+  const recipients = Array.from(new Set([org?.email, ...(org?.members ?? []).map(m => m.user.email)].filter((e): e is string => !!e)))
+  const text = `Nouveau rendez-vous chez ${b.orgName}${b.siteName ? ` (${b.siteName})` : ''}\n\n${b.visitor}${b.phone ? ` · ${b.phone}` : ''}\n${b.serviceName} — ${fmt(b.date)}\nCode d'arrivée : ${b.code}\n\nVoir l'agenda : ${appUrl()}/dashboard/agenda`
+  for (const to of recipients) {
+    await sendEmail({ to, purpose: 'APPOINTMENT_NEW', organizationId: b.orgId, subject: `Nouveau rendez-vous : ${b.serviceName}, ${fmt(b.date)}`, text })
+  }
 }
 
 /** Arrivée sur place : le rendez-vous devient un ticket, placé selon son heure. */

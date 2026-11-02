@@ -5,11 +5,11 @@ export const dynamic = 'force-dynamic'
 
 const PURPOSES: Record<string, string> = {
   RESET_PASSWORD: 'Mot de passe oublié', OTP: 'Code de vérification', WELCOME: 'Bienvenue', TEMP_PASSWORD: 'Identifiants',
-  TURN_SOON: 'Bientôt votre tour', APPOINTMENT_CONFIRMED: 'RDV confirmé', APPOINTMENT_REMINDER: 'Rappel de RDV',
+  TURN_SOON: 'Bientôt votre tour', APPOINTMENT_CONFIRMED: 'RDV confirmé', APPOINTMENT_NEW: 'Nouveau RDV (équipe)', APPOINTMENT_REMINDER: 'Rappel de RDV',
   APPOINTMENT_CANCELLED: 'RDV annulé', INVOICE: 'Facture', ANNOUNCEMENT: 'Annonce'
 }
-const TONE = { SENT: 'success', FAILED: 'danger', SIMULATED: 'warning' } as const
-const STATUS = { SENT: 'Envoyé', FAILED: 'Échec', SIMULATED: 'Simulé' } as const
+const TONE = { SENT: 'success', FAILED: 'danger', SIMULATED: 'warning', SKIPPED: 'neutral' } as const
+const STATUS = { SENT: 'Envoyé', FAILED: 'Échec', SIMULATED: 'Simulé', SKIPPED: 'Non envoyé (quota)' } as const
 
 // Journal des SMS et e-mails. Sans fournisseur branché, les envois sont « simulés » et leur contenu est lisible ici.
 export default async function AdminMessagesPage({ searchParams }: { searchParams: { canal?: string } }) {

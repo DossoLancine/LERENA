@@ -285,3 +285,12 @@ export async function removeClosureDay(id: string) {
   const res = await prisma.closureDay.deleteMany({ where: { id, organizationId: ctx.orgId } })
   return { success: res.count > 0 }
 }
+
+/** Réservations faites par les visiteurs depuis une date (pastille « nouveaux » de l'Agenda). */
+export async function getNewAppointmentsCount(sinceIso: string) {
+  const ctx = await getManagerContext()
+  if (!ctx) return 0
+  const since = new Date(sinceIso)
+  if (Number.isNaN(since.getTime())) return 0
+  return prisma.appointment.count({ where: { organizationId: ctx.orgId, createdAt: { gt: since }, status: 'CONFIRMED', source: { not: 'RECEPTION' } } })
+}
