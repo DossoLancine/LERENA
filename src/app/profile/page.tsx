@@ -161,7 +161,7 @@ export default function ProfilePage() {
             right={
               <button type="button" role="switch" aria-checked={prefs.highContrast} aria-label={t('profile.highContrast')} onClick={() => updatePrefs({ ...prefs, highContrast: !prefs.highContrast })}
                 className={cn('relative h-7 w-12 shrink-0 rounded-full transition-colors', prefs.highContrast ? 'bg-brand' : 'bg-gray-300')}>
-                <span className={cn('absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform duration-300 ease-spring', prefs.highContrast ? 'translate-x-[22px]' : 'translate-x-0.5')} />
+                <span className={cn('absolute left-0 top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform duration-300 ease-spring', prefs.highContrast ? 'translate-x-[22px]' : 'translate-x-0.5')} />
               </button>
             } />
           <Row icon={<Languages size={18} />} label={t('profile.language')} right={<span className="text-sm text-ink-muted">Français</span>} />
