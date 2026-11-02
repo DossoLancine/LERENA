@@ -195,7 +195,7 @@ export const GUIDE: GuideSection[] = [
       'Nommez vos services sans information sensible (« Consultation » plutôt qu’un examen précis) et n’écrivez pas de diagnostic dans les notes des agents.',
       'Les écrans n’affichent que le numéro de ticket et le guichet : jamais le nom ni le motif de priorité.',
       'Après 12 mois, les noms, numéros et notes des tickets sont effacés automatiquement ; vos statistiques restent.',
-      'Un visiteur peut télécharger ou supprimer ses données depuis son profil. Pour toute autre demande, écrivez à l’équipe Lerena : réponse sous 30 jours.'
+      'Un visiteur peut supprimer son compte depuis son profil et demander une copie de ses données ; l’équipe Lerena y répond sous 30 jours.'
     ]
   },
   {

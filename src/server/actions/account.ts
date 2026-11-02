@@ -16,7 +16,6 @@ import { audit } from '@/lib/audit'
 import type { Role } from '@/lib/constants'
 import { passwordProblem } from '@/lib/password-policy'
 import { HOUR, RATE_LIMITED, rateLimitAll, requestIp } from '@/lib/rate-limit'
-import { exportUserData } from '@/lib/personal-data'
 
 // Sécurité du compte : mot de passe oublié, changement de mot de passe, double authentification, sessions.
 
@@ -208,11 +207,27 @@ export async function revokeOtherSessions() {
 
 // ---- Mes données (droits des personnes) ----
 
-/** Export complet du compte, à télécharger en JSON. */
-export async function exportMyData() {
+/**
+ * Demande de copie des données : pas d'export en libre-service. La demande est tracée et transmise
+ * à l'équipe Lerena, qui répond sous 30 jours avec l'export de la console (Utilisateurs → exporter).
+ */
+export async function requestDataCopy() {
   const me = await getSessionUser()
   if (!me) return { success: false as const, error: 'Connectez-vous' }
-  const data = await exportUserData(me.id)
-  await audit({ action: 'DATA_EXPORTED', targetType: 'User', targetId: me.id })
-  return { success: true as const, data }
+  const addr = requestIp()
+  if (!(await rateLimitAll([{ key: `datareq:${me.id}`, max: 2, windowMs: 24 * HOUR }, { key: addr && `datareq:ip:${addr}`, max: 5, windowMs: 24 * HOUR }]))) {
+    return { success: false as const, error: 'Votre demande a déjà été envoyée : nous vous répondons sous 30 jours.' }
+  }
+  const user = await prisma.user.findUnique({ where: { id: me.id }, select: { name: true, email: true, phone: true } })
+  await audit({ action: 'DATA_COPY_REQUESTED', targetType: 'User', targetId: me.id, details: user?.phone ?? user?.email ?? undefined })
+  const config = await prisma.platformConfig.findUnique({ where: { id: 'default' }, select: { dpoEmail: true, companyEmail: true } })
+  const to = config?.dpoEmail || config?.companyEmail || process.env.ALERT_EMAIL
+  if (to) {
+    await sendEmail({
+      to, purpose: 'ANNOUNCEMENT',
+      subject: 'Demande de copie de données personnelles',
+      text: `${user?.name ?? 'Un utilisateur'} (${user?.phone ?? user?.email ?? me.id}) demande une copie de ses données.\n\nÀ traiter sous 30 jours : Console → Utilisateurs → rechercher la personne → Exporter, puis lui transmettre le fichier.`
+    }).catch(() => null)
+  }
+  return { success: true as const }
 }

@@ -61,7 +61,7 @@ export function GuestTicketSheet({ open, onClose, orgId, serviceId, serviceName,
         localStorage.setItem(NAME_KEY, name.trim())
         localStorage.setItem(PHONE_KEY, phone)
       } catch {}
-      router.push(`/ticket/${res.ticketId}`)
+      router.push(`/ticket/${res.ticketId}?new=1`)
       return
     }
     setBusy(false)

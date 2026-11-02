@@ -91,7 +91,7 @@ function HeroCarousel({ slides }: { slides: Slide[] }) {
               </svg>
               <div className="relative z-10 flex h-full max-w-[60%] flex-col">
                 <span className="w-fit rounded-full bg-white px-3 py-1 text-[11px] font-bold text-brand-700 shadow-sm">{s.badge}</span>
-                <p className="mt-2.5 line-clamp-2 text-[22px] font-black leading-[1.1] tracking-tight">{s.title}</p>
+                <p className="mt-2.5 line-clamp-2 font-display text-[24px] font-extrabold leading-[1.05] tracking-tight">{s.title}</p>
                 <p className="mb-3 mt-1 line-clamp-2 text-xs text-white/85">{s.text}</p>
                 <Link href={s.href} onClick={() => haptics.tap()} className="pressable mt-auto inline-flex w-fit items-center gap-1.5 rounded-full bg-white px-4 py-2 text-sm font-bold text-brand-700 shadow-md">
                   {s.cta} <ArrowRight size={15} />
@@ -203,7 +203,7 @@ export function HomeScreen({ firstName, activeTicket, initialOrgs, sectors }: {
       <div className="bg-gradient-to-b from-[#fde3cc] via-[#fff1e5] via-60% to-surface-sunken">
         <div className="mx-auto max-w-xl px-5 pb-2 pt-7">
           <div className="flex items-center justify-between">
-            <span className="flex items-center gap-1.5 text-2xl font-black tracking-tight text-ink">
+            <span className="flex items-center gap-1.5 font-display text-[26px] font-extrabold tracking-tight text-ink">
               Lerena <Zap size={20} className="fill-brand text-brand" aria-hidden="true" />
             </span>
             {firstName ? (
@@ -218,7 +218,7 @@ export function HomeScreen({ firstName, activeTicket, initialOrgs, sectors }: {
           </div>
 
           <p className="mt-4 text-sm text-ink-muted">{hello}{firstName ? `, ${firstName}` : ''} 👋</p>
-          <h1 className="text-[26px] font-black leading-tight tracking-tight text-ink">Où voulez-vous éviter la file aujourd’hui ?</h1>
+          <h1 className="font-display text-[28px] font-extrabold leading-[1.08] tracking-tight text-ink">Où voulez-vous éviter la file aujourd’hui ?</h1>
           {waitingNow > 0 && (
             <p className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-ink-muted">
               <span className="relative flex h-2 w-2"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-60" /><span className="relative inline-flex h-2 w-2 rounded-full bg-success" /></span>
@@ -257,7 +257,7 @@ export function HomeScreen({ firstName, activeTicket, initialOrgs, sectors }: {
         {quickest.length > 0 && (
           <section>
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-ink">Attente la plus courte</h2>
+              <h2 className="font-display text-xl font-bold text-ink">Attente la plus courte</h2>
               <Link href="/explore" className="text-sm font-semibold text-brand">Voir tout</Link>
             </div>
             <div className="hide-scrollbar stagger -mx-5 flex gap-3 overflow-x-auto px-5 pb-2">
@@ -286,7 +286,7 @@ export function HomeScreen({ firstName, activeTicket, initialOrgs, sectors }: {
         {nearby.length > 0 && (
           <section>
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-ink">{orgs.some(o => o.distance) ? 'Près de vous' : 'Ouverts maintenant'}</h2>
+              <h2 className="font-display text-xl font-bold text-ink">{orgs.some(o => o.distance) ? 'Près de vous' : 'Ouverts maintenant'}</h2>
               <Link href="/explore" className="text-sm font-semibold text-brand">Carte</Link>
             </div>
             <ul className="stagger space-y-3">

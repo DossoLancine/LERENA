@@ -69,6 +69,8 @@ module.exports = {
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
+        // Police de marque : titres et numéros de ticket
+        display: ['"Bricolage Grotesque"', 'Inter', 'system-ui', 'sans-serif'],
       },
     },
   },

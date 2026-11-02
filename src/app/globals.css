@@ -166,6 +166,32 @@ body {
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes fade-out { from { opacity: 1; } to { opacity: 0; } }
 .animate-fade-in { animation: fade-in var(--dur-base) var(--ease-standard) both; }
+/* Motif signature Lerena : le ticket à encoches. --notch-y place la ligne de découpe.
+   Le masque découpe deux demi-cercles ; l'ombre se met sur un parent (drop-shadow suit la découpe). */
+.ticket-notch {
+  --notch-y: 50%;
+  --notch-r: 13px;
+  -webkit-mask:
+    radial-gradient(circle var(--notch-r) at 0 var(--notch-y), #0000 98%, #000) left / 51% 100% no-repeat,
+    radial-gradient(circle var(--notch-r) at 100% var(--notch-y), #0000 98%, #000) right / 51% 100% no-repeat;
+  mask:
+    radial-gradient(circle var(--notch-r) at 0 var(--notch-y), #0000 98%, #000) left / 51% 100% no-repeat,
+    radial-gradient(circle var(--notch-r) at 100% var(--notch-y), #0000 98%, #000) right / 51% 100% no-repeat;
+}
+.ticket-shadow { filter: drop-shadow(0 18px 28px rgba(124, 45, 18, 0.18)) drop-shadow(0 2px 4px rgba(17, 24, 39, 0.06)); }
+
+/* Le ticket « sort de la fente » à la prise de ticket */
+@keyframes ticket-print {
+  0% { transform: translateY(-38px); clip-path: inset(0 0 100% 0); opacity: 0.6; }
+  70% { transform: translateY(4px); clip-path: inset(0 0 0 0); opacity: 1; }
+  100% { transform: translateY(0); clip-path: inset(0 0 0 0); }
+}
+.animate-ticket-print { animation: ticket-print 900ms var(--ease-spring) both; }
+
+/* Ligne de file : les personnes avancent quand quelqu'un passe */
+@keyframes queue-step { from { transform: translateX(14px); opacity: 0.4; } to { transform: translateX(0); opacity: 1; } }
+.animate-queue-step > * { animation: queue-step 520ms var(--ease-spring) both; }
+
 /* Graphiques : barres qui montent */
 @keyframes bar-grow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
 .animate-bar-grow { animation: bar-grow 700ms var(--ease-spring) both; }
