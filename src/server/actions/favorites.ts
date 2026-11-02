@@ -111,7 +111,12 @@ export async function getMyFavorites() {
         category: org.category,
         icon: org.sector?.icon ?? 'building',
         color: sectorColor(org.sector?.color).soft,
+        colorHex: sectorColor(org.sector?.color).hex,
+        brandColor: org.brandColor,
+        logoUrl: org.logo ? `/api/logo/${org.id}?v=${org.updatedAt.getTime()}` : null,
+        address: org.address,
         waitMin: totalWait,
+        waitingCount: waiting,
         isOpen: org.isActive,
         rating
       }

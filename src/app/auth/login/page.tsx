@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Clock, Zap, Briefcase, Headphones, User } from 'lucide-react'
+import { ArrowLeft, Zap, Briefcase, Headphones, User } from 'lucide-react'
 import PhoneInput from '@/components/ui/phone-input'
 import { homeForRole } from '@/lib/constants'
 import { getPublicConfig } from '@/server/actions/platform'
@@ -80,20 +80,18 @@ function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-[#fde3cc] via-[#fff6ef] via-30% to-white">
       <div className="p-4 flex items-center justify-between">
-        <Link href="/" aria-label="Retour à l’accueil" className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-50 text-gray-700">
+        <Link href="/" aria-label="Retour à l’accueil" className="w-10 h-10 flex items-center justify-center rounded-full bg-white text-ink shadow-sm ring-1 ring-black/5">
           <ArrowLeft size={20} />
         </Link>
-        <div className="text-orange-700 font-bold flex items-center gap-1">
-          <Clock size={20} /> Lerena
-        </div>
+        <span className="flex items-center gap-1 font-display text-xl font-extrabold text-ink">Lerena <Zap size={17} className="fill-brand text-brand" /></span>
       </div>
       
       <div className="flex-1 px-6 py-6 max-w-md mx-auto w-full flex flex-col justify-center">
         <div className="mb-6">
-          <h1 className="text-2xl font-black text-gray-900 mb-1">Bon retour !</h1>
-          <p className="text-gray-500 text-sm">Connectez-vous pour accéder à votre espace.</p>
+          <h1 className="font-display text-[32px] font-extrabold leading-tight tracking-tight text-ink">Content de vous revoir</h1>
+          <p className="mt-1 text-sm text-ink-muted">Votre numéro et votre code PIN, et c’est parti.</p>
         </div>
 
         {/* Compte démo : affiché seulement en mode démo */}
@@ -139,7 +137,7 @@ function LoginForm() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-orange-500 focus:bg-white transition-all text-lg tracking-widest"
+              className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3.5 text-lg tracking-widest outline-none transition-all focus:border-brand focus:ring-4 focus:ring-brand/10"
               placeholder="••••••"
             />
             <Link href="/auth/forgot" className="mt-2 inline-block text-sm font-medium text-orange-700">Code PIN oublié ?</Link>
@@ -158,7 +156,7 @@ function LoginForm() {
           <button 
             type="submit" 
             disabled={isLoading}
-            className="w-full bg-black text-white hover:bg-gray-800 rounded-2xl font-bold py-4 mt-6 flex justify-center items-center transition-all"
+            className="pressable w-full rounded-2xl bg-gradient-to-br from-[#fb923c] to-brand py-4 mt-6 flex justify-center items-center font-bold text-white shadow-[0_12px_30px_-12px_rgba(194,65,12,0.7)] transition-all disabled:opacity-60"
           >
             {isLoading ? (
               <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>

@@ -1,110 +1,94 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { ListPageSkeleton } from '@/components/ui/skeletons'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { DynamicIcon } from '@/lib/icons'
-import { Heart, ChevronRight, Clock, Users, Home, Compass, Ticket, User, AlertTriangle } from 'lucide-react'
-import { getMyFavorites, toggleFavorite } from '@/server/actions/favorites'
-import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
+import { Compass, Heart, Plus, Star, Users } from 'lucide-react'
+import { ListPageSkeleton } from '@/components/ui/skeletons'
+import { DynamicIcon } from '@/lib/icons'
+import { getMyFavorites, toggleFavorite } from '@/server/actions/favorites'
+import { haptics } from '@/lib/haptics'
+import { cn } from '@/lib/cn'
 
+type Fav = Awaited<ReturnType<typeof getMyFavorites>>[number]
+
+/** Favoris : attente en direct, tri par attente, prise de ticket en un geste. */
 export default function FavoritesPage() {
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const router = useRouter()
-  const [favorites, setFavorites] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const [favorites, setFavorites] = useState<Fav[] | null>(null)
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/auth/login?callbackUrl=/favorites')
-      return
-    }
-    if (status === 'authenticated') {
-      fetchFavorites()
-    }
+    if (status === 'unauthenticated') router.push('/auth/login?callbackUrl=/favorites')
+    if (status === 'authenticated') getMyFavorites().then(setFavorites)
   }, [status, router])
 
-  const fetchFavorites = async () => {
-    const data = await getMyFavorites()
-    setFavorites(data)
-    setLoading(false)
+  const remove = async (e: React.MouseEvent, id: string) => {
+    e.preventDefault()
+    haptics.tap()
+    setFavorites(prev => prev?.filter(f => f.id !== id) ?? null) // retiré aussitôt, remis si le serveur refuse
+    const res = await toggleFavorite(id)
+    if (!res.success) getMyFavorites().then(setFavorites)
   }
 
-  const handleRemoveFavorite = async (e: React.MouseEvent, orgId: string) => {
-    e.preventDefault() // Prevent navigation to org page
-    
-    // Optimistic UI
-    setFavorites(prev => prev.filter(f => f.id !== orgId))
-    
-    const res = await toggleFavorite(orgId)
-    if (!res.success) {
-      // Revert if error
-      fetchFavorites()
-    }
-  }
-
-  if (loading || status === 'loading') {
-    return (
-      <ListPageSkeleton />
-    )
-  }
+  if (!favorites) return <ListPageSkeleton />
+  // Les ouverts d'abord, du moins d'attente au plus d'attente
+  const sorted = [...favorites].sort((a, b) => Number(b.isOpen) - Number(a.isOpen) || a.waitMin - b.waitMin)
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b border-gray-100">
-        <div className="max-w-lg mx-auto px-4 py-5">
-          <h1 className="text-2xl font-bold text-gray-900">Mes favoris</h1>
-          <p className="text-sm text-gray-500 mt-1">Accédez rapidement à vos établissements préférés</p>
+    <div className="min-h-screen bg-surface-sunken pb-28">
+      <header className="bg-gradient-to-b from-[#fde3cc] via-[#fff1e5] to-surface-sunken">
+        <div className="mx-auto max-w-lg px-5 pb-3 pt-7">
+          <h1 className="font-display text-[30px] font-extrabold tracking-tight text-ink">Favoris</h1>
+          <p className="text-sm text-ink-muted">{favorites.length ? 'Classés du moins d’attente au plus d’attente' : 'Vos établissements, à un geste'}</p>
         </div>
-      </div>
-      
-      <div className="stagger max-w-lg mx-auto px-4 py-6 space-y-3 pb-24">
-        {favorites.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center flex flex-col items-center">
-            <Heart size={48} className="text-gray-200 mb-4" />
-            <h2 className="text-lg font-bold text-gray-900 mb-2">Aucun favori</h2>
-            <p className="text-gray-500 text-sm mb-6">Vous n'avez pas encore ajouté d'établissement à vos favoris.</p>
-            <Link href="/explore">
-              <button className="btn-primary py-2.5 px-6 rounded-xl">Explorer les établissements</button>
-            </Link>
-          </div>
+      </header>
+
+      <main className="mx-auto max-w-lg px-5 pt-2">
+        {sorted.length === 0 ? (
+          <section className="flex flex-col items-center rounded-[26px] bg-white px-6 py-10 text-center shadow-card ring-1 ring-black/[0.03]">
+            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-brand-50 text-brand"><Heart size={30} /></span>
+            <p className="mt-4 font-display text-xl font-bold text-ink">Aucun favori pour l’instant</p>
+            <p className="mt-1 text-sm text-ink-muted">Touchez le cœur sur la fiche d’un établissement pour le retrouver ici, avec son attente en direct.</p>
+            <Link href="/explore" className="pressable mt-5 inline-flex items-center gap-2 rounded-full bg-gradient-to-br from-[#fb923c] to-brand px-5 py-3 text-sm font-bold text-white shadow-md"><Compass size={17} /> Explorer</Link>
+          </section>
         ) : (
-          favorites.map((org) => (
-            <Link key={org.id} href={`/org/${org.id}`}>
-              <div className="bg-white rounded-2xl border border-gray-100 p-4 lift flex items-center gap-3 relative overflow-hidden group">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl ${org.color}`}>
-                  <DynamicIcon name={org.icon} size={24} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <p className="font-semibold text-gray-900 truncate pr-2">{org.name}</p>
-                    <button 
-                      onClick={(e) => handleRemoveFavorite(e, org.id)}
-                      className="p-1 -mr-1 rounded-full hover:bg-gray-50"
-                    >
-                      <Heart size={16} className="fill-red-400 text-red-400" />
-                    </button>
-                  </div>
-                  <div className="flex items-center gap-3 mt-1">
-                    {org.isOpen ? (
-                      <>
-                        <span className="badge-open">Ouvert</span>
-                        <span className="flex items-center gap-1 text-xs text-orange-500 font-semibold">
-                          <Clock size={11} />{org.waitRange}
+          <ul className="stagger grid grid-cols-2 gap-3">
+            {sorted.map(org => {
+              const hex = org.brandColor ?? org.colorHex
+              return (
+                <li key={org.id}>
+                  <Link href={`/org/${org.id}`} className="lift block rounded-[24px] bg-white p-2 shadow-card ring-1 ring-black/[0.03]">
+                    <div className="relative flex h-[110px] items-center justify-center overflow-hidden rounded-[18px]" style={{ background: `linear-gradient(140deg, ${hex}1f, ${hex}47)` }}>
+                      {org.logoUrl
+                        // eslint-disable-next-line @next/next/no-img-element
+                        ? <img src={org.logoUrl} alt="" loading="lazy" className="h-14 w-14 rounded-2xl bg-white object-contain p-1.5 shadow-sm" />
+                        : <span style={{ color: hex }}><DynamicIcon name={org.icon} size={38} /></span>}
+                      <button type="button" onClick={e => remove(e, org.id)} aria-label={`Retirer ${org.name} des favoris`} className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow-sm">
+                        <Heart size={15} className="fill-red-500 text-red-500" />
+                      </button>
+                      <span className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-full bg-white/90 px-2 py-0.5 text-[11px] font-semibold text-ink shadow-sm">
+                        <Star size={11} className="fill-amber-400 text-amber-400" />{org.rating > 0 ? org.rating.toLocaleString('fr-FR') : 'Nouveau'}
+                      </span>
+                    </div>
+                    <div className="px-1.5 pb-1 pt-2.5">
+                      <p className="truncate font-semibold text-ink">{org.name}</p>
+                      <p className="flex items-center gap-1 truncate text-xs text-ink-subtle"><Users size={11} />{org.waitingCount} en file</p>
+                      <div className="mt-2 flex items-center justify-between gap-1">
+                        <span className={cn('rounded-lg px-2 py-0.5 text-xs font-bold', !org.isOpen ? 'bg-gray-100 text-ink-subtle' : org.waitMin < 10 ? 'bg-success-soft text-success-ink' : 'bg-brand-50 text-brand-700')}>
+                          {!org.isOpen ? 'Fermé' : org.waitMin ? `~${org.waitMin} min` : 'Libre'}
                         </span>
-                      </>
-                    ) : (
-                      <span className="badge-closed">Fermé</span>
-                    )}
-                  </div>
-                </div>
-                <ChevronRight size={16} className="text-gray-300" />
-              </div>
-            </Link>
-          ))
+                        {org.isOpen && <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand text-white" aria-hidden="true"><Plus size={15} strokeWidth={2.5} /></span>}
+                      </div>
+                    </div>
+                  </Link>
+                </li>
+              )
+            })}
+          </ul>
         )}
-      </div>
+      </main>
     </div>
   )
 }
