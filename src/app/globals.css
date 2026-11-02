@@ -193,6 +193,10 @@ body {
 @keyframes queue-step { from { transform: translateX(14px); opacity: 0.4; } to { transform: translateX(0); opacity: 1; } }
 .animate-queue-step > * { animation: queue-step 520ms var(--ease-spring) both; }
 
+/* Ligne de balayage du scanner de QR code */
+@keyframes scan-line { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(196px); } }
+.animate-scan-line { animation: scan-line 2.4s var(--ease-standard) infinite; }
+
 /* Graphiques : barres qui montent */
 @keyframes bar-grow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
 .animate-bar-grow { animation: bar-grow 700ms var(--ease-spring) both; }
