@@ -12,7 +12,7 @@ Cadre : **loi n° 2013-450 du 19 juin 2013** relative à la protection des donn�
 | Consentement aux conditions | Case obligatoire à l’inscription ; date et version enregistrées (`termsAcceptedAt`, `termsVersion`) |
 | Consentement notifications / position | Demandés par le navigateur au moment de l’usage, refus sans conséquence |
 | Cookies | Uniquement indispensables (session, choix du site) : pas de bandeau nécessaire |
-| Droit d’accès et de portabilité | Profil → **Mes données** → export JSON ; Console → Utilisateurs → export |
+| Droit d’accès et de portabilité | Profil → « Demander une copie de mes données » (demande tracée, e-mail à l’équipe) ; réponse sous 30 jours avec l’export de Console → Utilisateurs |
 | Droit à l’effacement | Profil → Supprimer mon compte ; Console → Utilisateurs → supprimer (tickets anonymisés) |
 | Durées de conservation | Purge et anonymisation automatiques chaque nuit (voir `docs/EXPLOITATION.md`) |
 | Sécurité | HTTPS, mots de passe hachés, double authentification des administrateurs, secrets à usage unique, journal des actions, limites anti-abus, sauvegardes |

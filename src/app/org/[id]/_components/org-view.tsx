@@ -106,7 +106,7 @@ export default function OrgView({ params, initialOrg, initialIsFavorite }: {
 
     if (res.success && res.ticketId) {
       haptics.success()
-      router.push(`/ticket/${res.ticketId}`)
+      router.push(`/ticket/${res.ticketId}?new=1`)
       return
     }
     if (res.error === "SESSION_EXPIRED") {

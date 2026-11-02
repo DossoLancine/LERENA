@@ -52,16 +52,15 @@ export function DetailPageSkeleton() {
 }
 
 export function TicketSkeleton() {
+  // Silhouette du suivi de ticket : en-tête, ticket à encoches, bloc « devant vous », étapes
   return (
-    <div className="min-h-screen bg-gray-50 p-4 space-y-4">
-      <Bar className="h-6 w-40" />
-      <div className="rounded-3xl bg-white p-6 shadow-sm space-y-4 flex flex-col items-center">
-        <Bar className="h-4 w-24" />
-        <Bar className="h-16 w-36" />
-        <Bar className="h-40 w-40 rounded-full" />
-        <Bar className="h-4 w-48" />
+    <div className="min-h-screen bg-gradient-to-b from-[#fde3cc] via-[#fff1e5] via-30% to-surface-sunken">
+      <div className="mx-auto max-w-lg space-y-4 px-5 pt-5">
+        <div className="flex justify-between"><Bar className="h-10 w-10 rounded-full" /><Bar className="h-10 w-24 rounded-full" /></div>
+        <Bar className="h-[236px] w-full rounded-[28px]" />
+        <Bar className="h-40 w-full rounded-[26px]" />
+        <Bar className="h-16 w-full rounded-[22px]" />
       </div>
-      <Bar className="h-20 w-full" />
     </div>
   )
 }
