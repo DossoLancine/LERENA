@@ -135,3 +135,27 @@ export async function leaveQueue(ticketId: string) {
     return { success: false, error: error.message }
   }
 }
+
+/** Ticket en cours du visiteur connecté, résumé pour l'accueil : numéro, place et attente estimée. */
+export async function getActiveTicketSummary() {
+  const user = await getSessionUser()
+  if (!user) return null
+  const t = await prisma.ticket.findFirst({
+    where: { userId: user.id, status: { in: ['WAITING', 'CALLED', 'SERVING', 'ON_HOLD'] } },
+    orderBy: { createdAt: 'desc' },
+    select: {
+      id: true, displayNum: true, status: true, queueId: true, priorityScore: true, queuedAt: true, counterName: true,
+      service: { select: { name: true, avgDurationMin: true } },
+      queue: { select: { branch: { select: { organization: { select: { id: true, name: true } } } } } }
+    }
+  })
+  if (!t) return null
+  const ahead = t.status === 'WAITING'
+    ? await prisma.ticket.count({ where: { queueId: t.queueId, status: 'WAITING', OR: [{ priorityScore: { gt: t.priorityScore } }, { priorityScore: t.priorityScore, queuedAt: { lt: t.queuedAt } }] } })
+    : 0
+  return {
+    id: t.id, displayNum: t.displayNum, status: t.status, counterName: t.counterName,
+    orgId: t.queue.branch.organization.id, orgName: t.queue.branch.organization.name, serviceName: t.service?.name ?? '',
+    ahead, waitMin: ahead * (t.service?.avgDurationMin ?? 10)
+  }
+}

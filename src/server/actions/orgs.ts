@@ -99,7 +99,10 @@ export async function getOrganizations(search?: string, userLat?: number, userLn
         color: palette.soft,
         colorHex: palette.hex,
         // Mise en avant payée : en tête de liste avec le badge « À la une »
-        featured: !!org.featuredUntil && org.featuredUntil.getTime() > Date.now()
+        featured: !!org.featuredUntil && org.featuredUntil.getTime() > Date.now(),
+        // Logo servi à part (/api/logo) pour garder la liste légère ; ?v= change à chaque modification
+        logoUrl: org.logo ? `/api/logo/${org.id}?v=${org.updatedAt.getTime()}` : null,
+        brandColor: org.brandColor
       }
     })
 

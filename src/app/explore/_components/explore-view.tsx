@@ -34,7 +34,11 @@ export default function ExploreView({ initialOrgs, sectors, defaultCenter }: { i
 
   useEffect(() => {
     // Secteur présélectionné depuis l'accueil (/explore?cat=<slug>)
-    const cat = new URLSearchParams(window.location.search).get('cat')
+    const params = new URLSearchParams(window.location.search)
+    const cat = params.get('cat')
+    // Recherche tapée sur l'accueil (/explore?q=…)
+    const q = params.get('q')
+    if (q) setSearch(q)
     if (cat && sectors.some(s => s.slug === cat)) setSelectedCat(cat)
   }, [sectors])
 
