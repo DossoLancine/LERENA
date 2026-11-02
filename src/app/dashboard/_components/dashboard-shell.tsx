@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { signOut } from 'next-auth/react'
 import { LogOut, ShieldCheck, Headset, ConciergeBell, CreditCard } from 'lucide-react'
@@ -12,6 +12,9 @@ import { useDashboard } from './dashboard-context'
 import { SiteSwitcher } from '@/components/sites/site-switcher'
 import { SidebarShell, type SidebarGroup } from '@/components/layout/sidebar-shell'
 import { getBillingBanner } from '@/server/actions/billing'
+import { getNewAppointmentsCount } from '@/server/actions/appointments'
+import { usePathname } from 'next/navigation'
+import { usePolling } from '@/hooks/use-polling'
 
 const GROUPS: SidebarGroup[] = [
   {
@@ -48,6 +51,24 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   const [banner, setBanner] = useState<Awaited<ReturnType<typeof getBillingBanner>>>(null)
   useEffect(() => { getBillingBanner().then(setBanner).catch(() => null) }, [])
 
+  // Nouveaux rendez-vous depuis la dernière ouverture de l'Agenda (pastille du menu)
+  const pathname = usePathname()
+  const [newAppts, setNewAppts] = useState(0)
+  const seenKey = 'lerena:agenda-seen'
+  const checkAppts = useCallback(async () => {
+    let since: string | null = null
+    try { since = localStorage.getItem(seenKey) } catch {}
+    if (!since) { since = new Date().toISOString(); try { localStorage.setItem(seenKey, since) } catch {} }
+    setNewAppts(await getNewAppointmentsCount(since).catch(() => 0))
+  }, [])
+  useEffect(() => {
+    if (!pathname.startsWith('/dashboard/agenda')) return
+    try { localStorage.setItem(seenKey, new Date().toISOString()) } catch {}
+    setNewAppts(0)
+  }, [pathname])
+  usePolling(checkAppts, 60_000, !pathname.startsWith('/dashboard/agenda'))
+  const groups = GROUPS.map(g => ({ ...g, items: g.items.map(i => (i.href === '/dashboard/agenda' ? { ...i, count: newAppts } : i)) }))
+
   if (loading && !stats) return <DashboardSkeleton />
   const isOpen = !!stats?.isOpen
 
@@ -55,7 +76,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
     <SidebarShell
       eyebrow={t('dashboard.eyebrow')}
       title={stats?.orgName ?? '—'}
-      groups={GROUPS}
+      groups={groups}
       onProfile={() => setShowProfile(true)}
       header={<>
         <SiteSwitcher />
