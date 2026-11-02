@@ -106,7 +106,7 @@ export function PilotView({ data }: { data: Data }) {
 
           {r.weeks.length > 1 && (
             <Card className="print:break-inside-avoid">
-              <CardHeader title="Attente moyenne semaine par semaine (minutes)" subtitle="L’équipe prend ses marques : l’attente baisse au fil des semaines" />
+              <CardHeader title="Attente moyenne semaine par semaine (minutes)" subtitle="Évolution de l’attente au fil du pilote (survolez une barre pour le détail)" />
               <div className="p-5"><BarChart label="Attente moyenne par semaine" data={r.weeks.map(w => ({ label: w.label, value: w.avgWaitMin ?? 0, hint: `${w.tickets} tickets${w.absentRate != null ? ` · ${w.absentRate} % absents` : ''}` }))} /></div>
             </Card>
           )}
