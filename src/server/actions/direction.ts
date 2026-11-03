@@ -66,8 +66,16 @@ export async function saveDirectionSettings(input: {
   ])
   // Relevé de départ (avant Lerena) : direction seulement ; la date de départ est fixée au premier enregistrement
   if (input.baseline && !ctx.siteIds) {
-    const org = await prisma.organization.findUnique({ where: { id: ctx.orgId }, select: { pilotStartedAt: true, createdAt: true } })
-    await prisma.organization.update({ where: { id: ctx.orgId }, data: { pilotBaselineWaitMin: int(input.baseline.waitMin, 0, 1000), pilotBaselineDaily: int(input.baseline.daily, 0, 100000), pilotStartedAt: org?.pilotStartedAt ?? org?.createdAt ?? new Date() } })
+    const org = await prisma.organization.findUnique({ where: { id: ctx.orgId }, select: { pilotStartedAt: true, createdAt: true, pilotBaselineWaitMin: true, pilotBaselineDaily: true } })
+    const waitMin = int(input.baseline.waitMin, 0, 1000)
+    const daily = int(input.baseline.daily, 0, 100000)
+    // N'écrit que si le relevé change ; la date de départ n'est fixée que lorsqu'un relevé est saisi
+    if (org && (waitMin !== org.pilotBaselineWaitMin || daily !== org.pilotBaselineDaily)) {
+      await prisma.organization.update({
+        where: { id: ctx.orgId },
+        data: { pilotBaselineWaitMin: waitMin, pilotBaselineDaily: daily, ...(org.pilotStartedAt || (waitMin == null && daily == null) ? {} : { pilotStartedAt: org.createdAt }) }
+      })
+    }
   }
   await audit({ action: 'DIRECTION_SETTINGS_UPDATED', targetType: 'Organization', targetId: ctx.orgId, organizationId: ctx.orgId })
   return { success: true as const }
