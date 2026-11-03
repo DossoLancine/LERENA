@@ -55,7 +55,8 @@ async function alertManagers(orgId: string, c: { id: string; orgName: string; si
   const text = [
     `Avis à traiter chez ${c.orgName} (${c.site})`, '',
     `${c.score} étoile${c.score > 1 ? 's' : ''} sur 5${c.reason ? ` · ${FEEDBACK_REASONS[c.reason as FeedbackReason]}` : ''}`,
-    c.comment ? `« ${c.comment} »` : 'Sans commentaire',
+    // L'alerte part dès la note : le commentaire, s'il y en a un, arrive souvent juste après
+    c.comment ? `« ${c.comment} »` : 'Le visiteur peut encore ajouter un motif ou un commentaire : ouvrez l’avis pour le voir.',
     `Ticket ${c.ticket} · ${c.service}${c.counter ? ` · ${c.counter}` : ''}`, '',
     `Traiter l'avis : ${appUrl()}/dashboard/feedback?id=${c.id}`
   ].join('\n')
