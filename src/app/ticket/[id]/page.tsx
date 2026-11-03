@@ -57,6 +57,8 @@ export default function TicketPage({ params }: { params: { id: string } }) {
   const prevStatus = useRef<string | null>(null)
   const prevPosition = useRef<number | null>(null)
   const promosLoaded = useRef(false)
+  // Le bloc de notation reste affiché après la 1re étoile (motif et commentaire), malgré le rafraîchissement du ticket
+  const [rating, setRating] = useState(false)
 
   const fetchTicket = useCallback(async () => {
     const data = await getTicketById(params.id)
@@ -282,7 +284,7 @@ export default function TicketPage({ params }: { params: { id: string } }) {
             onPromoClaimed={(title, price) => setTicket((prev: any) => ({ ...prev, claimedPromoTitle: title, claimedPromoPrice: price }))} />
         )}
 
-        {status === 'COMPLETED' && !ticket.npsScore && <NPSWidget ticketId={ticket.id} />}
+        {status === 'COMPLETED' && (!ticket.npsScore || rating) && <NPSWidget ticketId={ticket.id} onRated={() => setRating(true)} />}
         {(status === 'WAITING' || status === 'COMPLETED') && <ConsentOptIn ticketId={ticket.id} />}
 
         {/* Détails repliés */}

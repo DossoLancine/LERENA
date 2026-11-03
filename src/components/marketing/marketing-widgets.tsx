@@ -8,7 +8,7 @@ import { FEEDBACK_REASONS, type FeedbackReason } from '@/lib/customer-labels'
 // ==========================================
 // 1. WIDGET NPS (Notation Post-Service)
 // ==========================================
-export function NPSWidget({ ticketId }: { ticketId: string }) {
+export function NPSWidget({ ticketId, onRated }: { ticketId: string; onRated?: () => void }) {
   const [hovered, setHovered] = useState(0)
   const [selected, setSelected] = useState(0)
   // 1. étoiles (enregistrées tout de suite) → 2. motif et commentaire facultatifs → 3. merci
@@ -20,6 +20,7 @@ export function NPSWidget({ ticketId }: { ticketId: string }) {
 
   const rate = async (star: number) => {
     setSelected(star)
+    onRated?.()
     setLoading(true)
     await submitNPS(ticketId, star)
     setLoading(false)
