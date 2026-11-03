@@ -35,6 +35,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
         ] },
         { label: 'Plateforme', items: [
           { href: '/admin/sectors', label: 'Secteurs', icon: 'Tags' },
+          { href: '/admin/integrations', label: 'Intégrations', icon: 'Sparkles' },
           { href: '/admin/messages', label: 'Messages', icon: 'MessageSquare' },
           { href: '/admin/health', label: 'Santé', icon: 'Gauge' },
           { href: '/admin/audit', label: 'Journal', icon: 'ClipboardList' },

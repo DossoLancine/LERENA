@@ -322,7 +322,7 @@ export async function getAuditLog(page = 1, action?: string) {
 
 // ---- Messages envoyés (SMS, e-mails) ----
 
-export async function getOutboundMessages(channel?: 'SMS' | 'EMAIL') {
+export async function getOutboundMessages(channel?: 'SMS' | 'EMAIL' | 'WHATSAPP') {
   if (!(await getSuperAdmin())) return null
   const rows = await prisma.outboundMessage.findMany({
     where: channel ? { channel } : {},

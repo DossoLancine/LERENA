@@ -26,8 +26,8 @@ export async function getNotificationSettings() {
   const count = (channel: string, status: string) => usage.find(u => u.channel === channel && u.status === status)?._count._all ?? 0
   return {
     smsTurnAlerts: !!org?.smsTurnAlerts,
-    smsProviderReady: smsEnabled(),
-    emailProviderReady: emailEnabled(),
+    smsProviderReady: await smsEnabled(),
+    emailProviderReady: await emailEnabled(),
     month: monthStart.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }),
     sms: { sent: count('SMS', 'SENT'), simulated: count('SMS', 'SIMULATED'), failed: count('SMS', 'FAILED') },
     email: { sent: count('EMAIL', 'SENT'), simulated: count('EMAIL', 'SIMULATED'), failed: count('EMAIL', 'FAILED') }

@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { isPushSubscribed, savePushSubscription } from '@/server/actions/push'
+import { getPushPublicKey, isPushSubscribed, savePushSubscription } from '@/server/actions/push'
 
 export type PushState =
   | 'loading'
@@ -32,7 +32,7 @@ export function usePush(ticketId: string) {
   useEffect(() => {
     let cancelled = false
     const check = async () => {
-      const vapid = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+      const vapid = await getPushPublicKey().catch(() => null)
       const hasApi = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window
       if (!vapid) return setState('unsupported')
       if (!hasApi) return setState(isIos() && !isStandalone() ? 'ios-install' : 'unsupported')
@@ -55,11 +55,13 @@ export function usePush(ticketId: string) {
         setState(permission === 'denied' ? 'denied' : 'default')
         return false
       }
+      const vapid = await getPushPublicKey()
+      if (!vapid) { setState('unsupported'); return false }
       const reg = await navigator.serviceWorker.register('/sw.js')
       await navigator.serviceWorker.ready
       const sub = (await reg.pushManager.getSubscription()) ?? await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!)
+        applicationServerKey: urlBase64ToUint8Array(vapid)
       })
       const json = sub.toJSON() as { endpoint: string; keys: { p256dh: string; auth: string } }
       const res = await savePushSubscription(ticketId, json)

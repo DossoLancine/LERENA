@@ -14,14 +14,14 @@ const MAX_GUEST_TICKETS_PER_DAY = 3
 
 /** Indique au formulaire si un code SMS sera demandé. */
 export async function guestFlowConfig() {
-  return { smsRequired: smsEnabled() }
+  return { smsRequired: await smsEnabled() }
 }
 
 /** Envoie le code de vérification au numéro donné. */
 export async function requestGuestCode(rawPhone: string) {
   const phone = normalizePhone(rawPhone)
   if (!phone) return { success: false, error: 'Numéro de téléphone invalide' }
-  if (!smsEnabled()) return { success: true, required: false }
+  if (!(await smsEnabled())) return { success: true, required: false }
 
   const res = await sendOtp(phone, 'GUEST_TICKET')
   return res.ok ? { success: true, required: true } : { success: false, error: res.error }
@@ -47,7 +47,7 @@ export async function joinQueueAsGuest(input: {
       return { success: false, error: RATE_LIMITED }
     }
 
-    if (smsEnabled()) {
+    if (await smsEnabled()) {
       if (!input.code || !(await verifyOtp(phone, 'GUEST_TICKET', input.code))) {
         return { success: false, error: 'CODE_INVALID' }
       }

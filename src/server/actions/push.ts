@@ -1,5 +1,6 @@
 'use server'
 
+import { pushPublicKey } from '@/lib/push'
 import { prisma } from '@/lib/prisma'
 import { getSessionUser } from '@/lib/session'
 
@@ -9,6 +10,11 @@ interface BrowserSubscription {
 }
 
 // Enregistre l'appareil pour recevoir les alertes du ticket suivi
+/** Clé publique des notifications push (réglée dans la console), null si désactivées. */
+export async function getPushPublicKey() {
+  return pushPublicKey()
+}
+
 export async function savePushSubscription(ticketId: string, sub: BrowserSubscription) {
   try {
     if (!sub?.endpoint?.startsWith('https://') || !sub.keys?.p256dh || !sub.keys?.auth) {

@@ -54,7 +54,7 @@ export async function createGuestAppointment(input: { orgId: string; serviceId: 
   if (!(await rateLimitAll([{ key: `grdv:p:${phone}`, max: 5, windowMs: HOUR }, { key: addr && `grdv:ip:${addr}`, max: 20, windowMs: HOUR }]))) {
     return { success: false as const, error: RATE_LIMITED }
   }
-  if (smsEnabled() && (!input.code || !(await verifyOtp(phone, 'GUEST_TICKET', input.code)))) {
+  if ((await smsEnabled()) && (!input.code || !(await verifyOtp(phone, 'GUEST_TICKET', input.code)))) {
     return { success: false as const, error: 'CODE_INVALID' }
   }
   try {

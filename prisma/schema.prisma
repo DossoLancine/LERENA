@@ -483,7 +483,7 @@ model AuthSession {
 // Journal des SMS et e-mails envoyés (ou simulés tant qu'aucun fournisseur n'est branché)
 model OutboundMessage {
   id             String   @id @default(cuid())
-  channel        String // SMS | EMAIL
+  channel        String // SMS | EMAIL | WHATSAPP
   to             String
   subject        String?
   body           String
@@ -975,4 +975,19 @@ model CustomerDuplicateIgnore {
   createdAt      DateTime @default(now())
 
   @@id([organizationId, customerA, customerB])
+}
+
+// Connecteur vers un service extérieur (e-mail, SMS, WhatsApp, push, IA, paiement, connexion), réglé depuis la console.
+// Les clés sont chiffrées ; en mode SIMULATION rien ne part, tout est journalisé.
+model Integration {
+  kind       String    @id // EMAIL | SMS | WHATSAPP | PUSH | AI | PAYMENT | AUTH
+  provider   String
+  mode       String    @default("SIMULATION") // SIMULATION | LIVE
+  settings   Json      @default("{}") // réglages non secrets (expéditeur, hôte, identifiants publics)
+  secrets    String? // JSON chiffré (clés, mots de passe)
+  lastTestAt DateTime?
+  lastTestOk Boolean?
+  lastError  String?
+  updatedBy  String?
+  updatedAt  DateTime  @updatedAt
 }

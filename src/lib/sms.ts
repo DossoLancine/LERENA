@@ -1,13 +1,11 @@
-// Envoi de SMS. Le fournisseur se choisit par la variable SMS_PROVIDER :
-//   (vide)   → aucun SMS : les messages sont simulés et journalisés (voir src/lib/messaging.ts)
-//   console  → le SMS est écrit dans les journaux du serveur (développement)
-//   orange   → Orange SMS API (Côte d'Ivoire) : ORANGE_CLIENT_ID, ORANGE_CLIENT_SECRET, ORANGE_SENDER_PHONE (ex. 2250700000000),
-//              ORANGE_SENDER_NAME facultatif (nom d'expéditeur validé par Orange)
-//   http     → agrégateur générique (JSON) : SMS_HTTP_URL, SMS_HTTP_AUTH (en-tête Authorization), SMS_HTTP_SENDER ;
-//              corps envoyé : { "to": "+225…", "text": "…", "sender": "…" }
+import { getIntegration, type ResolvedIntegration } from '@/lib/integrations'
 
-export function smsEnabled() {
-  return !!process.env.SMS_PROVIDER
+// Envoi de SMS par le connecteur « SMS » de la console (Orange, Infobip, Twilio, passerelle HTTP).
+// En simulation, rien ne part : le message est journalisé par src/lib/messaging.ts.
+// Les anciennes variables (SMS_PROVIDER, ORANGE_*, SMS_HTTP_*) restent reconnues tant que la console n'est pas réglée.
+
+export async function smsEnabled() {
+  return (await getIntegration('SMS')).live
 }
 
 /** Numéro au format international sans espaces (+225…). */
@@ -16,30 +14,29 @@ function international(to: string) {
   return digits.startsWith('+') ? digits : `+${digits}`
 }
 
+type Values = Record<string, string>
+
 // ---- Orange SMS API ----
 
-let orangeToken: { value: string; expiresAt: number } | null = null
+let orangeToken: { key: string; value: string; expiresAt: number } | null = null
 
-async function orangeAccessToken() {
-  if (orangeToken && orangeToken.expiresAt > Date.now() + 60_000) return orangeToken.value
-  const id = process.env.ORANGE_CLIENT_ID
-  const secret = process.env.ORANGE_CLIENT_SECRET
-  if (!id || !secret) throw new Error('ORANGE_CLIENT_ID / ORANGE_CLIENT_SECRET manquants')
+async function orangeAccessToken(v: Values) {
+  const key = `${v.clientId}:${v.clientSecret}`
+  if (orangeToken && orangeToken.key === key && orangeToken.expiresAt > Date.now() + 60_000) return orangeToken.value
   const res = await fetch('https://api.orange.com/oauth/v3/token', {
     method: 'POST',
-    headers: { Authorization: `Basic ${Buffer.from(`${id}:${secret}`).toString('base64')}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+    headers: { Authorization: `Basic ${Buffer.from(key).toString('base64')}`, 'Content-Type': 'application/x-www-form-urlencoded' },
     body: 'grant_type=client_credentials'
   })
   if (!res.ok) throw new Error(`Orange OAuth ${res.status}`)
   const data = await res.json() as { access_token: string; expires_in: number }
-  orangeToken = { value: data.access_token, expiresAt: Date.now() + data.expires_in * 1000 }
+  orangeToken = { key, value: data.access_token, expiresAt: Date.now() + data.expires_in * 1000 }
   return orangeToken.value
 }
 
-async function sendWithOrange(to: string, text: string) {
-  const sender = (process.env.ORANGE_SENDER_PHONE || '').replace(/\D/g, '')
-  if (!sender) throw new Error('ORANGE_SENDER_PHONE manquant')
-  const token = await orangeAccessToken()
+async function sendWithOrange(v: Values, to: string, text: string) {
+  const sender = v.senderPhone.replace(/\D/g, '')
+  const token = await orangeAccessToken(v)
   const res = await fetch(`https://api.orange.com/smsmessaging/v1/outbound/${encodeURIComponent(`tel:+${sender}`)}/requests`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -47,7 +44,7 @@ async function sendWithOrange(to: string, text: string) {
       outboundSMSMessageRequest: {
         address: `tel:${international(to)}`,
         senderAddress: `tel:+${sender}`,
-        ...(process.env.ORANGE_SENDER_NAME ? { senderName: process.env.ORANGE_SENDER_NAME } : {}),
+        ...(v.senderName ? { senderName: v.senderName } : {}),
         outboundSMSTextMessage: { message: text }
       }
     })
@@ -55,27 +52,58 @@ async function sendWithOrange(to: string, text: string) {
   if (!res.ok) throw new Error(`Orange SMS ${res.status} : ${(await res.text()).slice(0, 200)}`)
 }
 
+// ---- Infobip ----
+
+async function sendWithInfobip(v: Values, to: string, text: string) {
+  const res = await fetch(`${v.baseUrl.replace(/\/$/, '')}/sms/2/text/advanced`, {
+    method: 'POST',
+    headers: { Authorization: `App ${v.apiKey}`, 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({ messages: [{ destinations: [{ to: international(to).replace('+', '') }], from: v.sender, text }] })
+  })
+  if (!res.ok) throw new Error(`Infobip ${res.status} : ${(await res.text()).slice(0, 200)}`)
+}
+
+// ---- Twilio ----
+
+async function sendWithTwilio(v: Values, to: string, text: string) {
+  const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${encodeURIComponent(v.accountSid)}/Messages.json`, {
+    method: 'POST',
+    headers: { Authorization: `Basic ${Buffer.from(`${v.accountSid}:${v.authToken}`).toString('base64')}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ To: international(to), From: v.from, Body: text })
+  })
+  if (!res.ok) throw new Error(`Twilio ${res.status} : ${(await res.text()).slice(0, 200)}`)
+}
+
 // ---- Agrégateur générique ----
 
-async function sendWithHttp(to: string, text: string) {
-  const url = process.env.SMS_HTTP_URL
-  if (!url) throw new Error('SMS_HTTP_URL manquant')
-  const res = await fetch(url, {
+async function sendWithHttp(v: Values, to: string, text: string) {
+  const res = await fetch(v.url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...(process.env.SMS_HTTP_AUTH ? { Authorization: process.env.SMS_HTTP_AUTH } : {}) },
-    body: JSON.stringify({ to: international(to), text, sender: process.env.SMS_HTTP_SENDER || 'Lerena' })
+    headers: { 'Content-Type': 'application/json', ...(v.authHeader ? { Authorization: v.authHeader } : {}) },
+    body: JSON.stringify({ to: international(to), text, sender: v.sender || 'Lerena' })
   })
   if (!res.ok) throw new Error(`SMS HTTP ${res.status} : ${(await res.text()).slice(0, 200)}`)
 }
 
+/** Envoie un SMS ; lève une erreur détaillée en cas d'échec (pour le journal et le test de la console). */
+export async function deliverSms(to: string, text: string, config?: ResolvedIntegration) {
+  const c = config ?? await getIntegration('SMS')
+  if (!c.live) throw new Error('Connecteur SMS en simulation')
+  if (c.provider === 'orange') return sendWithOrange(c.values, to, text)
+  if (c.provider === 'infobip') return sendWithInfobip(c.values, to, text)
+  if (c.provider === 'twilio') return sendWithTwilio(c.values, to, text)
+  if (c.provider === 'http') return sendWithHttp(c.values, to, text)
+  throw new Error(`Fournisseur SMS inconnu : ${c.provider}`)
+}
+
+/** Fournisseur effectivement utilisé (pour le journal). */
+export async function smsProviderName() {
+  return (await getIntegration('SMS')).provider
+}
+
 export async function sendSms(to: string, text: string): Promise<boolean> {
-  const provider = process.env.SMS_PROVIDER
-  if (!provider) return false
   try {
-    if (provider === 'console') console.log(`[SMS → ${to}] ${text}`)
-    else if (provider === 'orange') await sendWithOrange(to, text)
-    else if (provider === 'http') await sendWithHttp(to, text)
-    else throw new Error(`Fournisseur SMS inconnu : ${provider}`)
+    await deliverSms(to, text)
     return true
   } catch (error) {
     console.error('Envoi SMS :', error instanceof Error ? error.message : error)

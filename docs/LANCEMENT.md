@@ -11,7 +11,7 @@
 | Sécurité des comptes : limites de connexion, 2FA des administrateurs, sessions révocables | ✅ (2FA obligatoire dès `ATTENDS_ENV=production`) |
 | Tests automatiques (unitaires, test de fumée) et intégration continue | ✅ |
 | Récupération de compte autonome (e-mail, SMS) | ✅ (envoi réel dès qu’un fournisseur est branché) |
-| SMS et e-mails | 🟡 simulés tant que `RESEND_API_KEY` et `SMS_PROVIDER` ne sont pas définis |
+| SMS, e-mails, WhatsApp, IA, paiement | 🟡 simulés tant que leur connecteur n’est pas passé en production (Console → Intégrations) |
 | Plusieurs sites par établissement | ✅ |
 | Rendez-vous complets (sans compte, code d’arrivée, rappels, absences) | ✅ |
 | Console Lerena : clients, forfaits, factures, paiements, prospects | ✅ |
