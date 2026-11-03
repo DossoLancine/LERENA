@@ -79,7 +79,7 @@ export function MessagesCard({ customerId, orgName, name, open, onOpenChange }: 
             className="w-full resize-none rounded-control border border-gray-200 px-3 py-2.5 text-sm text-ink focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20" />
           <div className="rounded-2xl bg-surface-sunken p-3">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-subtle">Le visiteur recevra</p>
-            <p className="mt-1 whitespace-pre-line text-sm text-ink">{full}</p>
+            <p className="mt-1 whitespace-pre-line text-sm text-ink [overflow-wrap:anywhere]">{full}</p>
             <p className={cn('mt-2 text-xs', parts.parts > 1 ? 'text-warning-ink' : 'text-ink-subtle')}>
               {parts.length} caractères{parts.parts > 1 ? ` · long : il arrivera en ${parts.parts} parties` : ''}{parts.unicode ? ' (caractères spéciaux)' : ''}
             </p>

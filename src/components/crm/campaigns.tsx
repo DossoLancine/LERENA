@@ -273,7 +273,7 @@ export function CampaignComposer() {
               ))}
               {schedule && <input type="datetime-local" value={at} onChange={e => setAt(e.target.value)} min={new Date().toISOString().slice(0, 16)} className="h-10 rounded-control border border-gray-200 px-3 text-sm" />}
             </div>
-            <p className="mt-2 text-xs text-ink-subtle">Les SMS partent entre 8 h et 20 h. {!schedule && !d.sendingHours ? 'Lancée maintenant, la campagne partira demain à 8 h.' : ''}</p>
+            <p className="mt-2 text-xs text-ink-subtle">Les SMS partent entre 8 h et 20 h. {!schedule && !d.sendingHours ? `Lancée maintenant, la campagne partira ${new Date().getUTCHours() < 8 ? 'à' : 'demain à'} 8 h.` : ''}</p>
           </section>
         </div>
 
@@ -284,10 +284,11 @@ export function CampaignComposer() {
               <p className="text-center text-[11px] font-semibold text-ink-subtle">Aperçu{d.sample?.firstName ? ` pour ${d.sample.firstName}` : ''}</p>
               <div className="mt-3 min-h-[120px]">
                 {preview ? (
-                  <p className="animate-rise-in whitespace-pre-line rounded-2xl rounded-tl-sm bg-white px-3.5 py-2.5 text-sm leading-relaxed text-ink shadow-sm">{preview}</p>
+                  <p className="animate-rise-in whitespace-pre-line rounded-2xl rounded-tl-sm bg-white px-3.5 py-2.5 text-sm leading-relaxed text-ink shadow-sm [overflow-wrap:anywhere]">{preview}</p>
                 ) : <p className="pt-8 text-center text-xs text-ink-subtle">Votre message apparaîtra ici</p>}
               </div>
               {preview && <p className={cn('mt-2 text-center text-[11px]', parts.parts > 1 ? 'text-warning-ink' : 'text-ink-subtle')}>{parts.length} caractères{parts.parts > 1 ? ` · arrive en ${parts.parts} parties` : ''}</p>}
+              {preview && parts.unicode && <p className="mt-1 text-center text-[11px] text-ink-subtle">Lettres comme ê, â, ç : 70 caractères par partie au lieu de 160.</p>}
             </div>
           </div>
           <div className="rounded-card border border-surface-line bg-white p-5 shadow-card">
@@ -310,7 +311,7 @@ export function CampaignComposer() {
           <p className="text-sm text-ink-muted">
             {n} visiteur{n > 1 ? 's' : ''} recevr{n > 1 ? 'ont' : 'a'} ce SMS{schedule && at ? ` le ${when(new Date(at))}` : ''}. {n} SMS seront décomptés.
           </p>
-          <p className="whitespace-pre-line rounded-2xl bg-surface-sunken p-3 text-sm text-ink">{preview}</p>
+          <p className="whitespace-pre-line rounded-2xl bg-surface-sunken p-3 text-sm text-ink [overflow-wrap:anywhere]">{preview}</p>
           <Button fullWidth loading={busy} onClick={send}>{schedule ? 'Programmer' : 'Envoyer'}</Button>
         </div>
       </Dialog>
@@ -398,7 +399,7 @@ export function CampaignDetail({ id }: { id: string }) {
         </section>
         <aside className="h-fit rounded-card border border-surface-line bg-white p-5 shadow-card">
           <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Message</p>
-          <p className="mt-2 whitespace-pre-line rounded-2xl bg-surface-sunken p-3 text-sm text-ink">{data.body}</p>
+          <p className="mt-2 whitespace-pre-line rounded-2xl bg-surface-sunken p-3 text-sm text-ink [overflow-wrap:anywhere]">{data.body}</p>
           <p className="mt-2 text-[11px] text-ink-subtle">Variables remplacées pour chaque visiteur, lien STOP ajouté à la fin.</p>
         </aside>
       </div>
