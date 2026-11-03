@@ -254,7 +254,8 @@ function TagsDialog({ open, onClose, data, onChange }: { open: boolean; onClose:
   const [name, setName] = useState('')
   const [color, setColor] = useState<string>(TAG_COLORS[0])
   const [busy, setBusy] = useState(false)
-  useEffect(() => { if (open) setSelected(data.customer.tags.map(t => t.id)) }, [open, data.customer.tags])
+  // Sélection initialisée à l'ouverture seulement : une étiquette créée dans la fenêtre reste cochée après rechargement
+  useEffect(() => { if (open) setSelected(data.customer.tags.map(t => t.id)) }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggle = (id: string) => setSelected(s => (s.includes(id) ? s.filter(x => x !== id) : [...s, id]))
   const save = async () => {
