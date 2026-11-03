@@ -8,6 +8,7 @@ import { bookableDays, isSlotAvailable, slotsForDay } from '@/lib/slots'
 import { AppointmentError, bookAppointment, checkIn, runAppointmentJobs } from '@/lib/appointments'
 import { hashSecret, isPlausibleSecret } from '@/lib/secrets'
 import { normalizePhone } from '@/lib/phone'
+import { refreshCustomersOfAppointments } from '@/lib/customers'
 import { smsEnabled } from '@/lib/sms'
 import { verifyOtp } from '@/lib/otp'
 import { branchFilter } from '@/lib/sites'
@@ -199,6 +200,7 @@ export async function updateAppointmentStatus(id: string, status: string) {
       data: { status, ...(status === 'CANCELLED' ? { cancelledAt: new Date() } : {}) }
     })
     if (res.count === 0) return { success: false, error: 'Rendez-vous introuvable' }
+    await refreshCustomersOfAppointments([id])
     revalidatePath(`/dashboard`)
     return { success: true }
   } catch (error) {

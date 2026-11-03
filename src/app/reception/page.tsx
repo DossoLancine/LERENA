@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { signOut, useSession } from 'next-auth/react'
 import QRCode from 'qrcode'
-import { Printer, Plus, LogOut, Users, Clock, ChevronDown, Accessibility, Siren, UserRound } from 'lucide-react'
+import Link from 'next/link'
+import { Printer, Plus, LogOut, Users, Clock, ChevronDown, Accessibility, Siren, UserRound, Contact } from 'lucide-react'
+import { TagChip } from '@/components/crm/parts'
 import { getReceptionBoard, getRecentTickets, issueReceptionTicket, setTicketPriority } from '@/server/actions/reception'
 import { Button, TextInput, TicketStatusBadge, useToast } from '@/components/ui'
 import PhoneInput from '@/components/ui/phone-input'
@@ -118,6 +120,9 @@ export default function ReceptionPage() {
               <span className={cn('h-2 w-2 rounded-full', live ? 'bg-success animate-pulse' : 'bg-gray-400')} />
               {live ? t('reception.live') : t('reception.offline')}
             </span>
+            <Link href="/reception/visitors" className="inline-flex items-center gap-1.5 rounded-xl border border-surface-line px-3 py-1.5 text-sm font-semibold text-ink hover:border-brand hover:text-brand">
+              <Contact size={15} /> Visiteurs
+            </Link>
             <Button variant="ghost" size="sm" icon={<LogOut size={15} />} onClick={() => signOut({ callbackUrl: '/pro/login' })}>{t('common.logout')}</Button>
           </div>
         </header>
@@ -208,6 +213,9 @@ export default function ReceptionPage() {
                   <div className="min-w-0">
                     <p className="truncate text-sm"><span className="font-mono font-bold text-ink">{tk.displayNum}</span> <span className="text-ink-muted">{tk.guestName || tk.user?.name}</span></p>
                     <p className="truncate text-xs text-ink-subtle">{tk.service.name} · {new Date(tk.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</p>
+                    {tk.customer && tk.customer.tags.length > 0 && (
+                      <p className="mt-1 flex flex-wrap gap-1">{tk.customer.tags.map(l => <TagChip key={l.tag.id} tag={l.tag} small />)}</p>
+                    )}
                   </div>
                   {tk.status === 'WAITING' ? (
                     <select aria-label={t('reception.priority')} value={board.priorities.find(p => p.label === tk.priorityReason)?.id ?? ''}

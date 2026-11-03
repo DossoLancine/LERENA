@@ -18,6 +18,7 @@ import { useOrgRealtime } from '@/hooks/use-org-realtime'
 import { haptics } from '@/lib/haptics'
 import type { TicketStatus } from '@/lib/constants'
 import { cn } from '@/lib/cn'
+import { TagChip } from '@/components/crm/parts'
 import { priorityText } from '@/lib/priority-text'
 import { t } from '@/lib/i18n'
 
@@ -318,6 +319,12 @@ export default function AgentPage() {
                   <p className={cn('mt-1 truncate font-semibold', strong)}>{current.guestName || current.user?.name || '—'}</p>
                   <p className={cn('text-sm', muted)}>{current.service.name}</p>
                   {/* Où le client est déjà passé avant d'arriver ici */}
+                  {current.customer && (current.customer.tags.length > 0 || current.customer.visits > 1) && (
+                    <p className="mt-2 flex flex-wrap items-center gap-1.5">
+                      {current.customer.tags.map(l => <TagChip key={l.tag.id} tag={l.tag} small />)}
+                      {current.customer.visits > 1 && <span className={cn('text-xs font-semibold', muted)}>{current.customer.visits}e passage</span>}
+                    </p>
+                  )}
                   {current.route.step > 1 && (
                     <p className={cn('mt-1 text-xs font-semibold', muted)}>Étape {current.route.step} · déjà passé : {current.route.done.join(' → ')}</p>
                   )}

@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { deleteCustomersOfUser } from '@/lib/customers'
 
 // Droits des personnes (loi n° 2013-450) : export de toutes les données d'un compte, et suppression
 // (le compte disparaît ; ses tickets et rendez-vous restent dans les statistiques, sans nom ni numéro).
@@ -46,6 +47,8 @@ export async function deleteUserData(userId: string) {
     throw new PersonalDataError('Compte d’équipe : il se supprime depuis l’établissement (Paramètres → Équipe & agents).')
   }
   const to = [user.phone, user.email].filter((v): v is string => !!v)
+  // Fiches visiteurs (CRM) dans tous les établissements : notes et étiquettes comprises
+  await deleteCustomersOfUser(userId, user.phone)
   await prisma.$transaction([
     prisma.ticket.updateMany({ where: { userId }, data: { userId: null, guestName: null, guestPhone: null, notes: null } }),
     prisma.appointment.updateMany({ where: { userId }, data: { userId: null, guestName: null, guestPhone: null, notes: null, manageTokenHash: null } }),

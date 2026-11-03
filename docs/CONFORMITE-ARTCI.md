@@ -24,6 +24,7 @@ Cadre : **loi n° 2013-450 du 19 juin 2013** relative à la protection des donn�
 1. **Déclaration / demande d’autorisation** des traitements auprès de l’ARTCI (formulaires sur le site de l’ARTCI). Traitements à déclarer :
    - gestion des comptes visiteurs et des tickets ;
    - prise de rendez-vous et rappels par SMS ;
+   - fichier visiteurs des établissements (CRM : fiches, historique, étiquettes, notes) ;
    - gestion des comptes des établissements clients et facturation ;
    - sécurité (journaux de connexion, adresses IP).
 2. **Transfert hors de Côte d’Ivoire** : l’application est hébergée par Vercel (États-Unis) et la base par Supabase (Union européenne). Le transfert est soumis à autorisation de l’ARTCI ; joindre les engagements contractuels des hébergeurs (DPA de Vercel et de Supabase). Option à étudier : hébergement de la base en Afrique ou en Côte d’Ivoire pour les clients publics.
@@ -36,6 +37,7 @@ Cadre : **loi n° 2013-450 du 19 juin 2013** relative à la protection des donn�
 |---|---|---|---|---|---|---|
 | Comptes visiteurs | Accès au service | Visiteurs | Nom, téléphone, e-mail, code chiffré | Contrat (CGU) | Jusqu’à suppression | Lerena |
 | Tickets et rendez-vous | Gestion des files | Visiteurs | Service, horaires, nom / téléphone (sans compte) | Contrat ; pour le compte de l’établissement | Anonymisés après 12 mois | Établissement, Lerena |
+| Fichier visiteurs (CRM) | Accueil et suivi des visiteurs par l’établissement | Visiteurs | Nom, téléphone, historique des passages, notes de l’équipe, étiquettes, accord pour les messages | Intérêt légitime de l’établissement ; consentement pour les messages | Supprimé 12 mois après le dernier passage (sauf accord actif) ; consultations journalisées | Établissement, Lerena |
 | Notifications et SMS | Prévenir du tour | Visiteurs | Abonnement push, téléphone | Consentement | 6 mois (contenu) | Fournisseurs SMS / e-mail |
 | Équipes des établissements | Accès au back-office | Agents, responsables | Nom, e-mail, téléphone, connexions | Contrat (CGV) | Durée de l’abonnement | Établissement, Lerena |
 | Facturation | Facturer les établissements | Contacts des clients | Raison sociale, contacts, factures, paiements | Obligation légale | 10 ans (comptabilité) | Lerena |

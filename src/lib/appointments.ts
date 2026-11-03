@@ -6,6 +6,7 @@ import { isSlotAvailable } from '@/lib/slots'
 import { issueTicket } from '@/lib/ticketing'
 import { notifyOrg } from '@/lib/realtime'
 import { hasFeature } from '@/lib/billing'
+import { attachAppointmentToCustomer, refreshCustomersOfAppointments } from '@/lib/customers'
 
 // Rendez-vous : réservation, arrivée sur place (le RDV devient un ticket placé à son heure),
 // rappels automatiques et absences. Utilisé par l'application, les invités, l'accueil et la borne.
@@ -77,6 +78,8 @@ export async function bookAppointment(input: BookingInput) {
       scheduledDate: date, status: 'CONFIRMED', source: input.source, code, manageTokenHash: hashSecret(token)
     }
   })
+
+  await attachAppointmentToCustomer(appointment.id, { orgId: input.orgId, userId: input.userId, phone: input.guestPhone, name: input.guestName })
 
   const manageUrl = `${appUrl()}/rdv/${token}`
   const text = `Lerena : RDV ${service.name} chez ${org.name}${service.branch.name ? ` (${service.branch.name})` : ''}, ${fmt(date)}. Code d'arrivée : ${code}. Gérer : ${manageUrl}`
@@ -179,7 +182,10 @@ export async function runAppointmentJobs(force = false) {
     take: 500
   })
   const noShow = late.filter(a => a.scheduledDate.getTime() + a.organization.apptNoShowGraceMin * 60_000 < now.getTime()).map(a => a.id)
-  if (noShow.length) await prisma.appointment.updateMany({ where: { id: { in: noShow } }, data: { status: 'NO_SHOW' } })
+  if (noShow.length) {
+    await prisma.appointment.updateMany({ where: { id: { in: noShow } }, data: { status: 'NO_SHOW' } })
+    await refreshCustomersOfAppointments(noShow)
+  }
 
   // Fin de journée : les tickets restés ouverts des jours précédents (plus de 6 h) sont clôturés
   const startOfDay = new Date(`${now.toISOString().slice(0, 10)}T00:00:00Z`)

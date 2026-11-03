@@ -57,7 +57,9 @@ export async function getRecentTickets() {
     select: {
       id: true, displayNum: true, status: true, guestName: true, priorityScore: true, priorityReason: true, createdAt: true,
       service: { select: { id: true, name: true } },
-      user: { select: { name: true } }
+      user: { select: { name: true } },
+      // Étiquettes de la fiche visiteur (fauteuil roulant, interprète…)
+      customer: { select: { tags: { select: { tag: { select: { id: true, name: true, color: true } } } } } }
     }
   })
 }
