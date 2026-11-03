@@ -22,6 +22,8 @@ export interface ReportData {
   sites: SiteFigures[]
   previous: SiteFigures[]
   waitAlertMin: number
+  /** Valeur en FCFA (tout l'établissement), si la valeur d'une visite est réglée. */
+  money?: { lostAmount: number | null; noShows: number; atRisk: number; atRiskValue: number }
 }
 
 export const REPORT_KINDS = {
@@ -91,6 +93,11 @@ export function summarize(data: ReportData, siteIds: string[] | null) {
   else if (now.noShowRate != null && before.noShowRate != null && before.noShowRate - now.noShowRate >= 5) lines.push({ tone: 'good', text: `Moins de rendez-vous manqués : ${before.noShowRate} % → ${now.noShowRate} %.` })
   if (now.absentRate != null && now.absentRate >= 10) lines.push({ tone: 'bad', text: `${now.absentRate} % des visiteurs appelés étaient absents.` })
   if (now.complaints > 0) lines.push({ tone: 'bad', text: `${now.complaints} avis négatif${now.complaints > 1 ? 's' : ''} à suivre.` })
+  const m = data.money
+  if (m && !siteIds && (m.lostAmount || m.atRisk)) {
+    const parts = [m.lostAmount ? `absences : ${m.lostAmount.toLocaleString('fr-FR')} FCFA perdus ce mois` : null, m.atRisk ? `${m.atRisk} client${m.atRisk > 1 ? 's' : ''} à risque (${m.atRiskValue.toLocaleString('fr-FR')} FCFA par an)` : null].filter(Boolean)
+    lines.push({ tone: 'bad', text: `${parts.join(' · ').replace(/^./, c => c.toUpperCase())}.` })
+  }
   if (!lines.some(l => l.tone !== 'neutral') && now.visitors > 0) lines.push({ tone: 'good', text: 'Rien d’anormal sur la période.' })
 
   // Sites à surveiller : attente au-dessus du seuil, satisfaction basse, avis négatifs répétés

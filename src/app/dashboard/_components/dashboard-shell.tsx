@@ -26,6 +26,7 @@ const GROUPS: SidebarGroup[] = [
     label: 'Pilotage',
     items: [
       { href: '/dashboard', label: t('dashboard.tabs.overview'), icon: 'LayoutDashboard', exact: true },
+      { href: '/dashboard/direction', label: 'Direction', icon: 'Gauge' },
       { href: '/dashboard/queue', label: t('dashboard.tabs.queue'), icon: 'ListOrdered' },
       { href: '/dashboard/agenda', label: t('dashboard.tabs.agenda'), icon: 'CalendarDays' },
       { href: '/dashboard/visitors', label: 'Visiteurs', icon: 'Contact' },

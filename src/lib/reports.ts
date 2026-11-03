@@ -3,6 +3,7 @@ import { appUrl, sendEmail } from '@/lib/messaging'
 import { notify } from '@/lib/notifications'
 import { effectiveRole, permissionsOf } from '@/lib/access-catalog'
 import { headline, REPORT_KINDS, summarize, type ReportData, type ReportKind, type SiteFigures, type Summary } from '@/lib/report-summary'
+import { moneyView } from '@/lib/direction'
 
 // Rapports préparés par Lerena (aucune IA extérieure) : quotidien (facultatif), hebdomadaire le lundi, mensuel le 1er,
 // à 8 h (heure d'Abidjan = UTC). Archivés dans l'application, annoncés par notification, envoyés par e-mail
@@ -137,7 +138,11 @@ export async function issueReport(orgId: string, kind: ReportKind, now = new Dat
     siteFigures(orgId, p.prevStart, p.start),
     prisma.organization.findUnique({ where: { id: orgId }, select: { name: true } })
   ])
-  const data: ReportData = { sites, previous, waitAlertMin: settings.alerts.waitHigh.min }
+  const money = await moneyView(orgId, null, now).catch(() => null)
+  const data: ReportData = {
+    sites, previous, waitAlertMin: settings.alerts.waitHigh.min,
+    ...(money?.valuesConfigured ? { money: { lostAmount: money.lostAmount, noShows: money.noShows, atRisk: money.atRisk.count, atRiskValue: money.atRisk.value } } : {})
+  }
   let reportId: string
   if (kind === 'SAMPLE') {
     reportId = (await prisma.report.create({ data: { organizationId: orgId, kind, periodStart: now, periodEnd: p.end, data: data as object }, select: { id: true } })).id

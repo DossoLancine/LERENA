@@ -78,6 +78,7 @@ model Organization {
   sectorId             String?
   smsCredits           Int       @default(0) // SMS achetés en packs, consommés après le quota mensuel du forfait
   featuredUntil        DateTime? // « mise en avant » payée : en tête de la recherche jusqu'à cette date
+  defaultVisitValue    Int? // valeur moyenne d'une visite en FCFA (argent perdu par les absences, valeur des clients)
   // Pilote : date de mise en service et mesures relevées sur place avant Lerena (pour le rapport avant / après)
   pilotStartedAt       DateTime?
   pilotBaselineWaitMin Int?
@@ -130,18 +131,20 @@ model OrganizationMember {
 }
 
 model Branch {
-  id             String   @id @default(cuid())
-  organizationId String
-  name           String
-  address        String?
-  city           String?
-  lat            Float?
-  lng            Float?
-  phone          String?
-  isActive       Boolean  @default(true)
-  regionId       String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  organizationId     String
+  name               String
+  address            String?
+  city               String?
+  lat                Float?
+  lng                Float?
+  phone              String?
+  isActive           Boolean  @default(true)
+  regionId           String?
+  targetWaitMin      Int? // objectif d'attente moyenne (minutes)
+  targetSatisfaction Float? // objectif de satisfaction (sur 5)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   organization  Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   region        Region?           @relation(fields: [regionId], references: [id], onDelete: SetNull)
@@ -166,6 +169,7 @@ model Service {
   apptLeadMin     Int      @default(60) // délai minimum avant un rendez-vous (minutes)
   apptHorizonDays Int      @default(14) // jusqu'à combien de jours à l'avance
   isActive        Boolean  @default(true)
+  visitValue      Int? // valeur d'une visite de ce service en FCFA (sinon celle de l'établissement)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

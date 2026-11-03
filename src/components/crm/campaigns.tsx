@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, Send, Plus, Users, CalendarClock, Lock, Search, X, Copy, Ban, ShieldCheck, MessageSquare } from 'lucide-react'
-import { cancelCampaign, countAudience, createCampaign, getCampaign, getCampaigns, getComposer, searchReachable } from '@/server/actions/campaigns'
+import { cancelCampaign, countAudience, createCampaign, getCampaign, getCampaigns, getComposer, getReachableByIds, searchReachable } from '@/server/actions/campaigns'
 import { MAX_BODY, TEMPLATES, VARIABLES, renderMessage, smsParts, stopFooter } from '@/lib/campaign-text'
 import { SEGMENT_LABELS } from '@/lib/customer-labels'
 import type { CustomerSegment } from '@/lib/customer-segments'
@@ -128,7 +128,10 @@ export function CampaignComposer() {
   useEffect(() => {
     const from = params.get('from')
     if (from) getCampaign(from).then(c => { if (c) { setBody(c.body); setName(`${c.name} (copie)`) } }).catch(() => null)
-  }, [params])
+    // Visiteurs choisis ailleurs (clients à risque) : seuls ceux qui acceptent vos messages sont repris
+    const ids = params.get('customers')?.split(',').filter(Boolean)
+    if (ids?.length) getReachableByIds(ids).then(list => { setMode('selection'); setPicked(list); if (!name) setName('Relance des clients à risque') }).catch(() => null)
+  }, [params]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const target = useMemo(() => (
     mode === 'segment' ? { segment } : mode === 'tag' ? { tagId } : { customerIds: picked.map(p => p.id) }

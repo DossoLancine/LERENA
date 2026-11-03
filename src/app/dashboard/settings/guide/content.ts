@@ -1,7 +1,7 @@
 // Guide d'utilisation affiché dans Paramètres → Guide d'utilisation.
 // À METTRE À JOUR à chaque évolution de l'application (nouvel écran, nouvelle étape, changement de nom).
 
-export const GUIDE_UPDATED_AT = '3 novembre 2026 (assistant d’analyse)'
+export const GUIDE_UPDATED_AT = '3 novembre 2026 (vue direction)'
 
 export interface GuideSection {
   id: string
@@ -298,6 +298,19 @@ export const GUIDE: GuideSection[] = [
       'Ce que disent vos visiteurs : leurs commentaires regroupés par thème (attente, accueil, orientation, propreté, prix, application ; et ce qui plaît : rapidité, gentillesse), avec une citation. Noms, numéros et e-mails sont masqués.',
       'Avis à traiter : « Proposer une réponse » prépare un SMS d’excuses adapté au motif ; relisez-le et modifiez-le avant l’envoi.',
       'Analyse avancée (quand l’équipe Lerena l’active) : une IA lit plus finement les commentaires libres et propose des actions ; seuls des textes anonymisés lui sont transmis, 3 analyses par jour au plus.'
+    ]
+  },
+  {
+    id: 'direction',
+    title: 'Vue direction',
+    intro: 'Menu « Direction ». Un seul écran pour piloter : l’état de chaque site, le classement de l’équipe et ce que l’attente vous coûte en FCFA. Chaque responsable n’y voit que ses sites.',
+    steps: [
+      'Sites : un voyant par site (vert : tout va bien, orange : à surveiller, rouge : en difficulté), les sites en difficulté en premier, avec la raison (attente trop longue en ce moment, attente moyenne au-dessus de l’objectif, satisfaction basse, avis à traiter). Barres de progression vers vos objectifs d’attente et de satisfaction sur 30 jours.',
+      'Équipe : classement des agents sur 7, 30 ou 90 jours. La vitesse est comparée à la moyenne du même service (100 = moyenne), pour ne pas pénaliser ceux qui traitent des dossiers longs. Il faut avoir servi au moins 20 visiteurs pour être classé. Les 3 premiers forment « l’équipe du mois ».',
+      'Valeur en FCFA : argent perdu par les rendez-vous manqués ce mois-ci, clients à risque (habitués qui tardent à revenir) et clients perdus de vue, avec leur valeur par an, et temps rendu aux visiteurs. « Relancer par SMS » prépare une campagne avec les clients à risque qui acceptent vos messages.',
+      'Avant / après : l’attente relevée avant Lerena comparée aux 30 derniers jours, et les heures rendues aux visiteurs. « Imprimer ou PDF » pour le conseil d’administration.',
+      '« Objectifs et valeurs » (droit Réglages) : objectifs par site (sinon ceux proposés pour votre secteur), valeur d’une visite par défaut et par service, attente et visiteurs par jour avant Lerena (direction de tout l’établissement seulement).',
+      'Dès que la valeur d’une visite est réglée, le rapport de la direction ajoute une ligne sur l’argent perdu et les clients à risque.'
     ]
   },
   {

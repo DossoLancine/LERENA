@@ -84,6 +84,13 @@ export async function countAudience(target: CampaignTarget) {
 }
 
 /** Recherche de visiteurs joignables pour une sélection à la main. */
+/** Visiteurs joignables parmi une liste (préselection depuis « Clients à risque »). */
+export async function getReachableByIds(ids: string[]) {
+  const ctx = await campaignContext()
+  if (!ctx?.enabled) return []
+  return prisma.customer.findMany({ where: { ...audienceWhere(ctx.orgId, {}, ctx.siteIds), id: { in: ids.slice(0, MAX_RECIPIENTS) } }, select: { id: true, name: true, phone: true } })
+}
+
 export async function searchReachable(q: string) {
   const ctx = await campaignContext()
   if (!ctx?.enabled) return []
