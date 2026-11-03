@@ -5,6 +5,7 @@ import { notifyOrg } from '@/lib/realtime'
 import { revalidatePath } from 'next/cache'
 import { logTicketEvent } from '@/lib/ticket-events'
 import { assertCanIssueTicket, BillingError } from '@/lib/billing'
+import { attachTicketToCustomer } from '@/lib/customers'
 
 // Création d'un ticket, commune à tous les canaux : client connecté, visiteur,
 // et plus tard accueil et borne. Module serveur uniquement (jamais appelé du navigateur).
@@ -36,7 +37,7 @@ export class TicketError extends Error { readonly expected = true }
 
 // Nom comparable : minuscules, sans accents ni « File » devant
 const normalize = (name: string) =>
-  name.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/^files+/, '').replace(/s+/g, ' ').trim()
+  name.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/^file\s+/, '').replace(/\s+/g, ' ').trim()
 
 /**
  * File d'un service. La correspondance la plus précise l'emporte : même nom d'abord
@@ -131,6 +132,8 @@ export async function issueTicket({ orgId, serviceId, priorityId, channel = 'app
   })
 
   await logTicketEvent({ ticketId: ticket.id, type: 'ISSUED', actorId: owner.actorId ?? owner.userId })
+  // Fiche du visiteur dans l'établissement (CRM)
+  await attachTicketToCustomer(ticket.id, { orgId, userId: owner.userId, phone: owner.phone, name: owner.name })
   await notifyOrg(orgId)
   revalidatePath(`/org/${orgId}`)
   revalidatePath(`/tv/${orgId}`)

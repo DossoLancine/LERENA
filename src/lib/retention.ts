@@ -33,6 +33,8 @@ export async function runRetentionJobs() {
     }),
     prisma.notification.deleteMany({ where: { createdAt: { lt: cutoff } } })
   ])
+  // Fiches visiteurs sans passage ni rendez-vous depuis la durée réglée, sauf accord pour recevoir des messages
+  const customers = await prisma.customer.deleteMany({ where: { lastSeenAt: { lt: cutoff }, consentAt: null } })
   // Notes libres des agents sur l'historique des tickets
   const notes = await prisma.ticketEvent.updateMany({ where: { createdAt: { lt: cutoff }, note: { not: null } }, data: { note: null } })
 
@@ -43,7 +45,8 @@ export async function runRetentionJobs() {
       smsBodiesErased: smsBodies.count,
       ticketsAnonymized: tickets.count,
       appointmentsAnonymized: appointments.count,
-      notesErased: notes.count
+      notesErased: notes.count,
+      customersDeleted: customers.count
     }
   }
 }

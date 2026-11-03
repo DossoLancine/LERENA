@@ -1,7 +1,7 @@
 // Guide d'utilisation affiché dans Paramètres → Guide d'utilisation.
 // À METTRE À JOUR à chaque évolution de l'application (nouvel écran, nouvelle étape, changement de nom).
 
-export const GUIDE_UPDATED_AT = '2 novembre 2026 (assistant de démarrage, logo, matériel)'
+export const GUIDE_UPDATED_AT = '3 novembre 2026 (fichier visiteurs)'
 
 export interface GuideSection {
   id: string
@@ -111,6 +111,24 @@ export const GUIDE: GuideSection[] = [
     ]
   },
   {
+    id: 'visiteurs',
+    title: 'Fichier visiteurs',
+    intro: 'Chaque visiteur venu avec son numéro ou son compte Lerena a sa fiche, créée et mise à jour toute seule à chaque ticket et rendez-vous. Menu « Visiteurs » du tableau de bord, bouton « Visiteurs » à l’accueil.',
+    steps: [
+      'Cherchez un visiteur par son nom ou son numéro, ou ouvrez un segment : Nouveaux (moins de 30 jours), Habitués (3 passages et plus), À relancer (pas revenus depuis 90 jours), Absents répétés (2 absences et plus), Mécontents (dernière note de 2 étoiles ou moins).',
+      'La fiche montre ses passages, absences, rendez-vous à venir et sa note moyenne, puis tout son historique : tickets, guichet, attente, durée au guichet, note donnée, rendez-vous.',
+      'Boutons « Appeler », « WhatsApp » et « Rendez-vous » : le rendez-vous est confirmé au visiteur par SMS avec son code d’arrivée.',
+      'Étiquettes : créez les vôtres (« Fauteuil roulant », « Interprète », « VIP »…) et posez-les sur la fiche. Elles s’affichent au guichet quand le visiteur est appelé, et dans les derniers tickets de l’accueil.',
+      'Notes de l’équipe : datées et signées, visibles par l’accueil et le responsable seulement. Une note se supprime par son auteur ou par le responsable.',
+      '« Nouvelle fiche » : ajoutez un visiteur connu (appel téléphonique, ancienne liste). Si le numéro existe déjà, sa fiche s’ouvre.',
+      'L’agent de guichet voit uniquement le nom, les étiquettes et le nombre de passages du visiteur qu’il appelle.'
+    ],
+    tips: [
+      'Un visiteur sans numéro ni compte (ticket de borne anonyme) n’a pas de fiche.',
+      'Les passages antérieurs au fichier visiteurs ont été repris automatiquement.'
+    ]
+  },
+  {
     id: 'parcours',
     title: 'Un visiteur qui passe par plusieurs services',
     intro: 'Le parcours n’est pas prévu à l’avance : chaque personne qui reçoit le visiteur décide où il doit aller ensuite.',
@@ -196,7 +214,9 @@ export const GUIDE: GuideSection[] = [
       'Nommez vos services sans information sensible (« Consultation » plutôt qu’un examen précis) et n’écrivez pas de diagnostic dans les notes des agents.',
       'Les écrans n’affichent que le numéro de ticket et le guichet : jamais le nom ni le motif de priorité.',
       'Après 12 mois, les noms, numéros et notes des tickets sont effacés automatiquement ; vos statistiques restent.',
-      'Un visiteur peut supprimer son compte depuis son profil et demander une copie de ses données ; l’équipe Lerena y répond sous 30 jours.'
+      'Fiches visiteurs : supprimées automatiquement après 12 mois sans passage ni rendez-vous, sauf si le visiteur a accepté de recevoir vos messages (case sur sa fiche). Chaque consultation de fiche est inscrite au journal.',
+      'Notes de fiche : n’y écrivez ni diagnostic ni information médicale, seulement ce qui aide à mieux accueillir.',
+      'Un visiteur peut supprimer son compte depuis son profil (ses fiches disparaissent alors dans tous les établissements) et demander une copie de ses données ; l’équipe Lerena y répond sous 30 jours.'
     ]
   },
   {

@@ -6,6 +6,7 @@ import { getManagerContext, getSessionUser } from "@/lib/session"
 import { branchFilter } from '@/lib/sites'
 import { notifyOrg } from "@/lib/realtime"
 import { assertFeature, checkLimit } from '@/lib/billing'
+import { refreshCustomersOfTickets } from '@/lib/customers'
 
 // Ticket du client connecté (les tickets sans compte restent modifiables via leur lien)
 async function getOwnTicket(ticketId: string) {
@@ -32,6 +33,7 @@ export async function submitNPS(ticketId: string, score: number) {
       where: { id: ticket.id },
       data: { npsScore: score }
     })
+    await refreshCustomersOfTickets([ticket.id])
     revalidatePath(`/ticket/${ticketId}`)
     return { success: true }
   } catch (error) {

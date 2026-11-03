@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { signOut } from 'next-auth/react'
 import {
-  BarChart3, BookOpen, Building2, CalendarClock, CalendarDays, ChevronsLeft, ClipboardList, CreditCard, FileText,
+  BarChart3, BookOpen, Building2, CalendarClock, CalendarDays, ChevronsLeft, ClipboardList, Contact, CreditCard, FileText,
   Gauge, Headset, LayoutDashboard, Layers, ListOrdered, LogOut, Megaphone, Menu, MessageSquare, MonitorSmartphone,
   Network, Package, Receipt, Settings, ShieldCheck, Sparkles, Store, Tags, Users, Wallet, X, type LucideIcon
 } from 'lucide-react'
@@ -15,7 +15,7 @@ import { useSlidingIndicator } from '@/hooks/use-sliding-indicator'
 
 // Icônes désignées par leur nom : les mises en page serveur ne peuvent pas transmettre de composants
 const ICONS = {
-  BarChart3, BookOpen, Building2, CalendarClock, CalendarDays, ClipboardList, CreditCard, FileText, Gauge, Headset,
+  BarChart3, BookOpen, Building2, CalendarClock, CalendarDays, ClipboardList, Contact, CreditCard, FileText, Gauge, Headset,
   LayoutDashboard, Layers, ListOrdered, Megaphone, MessageSquare, MonitorSmartphone, Network, Package, Receipt,
   Settings, ShieldCheck, Sparkles, Store, Tags, Users, Wallet
 } satisfies Record<string, LucideIcon>

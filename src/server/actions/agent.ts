@@ -11,6 +11,7 @@ import { sendPushToTicket } from "@/lib/push"
 import { notifyTicket } from "@/lib/notify"
 import { logTicketEvent, type TicketEventType } from "@/lib/ticket-events"
 import { queueForService } from "@/lib/ticketing"
+import { refreshCustomersOfTickets } from "@/lib/customers"
 
 // Ordre d'appel commun à toute l'app : priorité d'abord, puis entrée dans la file
 const CALL_ORDER = [{ priorityScore: 'desc' as const }, { queuedAt: 'asc' as const }]
@@ -37,6 +38,8 @@ export async function getAgentQueue(counterId?: string | null) {
         service: true,
         // Uniquement le nom : jamais d'e-mail, téléphone ou mot de passe vers le navigateur
         user: { select: { name: true } },
+        // Fiche visiteur : nombre de passages et étiquettes seulement (pas de numéro ni de notes)
+        customer: { select: { visits: true, tags: { select: { tag: { select: { id: true, name: true, color: true } } } } } },
         session: true
       }
     })
@@ -138,6 +141,8 @@ export async function updateTicketStatus(
     }
 
     await prisma.ticket.update({ where: { id: ticketId }, data: updateData })
+    // Passages et absences de la fiche visiteur
+    if (status === 'COMPLETED' || status === 'ABSENT' || status === 'CANCELLED') await refreshCustomersOfTickets([ticketId])
 
     const eventType = EVENT_FOR_STATUS[status]
     if (eventType) {
