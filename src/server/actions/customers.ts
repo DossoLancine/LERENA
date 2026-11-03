@@ -112,7 +112,8 @@ export async function getCustomer(id: string) {
       kind: 'ticket' as const, id: t.id, at: t.createdAt, status: t.status, label: t.displayNum, service: t.service.name,
       site: multiSite ? t.queue.branch.name : null, counter: t.counterName, priority: t.priorityReason, rating: t.npsScore, note: t.notes,
       waitMin: t.calledAt ? Math.max(0, Math.round((t.calledAt.getTime() - t.queuedAt.getTime()) / 60000)) : null,
-      serviceMin: t.startedAt && t.completedAt ? Math.max(1, Math.round((t.completedAt.getTime() - t.startedAt.getTime()) / 60000)) : null
+      // Au-delà de 4 h, le ticket a été clôturé par la tâche de fin de journée : durée non significative
+      serviceMin: t.startedAt && t.completedAt && t.completedAt.getTime() - t.startedAt.getTime() <= 4 * 3600_000 ? Math.max(1, Math.round((t.completedAt.getTime() - t.startedAt.getTime()) / 60000)) : null
     })),
     // Un rendez-vous honoré apparaît par son ticket : seuls les autres sont listés
     ...c.appointments.filter(a => !a.ticketId).map(a => ({
