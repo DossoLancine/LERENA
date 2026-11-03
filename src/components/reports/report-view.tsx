@@ -20,7 +20,9 @@ export function ReportView({ id }: { id: string }) {
 
   // Pour l'attente, une baisse est une bonne nouvelle ; pour le reste, une hausse
   const Delta = ({ value, unit, lowerIsBetter }: { value: number | null; unit: string; lowerIsBetter?: boolean }) => {
-    if (value == null || value === 0) return <span className="inline-flex items-center gap-1 text-xs text-ink-subtle"><Minus size={12} /> stable</span>
+    // Pas de période précédente comparable : on ne parle pas d'évolution
+    if (value == null) return <span className="text-xs text-ink-subtle">pas de comparaison</span>
+    if (value === 0) return <span className="inline-flex items-center gap-1 text-xs text-ink-subtle"><Minus size={12} /> stable</span>
     const good = lowerIsBetter ? value < 0 : value > 0
     const Icon = value > 0 ? TrendingUp : TrendingDown
     return <span className={cn('inline-flex items-center gap-1 text-xs font-semibold', good ? 'text-success-ink' : 'text-danger')}><Icon size={12} /> {value > 0 ? '+' : ''}{String(value).replace('.', ',')}{unit}</span>
@@ -46,7 +48,7 @@ export function ReportView({ id }: { id: string }) {
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-700">{data.orgName}{data.scoped ? ' · vos sites' : ''}</p>
         </div>
         <h1 className="mt-2 font-display text-3xl font-bold tracking-tight text-ink">{data.label}</h1>
-        <p className="mt-1 text-sm text-ink-muted">{data.period} · comparé à la période précédente</p>
+        <p className="mt-1 text-sm text-ink-muted">{data.period}{s.before.visitors ? ' · comparé à la période précédente' : ' · pas encore de période précédente à comparer'}</p>
       </header>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">

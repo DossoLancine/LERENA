@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { claimOnce } from '@/lib/locks'
 import { notify } from '@/lib/notifications'
 
 // Revue des accès : le 1er de chaque mois (à partir de 8 h), le Propriétaire et le DG de chaque établissement sont
@@ -18,7 +19,7 @@ export async function runAccessReview(now = new Date()) {
   for (const m of inactive) byOrg.set(m.organizationId, (byOrg.get(m.organizationId) ?? 0) + 1)
   let sent = 0
   for (const [orgId, count] of Array.from(byOrg)) {
-    const claimed = await prisma.jobRun.create({ data: { id: `access-review:${orgId}:${month}`, lastRunAt: now } }).then(() => true).catch(() => false)
+    const claimed = await claimOnce(`access-review:${orgId}:${month}`, now)
     if (!claimed) continue
     const heads = await prisma.organizationMember.findMany({ where: { organizationId: orgId, accessRole: { in: ['OWNER', 'DG'] }, disabledAt: null }, select: { userId: true } })
     if (!heads.length) continue

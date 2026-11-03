@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { claimOnce } from '@/lib/locks'
 import { appUrl, sendSmsMessage } from '@/lib/messaging'
 import { hasFeature } from '@/lib/billing'
 import { notify } from '@/lib/notifications'
@@ -105,7 +106,7 @@ async function notifyDueFollowUps(now: Date) {
   let sent = 0
   for (const g of groups) {
     // Une seule fois par jour et par établissement (la ligne de JobRun sert de verrou)
-    const claimed = await prisma.jobRun.create({ data: { id: `followup-notice:${g.organizationId}:${key}`, lastRunAt: now } }).then(() => true).catch(() => false)
+    const claimed = await claimOnce(`followup-notice:${g.organizationId}:${key}`, now)
     if (!claimed) continue
     const n = g._count._all
     await notify({ event: 'FOLLOWUP_DUE', orgId: g.organizationId, url: '/dashboard/followups', title: `${n} suivi${n > 1 ? 's' : ''} à faire aujourd’hui`, body: 'Appelez, puis cochez : ils passent dans « Faits ».' })

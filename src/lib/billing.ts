@@ -1,4 +1,5 @@
 import { cache } from 'react'
+import { claimOnce } from '@/lib/locks'
 import type { Invoice, Plan, Prisma, Subscription } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { getPlatformConfig } from '@/lib/platform'
@@ -163,7 +164,7 @@ export async function consumeSms(orgId: string) {
 async function warnSmsLow(orgId: string, remaining: number) {
   if (remaining !== 20 && remaining !== 0) return
   const month = new Date().toISOString().slice(0, 7)
-  const claimed = await prisma.jobRun.create({ data: { id: `sms-low:${orgId}:${month}:${remaining}`, lastRunAt: new Date() } }).then(() => true).catch(() => false)
+  const claimed = await claimOnce(`sms-low:${orgId}:${month}:${remaining}`)
   if (!claimed) return
   const { notify } = await import('@/lib/notifications')
   await notify({

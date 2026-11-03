@@ -10,7 +10,9 @@ type Source = 'SERVER' | 'CLIENT'
 // Erreurs attendues ou bruit de navigateur : pas des incidents
 const IGNORED = [
   /ResizeObserver loop/i, /NEXT_REDIRECT/, /NEXT_NOT_FOUND/, /AbortError/i, /Load failed/i, /NetworkError/i, /Failed to fetch/i,
-  /^UNAUTHORIZED$/, /^SESSION_EXPIRED$/, /^GPS_REQUIRED$/, /^CODE_INVALID$/, /chrome-extension:|moz-extension:/
+  /^UNAUTHORIZED$/, /^SESSION_EXPIRED$/, /^GPS_REQUIRED$/, /^CODE_INVALID$/, /chrome-extension:|moz-extension:/,
+  // Avertissements de Node sur une bibliothèque (fonction ancienne encore utilisée) : pas un incident
+  /DeprecationWarning/
 ]
 
 /** Message ramené à sa forme générale : les identifiants et nombres ne créent pas de nouveaux problèmes. */

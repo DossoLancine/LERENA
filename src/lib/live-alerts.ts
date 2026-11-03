@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { claimOnce } from '@/lib/locks'
 import { notify } from '@/lib/notifications'
 import { reportSettings } from '@/lib/reports'
 
@@ -9,8 +10,7 @@ import { reportSettings } from '@/lib/reports'
 const MIN = 60_000
 
 /** Verrou « une fois par heure » pour une alerte et un site (la ligne de JobRun sert de verrou). */
-const once = (key: string, now: Date) =>
-  prisma.jobRun.create({ data: { id: `alert:${key}:${now.toISOString().slice(0, 13)}`, lastRunAt: now } }).then(() => true).catch(() => false)
+const once = (key: string, now: Date) => claimOnce(`alert:${key}:${now.toISOString().slice(0, 13)}`, now)
 
 export async function runLiveAlerts(now = new Date()) {
   const today = new Date(`${now.toISOString().slice(0, 10)}T00:00:00Z`)
