@@ -1,7 +1,7 @@
 // Guide d'utilisation affiché dans Paramètres → Guide d'utilisation.
 // À METTRE À JOUR à chaque évolution de l'application (nouvel écran, nouvelle étape, changement de nom).
 
-export const GUIDE_UPDATED_AT = '3 novembre 2026 (fichier visiteurs)'
+export const GUIDE_UPDATED_AT = '3 novembre 2026 (fichier visiteurs, suivis, rendez-vous récurrents)'
 
 export interface GuideSection {
   id: string
@@ -126,6 +126,18 @@ export const GUIDE: GuideSection[] = [
     tips: [
       'Un visiteur sans numéro ni compte (ticket de borne anonyme) n’a pas de fiche.',
       'Les passages antérieurs au fichier visiteurs ont été repris automatiquement.'
+    ]
+  },
+  {
+    id: 'suivis',
+    title: 'Suivis, absences et rendez-vous récurrents',
+    intro: 'Pour faire revenir les visiteurs au bon moment et réduire les rendez-vous manqués. Inclus à partir du forfait Pro.',
+    steps: [
+      'Sur la fiche d’un visiteur, carte « Suivis » → « Programmer » : objet (« Contrôle », « Renouvellement »…), date (raccourcis 1 semaine, 1, 3 ou 6 mois), personne de l’équipe à qui le confier.',
+      'Cochez « Prévenir le visiteur par SMS ce jour-là » : il reçoit le rappel à partir de 8 h, avec le lien pour réserver son créneau (1 SMS décompté).',
+      'Menu « À faire » (bouton « À faire » à l’accueil) : suivis en retard et du jour, puis ceux des 14 prochains jours. Appelez, puis cochez : le suivi passe dans « Faits cette semaine ». La pastille du menu indique ce qui reste pour aujourd’hui.',
+      'Rendez-vous récurrents : fiche → « Rendez-vous » → choisissez le premier créneau, puis « Chaque semaine », « Toutes les 2 semaines » ou « Chaque mois » et le nombre de rendez-vous. Toute la série est réservée d’un coup ; un seul SMS récapitule les dates et chaque rendez-vous a son rappel la veille. Les dates impossibles (jour fermé, complet) sont listées.',
+      'Absences : après un rendez-vous manqué, le visiteur reçoit un SMS avec le lien pour reprendre un créneau (réglable dans Paramètres → Rendez-vous). Au seuil d’absences, sa fiche reçoit l’étiquette « Absences répétées ».'
     ]
   },
   {

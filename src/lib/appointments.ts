@@ -7,6 +7,7 @@ import { issueTicket } from '@/lib/ticketing'
 import { notifyOrg } from '@/lib/realtime'
 import { hasFeature } from '@/lib/billing'
 import { attachAppointmentToCustomer, refreshCustomersOfAppointments } from '@/lib/customers'
+import { runFollowUpJobs } from '@/lib/followups'
 
 // Rendez-vous : réservation, arrivée sur place (le RDV devient un ticket placé à son heure),
 // rappels automatiques et absences. Utilisé par l'application, les invités, l'accueil et la borne.
@@ -33,6 +34,9 @@ export interface BookingInput {
   guestName?: string | null
   guestPhone?: string | null
   email?: string | null
+  // Rendez-vous récurrents : identifiant commun de la série, et confirmation envoyée une seule fois pour toute la série
+  seriesId?: string | null
+  notify?: boolean
 }
 
 /** Réserve un créneau en respectant toutes les règles ; renvoie le code d'arrivée et le lien de gestion. */
@@ -65,7 +69,8 @@ export async function bookAppointment(input: BookingInput) {
     if (org.apptNoShowBlock > 0 && noShows >= org.apptNoShowBlock) throw new AppointmentError('Après plusieurs absences, la réservation en ligne n’est plus possible : contactez l’établissement.')
   }
 
-  if (!(await isSlotAvailable(input.orgId, service.id, date))) {
+  // L'équipe peut réserver au-delà de l'horizon proposé aux visiteurs (séries de rendez-vous)
+  if (!(await isSlotAvailable(input.orgId, service.id, date, input.source === 'RECEPTION' ? { horizonDays: 400 } : {}))) {
     throw new AppointmentError('Ce créneau vient d’être pris ou n’est plus disponible. Choisissez-en un autre.')
   }
 
@@ -75,7 +80,7 @@ export async function bookAppointment(input: BookingInput) {
     data: {
       organizationId: input.orgId, branchId: service.branchId, serviceId: service.id,
       userId: input.userId ?? null, guestName: input.guestName ?? null, guestPhone: input.guestPhone ?? null,
-      scheduledDate: date, status: 'CONFIRMED', source: input.source, code, manageTokenHash: hashSecret(token)
+      scheduledDate: date, status: 'CONFIRMED', source: input.source, code, manageTokenHash: hashSecret(token), seriesId: input.seriesId ?? null
     }
   })
 
@@ -84,8 +89,8 @@ export async function bookAppointment(input: BookingInput) {
   const manageUrl = `${appUrl()}/rdv/${token}`
   const text = `Lerena : RDV ${service.name} chez ${org.name}${service.branch.name ? ` (${service.branch.name})` : ''}, ${fmt(date)}. Code d'arrivée : ${code}. Gérer : ${manageUrl}`
   const phone = input.guestPhone ?? (input.userId ? (await prisma.user.findUnique({ where: { id: input.userId }, select: { phone: true } }))?.phone : null)
-  if (phone) await sendSmsMessage({ to: phone, text, purpose: 'APPOINTMENT_CONFIRMED', organizationId: input.orgId })
-  if (input.email) await sendEmail({ to: input.email, subject: `Rendez-vous confirmé — ${org.name}`, text, purpose: 'APPOINTMENT_CONFIRMED', organizationId: input.orgId })
+  if (phone && input.notify !== false) await sendSmsMessage({ to: phone, text, purpose: 'APPOINTMENT_CONFIRMED', organizationId: input.orgId })
+  if (input.email && input.notify !== false) await sendEmail({ to: input.email, subject: `Rendez-vous confirmé — ${org.name}`, text, purpose: 'APPOINTMENT_CONFIRMED', organizationId: input.orgId })
 
   // L'établissement est prévenu des réservations faites par les visiteurs (pas de celles saisies par l'accueil)
   if (input.source !== 'RECEPTION') {
@@ -195,5 +200,8 @@ export async function runAppointmentJobs(force = false) {
     prisma.ticket.updateMany({ where: { status: { in: ['WAITING', 'CALLED', 'ON_HOLD'] }, createdAt: { lt: before } }, data: { status: 'CANCELLED', completedAt: now } })
   ])
 
-  return { skipped: false, remindersDay: dayBefore.length, remindersHour: twoHours.length, noShows: noShow.length, closedTickets: served.count + dropped.count }
+  // Suivis du jour et relance des absents (CRM)
+  const followUps = await runFollowUpJobs(now).catch(error => { console.error('Follow-up jobs error:', error); return null })
+
+  return { skipped: false, remindersDay: dayBefore.length, remindersHour: twoHours.length, noShows: noShow.length, closedTickets: served.count + dropped.count, ...followUps }
 }

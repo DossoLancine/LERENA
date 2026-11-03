@@ -10,6 +10,7 @@ export const FEATURES = {
   MULTI_SITE: 'Plusieurs sites',
   NETWORK: 'Espace réseau (siège)',
   BRANDING: 'Couleurs et logo personnalisés',
+  CRM_FOLLOWUPS: 'Suivis et relances des visiteurs',
   PRIORITY_SUPPORT: 'Support prioritaire'
 } as const
 export type Feature = keyof typeof FEATURES

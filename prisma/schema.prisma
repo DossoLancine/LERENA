@@ -72,6 +72,7 @@ model Organization {
   apptCancelHours      Int       @default(2) // annulation / report possible jusqu'à N heures avant
   apptNoShowGraceMin   Int       @default(15) // absence notée N minutes après l'heure
   apptNoShowBlock      Int       @default(0) // 0 = jamais ; sinon blocage des réservations après N absences
+  apptNoShowSms        Boolean   @default(true) // SMS au visiteur absent pour reprogrammer (forfaits avec suivis)
   networkId            String?
   sectorId             String?
   smsCredits           Int       @default(0) // SMS achetés en packs, consommés après le quota mensuel du forfait
@@ -98,6 +99,7 @@ model Organization {
   smsLedger          SmsLedger[]
   customers          Customer[]
   customerTags       CustomerTag[]
+  followUps          CustomerFollowUp[]
   network            Network?             @relation(fields: [networkId], references: [id], onDelete: SetNull)
   sector             Sector?              @relation(fields: [sectorId], references: [id], onDelete: SetNull)
 }
@@ -320,6 +322,8 @@ model Appointment {
   ticketId        String?
   cancelledAt     DateTime?
   customerId      String? // fiche visiteur de l'établissement (CRM)
+  seriesId        String? // rendez-vous récurrents créés ensemble
+  noShowSmsAt     DateTime? // SMS « reprogrammer » envoyé après l'absence
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
@@ -795,12 +799,13 @@ model Customer {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
-  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  user         User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
   tickets      Ticket[]
   appointments Appointment[]
   notes        CustomerNote[]
   tags         CustomerTagLink[]
+  followUps    CustomerFollowUp[]
 
   @@unique([organizationId, phone])
   @@unique([organizationId, userId])
@@ -843,4 +848,30 @@ model CustomerTagLink {
 
   @@id([customerId, tagId])
   @@index([tagId])
+}
+
+// Suivi daté d'un visiteur (« rappeler pour le contrôle le 15 février »), avec rappel SMS facultatif au visiteur
+model CustomerFollowUp {
+  id             String    @id @default(cuid())
+  organizationId String
+  customerId     String
+  dueDate        DateTime // jour du suivi (minuit UTC)
+  title          String
+  assignedToId   String?
+  assignedToName String?
+  smsReminder    Boolean   @default(false)
+  smsSentAt      DateTime?
+  status         String    @default("OPEN") // OPEN | DONE | CANCELLED
+  doneAt         DateTime?
+  doneByName     String?
+  createdById    String?
+  createdByName  String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer     Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, status, dueDate])
+  @@index([customerId])
 }

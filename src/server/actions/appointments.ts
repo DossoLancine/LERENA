@@ -231,7 +231,7 @@ export async function getAppointmentSettings() {
   const ctx = await getManagerContext()
   if (!ctx) return null
   const [org, services, closures] = await Promise.all([
-    prisma.organization.findUnique({ where: { id: ctx.orgId }, select: { bookingMode: true, apptMaxActive: true, apptCancelHours: true, apptNoShowGraceMin: true, apptNoShowBlock: true } }),
+    prisma.organization.findUnique({ where: { id: ctx.orgId }, select: { bookingMode: true, apptMaxActive: true, apptCancelHours: true, apptNoShowGraceMin: true, apptNoShowBlock: true, apptNoShowSms: true } }),
     prisma.service.findMany({ where: { branch: await branchFilter(ctx.orgId), isActive: true }, orderBy: { name: 'asc' }, select: { id: true, name: true, avgDurationMin: true, apptCapacity: true, apptLeadMin: true, apptHorizonDays: true } }),
     prisma.closureDay.findMany({ where: { organizationId: ctx.orgId, date: { gte: new Date(`${new Date().toISOString().slice(0, 10)}T00:00:00Z`) } }, orderBy: { date: 'asc' }, include: { organization: false } })
   ])
@@ -244,7 +244,7 @@ export async function getAppointmentSettings() {
 
 const int = (v: unknown, min: number, max: number, def: number) => Math.min(max, Math.max(min, Math.round(Number(v)) || def))
 
-export async function updateAppointmentRules(data: { bookingMode: string; apptMaxActive: number; apptCancelHours: number; apptNoShowGraceMin: number; apptNoShowBlock: number }) {
+export async function updateAppointmentRules(data: { bookingMode: string; apptMaxActive: number; apptCancelHours: number; apptNoShowGraceMin: number; apptNoShowBlock: number; apptNoShowSms?: boolean }) {
   const ctx = await getManagerContext()
   if (!ctx) return { success: false }
   const mode = ['QUEUE_ONLY', 'APPOINTMENT_ONLY', 'HYBRID'].includes(data.bookingMode) ? data.bookingMode : 'HYBRID'
@@ -255,7 +255,8 @@ export async function updateAppointmentRules(data: { bookingMode: string; apptMa
       apptMaxActive: int(data.apptMaxActive, 1, 10, 2),
       apptCancelHours: int(data.apptCancelHours, 0, 72, 2),
       apptNoShowGraceMin: int(data.apptNoShowGraceMin, 5, 120, 15),
-      apptNoShowBlock: int(data.apptNoShowBlock, 0, 10, 0)
+      apptNoShowBlock: int(data.apptNoShowBlock, 0, 10, 0),
+      ...(typeof data.apptNoShowSms === 'boolean' ? { apptNoShowSms: data.apptNoShowSms } : {})
     }
   })
   revalidatePath(`/org/${ctx.orgId}`)

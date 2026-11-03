@@ -7,6 +7,11 @@ import { normalizePhone } from '@/lib/phone'
 import { audit } from '@/lib/audit'
 import { backfillCustomers, findOrCreateCustomer } from '@/lib/customers'
 import { TAG_COLORS } from '@/lib/customer-labels'
+import { hasFeature } from '@/lib/billing'
+import { startOfDayUtc } from '@/lib/followups'
+import { AppointmentError, bookAppointment } from '@/lib/appointments'
+import { sendSmsMessage } from '@/lib/messaging'
+import { randomUUID } from 'crypto'
 
 // CRM des visiteurs : responsable et accueil. Chaque établissement ne voit que ses propres fiches.
 
@@ -233,4 +238,147 @@ export async function deleteCustomerTag(tagId: string): Promise<Result> {
   if (!ctx || ctx.role !== 'MANAGER') return denied
   const res = await prisma.customerTag.deleteMany({ where: { id: tagId, organizationId: ctx.orgId } })
   return res.count ? { success: true } : { success: false, error: 'Étiquette introuvable' }
+}
+
+// ---- Suivis datés (forfaits avec « Suivis et relances ») ----
+
+const followUpsEnabled = (orgId: string) => hasFeature(orgId, 'CRM_FOLLOWUPS').catch(() => false)
+const upgradeMessage = 'Les suivis et relances sont inclus à partir du forfait Pro (Abonnement).'
+
+/** Membres de l'équipe à qui confier un suivi. */
+async function teamOf(orgId: string) {
+  const members = await prisma.organizationMember.findMany({
+    where: { organizationId: orgId, role: { in: ['MANAGER', 'RECEPTION', 'AGENT'] } },
+    select: { user: { select: { id: true, name: true } } }
+  })
+  return members.map(m => ({ id: m.user.id, name: m.user.name ?? 'Membre de l’équipe' })).sort((a, b) => a.name.localeCompare(b.name, 'fr'))
+}
+
+const followUpSelect = {
+  id: true, dueDate: true, title: true, assignedToId: true, assignedToName: true, smsReminder: true, smsSentAt: true,
+  status: true, doneAt: true, doneByName: true, createdByName: true, createdAt: true
+} as const
+
+/** Suivis d'une fiche et équipe (pour la fiche visiteur). */
+export async function getCustomerFollowUps(customerId: string) {
+  const ctx = await ownCustomer(customerId)
+  if (!ctx) return null
+  const enabled = await followUpsEnabled(ctx.orgId)
+  if (!enabled) return { enabled, items: [], team: [] }
+  const [items, team] = await Promise.all([
+    prisma.customerFollowUp.findMany({ where: { customerId, status: { not: 'CANCELLED' } }, orderBy: [{ status: 'desc' }, { dueDate: 'asc' }], take: 50, select: followUpSelect }),
+    teamOf(ctx.orgId)
+  ])
+  return { enabled, items, team }
+}
+
+export async function createFollowUp(customerId: string, input: { dueDate: string; title: string; assignedToId?: string | null; smsReminder?: boolean }): Promise<Result> {
+  const ctx = await ownCustomer(customerId)
+  if (!ctx) return denied
+  if (!(await followUpsEnabled(ctx.orgId))) return { success: false, error: upgradeMessage }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.dueDate)) return { success: false, error: 'Choisissez une date' }
+  const due = new Date(`${input.dueDate}T00:00:00Z`)
+  if (Number.isNaN(due.getTime()) || due.getTime() < startOfDayUtc().getTime()) return { success: false, error: 'La date est déjà passée' }
+  const title = input.title.trim().replace(/\s+/g, ' ').slice(0, 120)
+  if (!title) return { success: false, error: 'Indiquez l’objet du suivi' }
+  const team = await teamOf(ctx.orgId)
+  const assignee = input.assignedToId ? team.find(m => m.id === input.assignedToId) : null
+  const me = team.find(m => m.id === ctx.userId)
+  await prisma.customerFollowUp.create({
+    data: {
+      organizationId: ctx.orgId, customerId, dueDate: due, title,
+      assignedToId: assignee?.id ?? null, assignedToName: assignee?.name ?? null,
+      smsReminder: !!input.smsReminder, createdById: ctx.userId, createdByName: me?.name ?? null
+    }
+  })
+  return { success: true }
+}
+
+/** Fait, rouvert ou annulé. */
+export async function setFollowUpStatus(id: string, status: 'OPEN' | 'DONE' | 'CANCELLED'): Promise<Result> {
+  const ctx = await getReceptionContext()
+  if (!ctx) return denied
+  if (!['OPEN', 'DONE', 'CANCELLED'].includes(status)) return { success: false, error: 'Statut invalide' }
+  const me = await prisma.user.findUnique({ where: { id: ctx.userId }, select: { name: true } })
+  const res = await prisma.customerFollowUp.updateMany({
+    where: { id, organizationId: ctx.orgId },
+    data: status === 'DONE' ? { status, doneAt: new Date(), doneByName: me?.name ?? null } : { status, doneAt: null, doneByName: null }
+  })
+  return res.count ? { success: true } : { success: false, error: 'Suivi introuvable' }
+}
+
+/** « À faire » : suivis en retard et du jour, puis ceux des 14 prochains jours, et les derniers faits. */
+export async function listFollowUps(input: { mine?: boolean } = {}) {
+  const ctx = await getReceptionContext()
+  if (!ctx) return null
+  const enabled = await followUpsEnabled(ctx.orgId)
+  if (!enabled) return { enabled, today: [], upcoming: [], done: [] }
+  const today = startOfDayUtc()
+  const base = { organizationId: ctx.orgId, ...(input.mine ? { OR: [{ assignedToId: ctx.userId }, { assignedToId: null }] } : {}) }
+  const select = { ...followUpSelect, customer: { select: { id: true, name: true, phone: true, tags: { select: tagSelect } } } }
+  const [due, upcoming, done] = await Promise.all([
+    prisma.customerFollowUp.findMany({ where: { ...base, status: 'OPEN', dueDate: { lte: today } }, orderBy: { dueDate: 'asc' }, take: 200, select }),
+    prisma.customerFollowUp.findMany({ where: { ...base, status: 'OPEN', dueDate: { gt: today, lte: new Date(today.getTime() + 14 * 86400_000) } }, orderBy: { dueDate: 'asc' }, take: 200, select }),
+    prisma.customerFollowUp.findMany({ where: { ...base, status: 'DONE', doneAt: { gte: new Date(today.getTime() - 7 * 86400_000) } }, orderBy: { doneAt: 'desc' }, take: 30, select })
+  ])
+  const shape = (list: typeof due) => list.map(f => ({ ...f, customer: { ...f.customer, tags: f.customer.tags.map(l => l.tag) } }))
+  return { enabled, today: shape(due), upcoming: shape(upcoming), done: shape(done) }
+}
+
+/** Pastille du menu : suivis en retard ou du jour. */
+export async function getDueFollowUpsCount() {
+  const ctx = await getReceptionContext()
+  if (!ctx) return 0
+  return prisma.customerFollowUp.count({ where: { organizationId: ctx.orgId, status: 'OPEN', dueDate: { lte: startOfDayUtc() } } })
+}
+
+// ---- Rendez-vous récurrents (dialyse, suivi de grossesse, kinésithérapie…) ----
+
+export type Recurrence = 'WEEK' | 'TWO_WEEKS' | 'MONTH'
+
+/** Réserve une série de rendez-vous au même horaire ; les créneaux indisponibles sont signalés, les autres réservés. */
+export async function bookSeriesForCustomer(customerId: string, input: { serviceId: string; first: string; every: Recurrence; count: number }) {
+  const ctx = await ownCustomer(customerId)
+  if (!ctx) return denied
+  if (!(await followUpsEnabled(ctx.orgId))) return { success: false as const, error: 'Les rendez-vous récurrents sont inclus à partir du forfait Pro (Abonnement).' }
+  const customer = await prisma.customer.findUnique({ where: { id: customerId }, select: { name: true, phone: true, userId: true } })
+  if (!customer?.phone) return { success: false as const, error: 'Ajoutez d’abord un numéro de téléphone au visiteur' }
+  const first = new Date(input.first)
+  if (Number.isNaN(first.getTime())) return { success: false as const, error: 'Créneau invalide' }
+  const count = Math.min(24, Math.max(2, Math.round(input.count) || 2))
+
+  const dates = Array.from({ length: count }, (_, i) => {
+    const d = new Date(first)
+    if (input.every === 'MONTH') d.setUTCMonth(d.getUTCMonth() + i)
+    else d.setUTCDate(d.getUTCDate() + i * (input.every === 'TWO_WEEKS' ? 14 : 7))
+    return d
+  })
+  const seriesId = randomUUID()
+  const booked: { date: string; code: string }[] = []
+  const skipped: { date: string; reason: string }[] = []
+  for (const date of dates) {
+    try {
+      const res = await bookAppointment({
+        orgId: ctx.orgId, serviceId: input.serviceId, scheduledDate: date, source: 'RECEPTION',
+        userId: customer.userId, guestName: customer.name || 'Visiteur', guestPhone: customer.phone, seriesId, notify: false
+      })
+      booked.push({ date: date.toISOString(), code: res.code })
+    } catch (error) {
+      skipped.push({ date: date.toISOString(), reason: error instanceof AppointmentError ? error.message : 'Indisponible' })
+    }
+  }
+  if (booked.length === 0) return { success: false as const, error: 'Aucun créneau de la série n’est disponible à cet horaire' }
+
+  // Une seule confirmation pour toute la série ; les rappels de la veille partent pour chaque rendez-vous
+  const org = await prisma.organization.findUnique({ where: { id: ctx.orgId }, select: { name: true } })
+  const fmt = (iso: string) => new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', timeZone: 'UTC' })
+  const list = booked.slice(0, 8).map(b => fmt(b.date)).join(', ') + (booked.length > 8 ? '…' : '')
+  await sendSmsMessage({
+    to: customer.phone,
+    text: `Lerena : ${booked.length} rendez-vous confirmés chez ${org?.name ?? ''} à ${booked[0].date.slice(11, 16)} : ${list}. Rappel la veille de chacun.`,
+    purpose: 'APPOINTMENT_CONFIRMED',
+    organizationId: ctx.orgId
+  })
+  await audit({ action: 'APPOINTMENT_SERIES_BOOKED', targetType: 'Customer', targetId: customerId, organizationId: ctx.orgId, details: `${booked.length} RDV, ${skipped.length} indisponibles` })
+  return { success: true as const, booked, skipped }
 }

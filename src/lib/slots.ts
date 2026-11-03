@@ -68,13 +68,13 @@ export async function bookableDays(orgId: string, serviceId: string) {
 }
 
 /** Créneaux d'une journée, chacun marqué libre ou complet, avec les places restantes. */
-export async function slotsForDay(orgId: string, serviceId: string, day: string) {
+export async function slotsForDay(orgId: string, serviceId: string, day: string, opts: { horizonDays?: number } = {}) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return []
   const service = await loadService(orgId, serviceId)
   if (!service || !bookable(service)) return []
 
   const date = new Date(`${day}T00:00:00Z`)
-  const horizonEnd = Date.now() + (Math.min(90, service.apptHorizonDays) + 1) * 86400_000
+  const horizonEnd = Date.now() + ((opts.horizonDays ?? Math.min(90, service.apptHorizonDays)) + 1) * 86400_000
   if (date.getTime() > horizonEnd) return []
   if ((await closedDays(orgId, service.branchId, date, new Date(date.getTime() + 86400_000))).size > 0) return []
   const hours = hoursFor(service, date.getUTCDay())
@@ -101,9 +101,9 @@ export async function slotsForDay(orgId: string, serviceId: string, day: string)
 }
 
 /** Vérifie qu'un créneau demandé existe et a encore une place. */
-export async function isSlotAvailable(orgId: string, serviceId: string, when: Date) {
+export async function isSlotAvailable(orgId: string, serviceId: string, when: Date, opts: { horizonDays?: number } = {}) {
   const day = isoDay(when)
   const time = when.toISOString().slice(11, 16)
-  const slots = await slotsForDay(orgId, serviceId, day)
+  const slots = await slotsForDay(orgId, serviceId, day, opts)
   return slots.some(s => s.time === time && s.available)
 }

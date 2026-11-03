@@ -33,7 +33,8 @@ export default function AppointmentSettingsPage() {
       apptMaxActive: Number(f.get('apptMaxActive')),
       apptCancelHours: Number(f.get('apptCancelHours')),
       apptNoShowGraceMin: Number(f.get('apptNoShowGraceMin')),
-      apptNoShowBlock: Number(f.get('apptNoShowBlock'))
+      apptNoShowBlock: Number(f.get('apptNoShowBlock')),
+      apptNoShowSms: f.get('apptNoShowSms') === 'on'
     })
     setBusy(false)
     toast(res.success ? 'Règles enregistrées' : 'Enregistrement impossible', res.success ? 'success' : 'error')
@@ -82,6 +83,10 @@ export default function AppointmentSettingsPage() {
           <TextInput name="apptCancelHours" label="Report / annulation en ligne jusqu’à (heures avant)" type="number" min={0} max={72} defaultValue={org.apptCancelHours} />
           <TextInput name="apptNoShowGraceMin" label="Absence notée après (minutes de retard)" type="number" min={5} max={120} defaultValue={org.apptNoShowGraceMin} />
           <TextInput name="apptNoShowBlock" label="Bloquer la réservation en ligne après N absences" type="number" min={0} max={10} defaultValue={org.apptNoShowBlock} hint="0 = jamais" />
+          <label className="flex items-start gap-3 rounded-control border border-gray-200 px-4 py-3 text-sm sm:col-span-2">
+            <input type="checkbox" name="apptNoShowSms" defaultChecked={org.apptNoShowSms} className="mt-0.5 h-4 w-4 accent-[#c2410c]" />
+            <span><span className="font-semibold text-ink">SMS aux absents pour reprogrammer</span><span className="block text-xs text-ink-muted">Après un rendez-vous manqué, le visiteur reçoit un lien pour reprendre un créneau (forfaits avec « Suivis et relances », décompté de vos SMS).</span></span>
+          </label>
           <div className="flex items-end"><Button type="submit" fullWidth loading={busy}>Enregistrer</Button></div>
         </form>
       </Card>

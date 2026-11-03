@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic'
 
 const PURPOSES: Record<string, string> = {
   RESET_PASSWORD: 'Mot de passe oublié', OTP: 'Code de vérification', WELCOME: 'Bienvenue', TEMP_PASSWORD: 'Identifiants',
-  TURN_SOON: 'Bientôt votre tour', APPOINTMENT_CONFIRMED: 'RDV confirmé', APPOINTMENT_NEW: 'Nouveau RDV (équipe)', APPOINTMENT_REMINDER: 'Rappel de RDV',
+  TURN_SOON: 'Bientôt votre tour', APPOINTMENT_CONFIRMED: 'RDV confirmé', APPOINTMENT_NEW: 'Nouveau RDV (équipe)', APPOINTMENT_MISSED: 'RDV manqué', FOLLOW_UP: 'Suivi visiteur', APPOINTMENT_REMINDER: 'Rappel de RDV',
   APPOINTMENT_CANCELLED: 'RDV annulé', INVOICE: 'Facture', ANNOUNCEMENT: 'Annonce'
 }
 const TONE = { SENT: 'success', FAILED: 'danger', SIMULATED: 'warning', SKIPPED: 'neutral' } as const

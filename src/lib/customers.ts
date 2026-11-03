@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { normalizePhone } from '@/lib/phone'
+import { tagRepeatedNoShows } from '@/lib/followups'
 
 // Fichier visiteurs (CRM) : chaque ticket et rendez-vous est rattaché à la fiche du visiteur dans
 // l'établissement, reconnue par son compte Lerena ou son numéro. Module serveur uniquement.
@@ -127,6 +128,7 @@ export async function refreshCustomersOfTickets(ticketIds: string[]) {
   try {
     const rows = await prisma.ticket.findMany({ where: { id: { in: ticketIds }, customerId: { not: null } }, select: { customerId: true } })
     await refreshCustomerStats(rows.map(r => r.customerId!))
+    await tagRepeatedNoShows(rows.map(r => r.customerId!))
   } catch (error) {
     console.error('CRM refresh error:', error)
   }
@@ -137,6 +139,7 @@ export async function refreshCustomersOfAppointments(appointmentIds: string[]) {
   try {
     const rows = await prisma.appointment.findMany({ where: { id: { in: appointmentIds }, customerId: { not: null } }, select: { customerId: true } })
     await refreshCustomerStats(rows.map(r => r.customerId!))
+    await tagRepeatedNoShows(rows.map(r => r.customerId!))
   } catch (error) {
     console.error('CRM refresh error:', error)
   }

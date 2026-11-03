@@ -14,6 +14,7 @@ import { Button, Dialog, TextInput, TicketStatusBadge, Badge, useToast } from '@
 import { cn } from '@/lib/cn'
 import { TagChip, Initials, sinceLabel } from './parts'
 import { BookForVisitor } from './book-for-visitor'
+import { FollowUpsCard } from './follow-ups'
 
 type Data = NonNullable<Awaited<ReturnType<typeof getCustomer>>>
 type Entry = Data['timeline'][number]
@@ -143,6 +144,9 @@ export function VisitorFile({ id, basePath }: { id: string; basePath: string }) 
           )}
         </section>
 
+        <div className="space-y-5">
+        <FollowUpsCard customerId={c.id} hasPhone={!!c.phone} />
+
         {/* Notes internes */}
         <section className="h-fit rounded-card border border-surface-line bg-white shadow-card">
           <header className="border-b border-surface-line px-5 py-4">
@@ -188,6 +192,7 @@ export function VisitorFile({ id, basePath }: { id: string; basePath: string }) 
             </button>
           </div>
         </section>
+        </div>
       </div>
 
       <TagsDialog open={showTags} onClose={() => setShowTags(false)} data={data} onChange={load} />
@@ -200,7 +205,7 @@ export function VisitorFile({ id, basePath }: { id: string; basePath: string }) 
       </Dialog>
 
       {c.phone && (
-        <BookForVisitor open={showBook} onClose={() => setShowBook(false)} orgId={data.orgId} name={c.name || 'Visiteur'} phone={c.phone} onBooked={load} />
+        <BookForVisitor open={showBook} onClose={() => setShowBook(false)} orgId={data.orgId} customerId={c.id} name={c.name || 'Visiteur'} phone={c.phone} onBooked={load} />
       )}
     </div>
   )

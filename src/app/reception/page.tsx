@@ -4,7 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { signOut, useSession } from 'next-auth/react'
 import QRCode from 'qrcode'
 import Link from 'next/link'
-import { Printer, Plus, LogOut, Users, Clock, ChevronDown, Accessibility, Siren, UserRound, Contact } from 'lucide-react'
+import { Printer, Plus, LogOut, Users, Clock, ChevronDown, Accessibility, Siren, UserRound, Contact, ListChecks } from 'lucide-react'
+import { getDueFollowUpsCount } from '@/server/actions/customers'
 import { TagChip } from '@/components/crm/parts'
 import { getReceptionBoard, getRecentTickets, issueReceptionTicket, setTicketPriority } from '@/server/actions/reception'
 import { Button, TextInput, TicketStatusBadge, useToast } from '@/components/ui'
@@ -40,6 +41,8 @@ export default function ReceptionPage() {
   const [issued, setIssued] = useState<Issued | null>(null)
   const [qr, setQr] = useState('')
   const resetTimer = useRef<ReturnType<typeof setTimeout>>()
+  const [dueFollowUps, setDueFollowUps] = useState(0)
+  useEffect(() => { getDueFollowUpsCount().then(setDueFollowUps).catch(() => null) }, [])
 
   const load = useCallback(async () => {
     const [b, r] = await Promise.all([getReceptionBoard(), getRecentTickets()])
@@ -120,6 +123,9 @@ export default function ReceptionPage() {
               <span className={cn('h-2 w-2 rounded-full', live ? 'bg-success animate-pulse' : 'bg-gray-400')} />
               {live ? t('reception.live') : t('reception.offline')}
             </span>
+            <Link href="/reception/followups" className="inline-flex items-center gap-1.5 rounded-xl border border-surface-line px-3 py-1.5 text-sm font-semibold text-ink hover:border-brand hover:text-brand">
+              <ListChecks size={15} /> À faire{dueFollowUps > 0 && <span className="rounded-full bg-brand px-1.5 text-xs text-white tabular-nums">{dueFollowUps}</span>}
+            </Link>
             <Link href="/reception/visitors" className="inline-flex items-center gap-1.5 rounded-xl border border-surface-line px-3 py-1.5 text-sm font-semibold text-ink hover:border-brand hover:text-brand">
               <Contact size={15} /> Visiteurs
             </Link>
