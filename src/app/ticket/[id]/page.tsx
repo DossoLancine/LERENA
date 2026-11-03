@@ -17,6 +17,7 @@ import { useWakeLock } from '@/hooks/use-wake-lock'
 import { haptics, playChime, unlockAudio } from '@/lib/haptics'
 import { counterLabel } from '@/lib/constants'
 import { PushOptIn } from '@/components/ticket/push-opt-in'
+import { ConsentOptIn } from '@/components/ticket/consent-opt-in'
 import { LeaveNowCard, SpeakPositionButton } from '@/components/ticket/leave-now-card'
 import { NPSWidget, PromoCarousel } from '@/components/marketing/marketing-widgets'
 import { usePolling } from '@/hooks/use-polling'
@@ -282,6 +283,7 @@ export default function TicketPage({ params }: { params: { id: string } }) {
         )}
 
         {status === 'COMPLETED' && !ticket.npsScore && <NPSWidget ticketId={ticket.id} />}
+        {(status === 'WAITING' || status === 'COMPLETED') && <ConsentOptIn ticketId={ticket.id} />}
 
         {/* Détails repliés */}
         <details className="group rounded-[22px] bg-white shadow-card ring-1 ring-black/[0.03]">

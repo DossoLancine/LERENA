@@ -8,6 +8,7 @@ import { notifyOrg } from '@/lib/realtime'
 import { hasFeature } from '@/lib/billing'
 import { attachAppointmentToCustomer, refreshCustomersOfAppointments } from '@/lib/customers'
 import { runFollowUpJobs } from '@/lib/followups'
+import { runCampaignJobs } from '@/lib/campaigns'
 
 // Rendez-vous : réservation, arrivée sur place (le RDV devient un ticket placé à son heure),
 // rappels automatiques et absences. Utilisé par l'application, les invités, l'accueil et la borne.
@@ -202,6 +203,7 @@ export async function runAppointmentJobs(force = false) {
 
   // Suivis du jour et relance des absents (CRM)
   const followUps = await runFollowUpJobs(now).catch(error => { console.error('Follow-up jobs error:', error); return null })
+  const campaigns = await runCampaignJobs(now).catch(error => { console.error('Campaign jobs error:', error); return null })
 
-  return { skipped: false, remindersDay: dayBefore.length, remindersHour: twoHours.length, noShows: noShow.length, closedTickets: served.count + dropped.count, ...followUps }
+  return { skipped: false, remindersDay: dayBefore.length, remindersHour: twoHours.length, noShows: noShow.length, closedTickets: served.count + dropped.count, ...followUps, ...campaigns }
 }

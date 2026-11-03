@@ -10,7 +10,7 @@ import { sendSms } from '@/lib/sms'
 
 export type MessagePurpose =
   | 'RESET_PASSWORD' | 'OTP' | 'WELCOME' | 'TEMP_PASSWORD' | 'TURN_SOON'
-  | 'APPOINTMENT_CONFIRMED' | 'APPOINTMENT_NEW' | 'APPOINTMENT_REMINDER' | 'APPOINTMENT_CANCELLED' | 'APPOINTMENT_MISSED' | 'FOLLOW_UP' | 'INVOICE' | 'ANNOUNCEMENT'
+  | 'APPOINTMENT_CONFIRMED' | 'APPOINTMENT_NEW' | 'APPOINTMENT_REMINDER' | 'APPOINTMENT_CANCELLED' | 'APPOINTMENT_MISSED' | 'FOLLOW_UP' | 'CAMPAIGN' | 'DIRECT' | 'INVOICE' | 'ANNOUNCEMENT'
 
 type Status = 'SENT' | 'FAILED' | 'SIMULATED' | 'SKIPPED'
 
@@ -55,22 +55,27 @@ export async function sendEmail(input: { to: string; subject: string; text: stri
 
 /** SMS. Sans fournisseur, le message est simulé (journalisé) et la fonction renvoie false. */
 export async function sendSmsMessage(input: { to: string; text: string; purpose: MessagePurpose; organizationId?: string | null; ticketId?: string | null }) {
+  return (await sendSmsWithStatus(input)) === 'SENT'
+}
+
+/** Comme sendSmsMessage, avec le résultat : envoyé, simulé (pas de fournisseur), échec, ou non envoyé faute de SMS. */
+export async function sendSmsWithStatus(input: { to: string; text: string; purpose: MessagePurpose; organizationId?: string | null; ticketId?: string | null }): Promise<Status> {
   const base = { channel: 'SMS' as const, to: input.to, body: input.text, purpose: input.purpose, organizationId: input.organizationId, ticketId: input.ticketId }
   // SMS d'un établissement : quota mensuel du forfait, puis packs achetés (import tardif : billing utilise ce module)
   if (input.organizationId) {
     const { consumeSms } = await import('@/lib/billing')
     if (!(await consumeSms(input.organizationId).catch(() => true))) {
       await log({ ...base, status: 'SKIPPED', error: 'Plus de SMS : quota du mois et packs épuisés' })
-      return false
+      return 'SKIPPED'
     }
   }
   if (!process.env.SMS_PROVIDER) {
     await log({ ...base, status: 'SIMULATED' })
-    return false
+    return 'SIMULATED'
   }
   const ok = await sendSms(input.to, input.text).catch(() => false)
   await log({ ...base, status: ok ? 'SENT' : 'FAILED', provider: process.env.SMS_PROVIDER })
-  return ok
+  return ok ? 'SENT' : 'FAILED'
 }
 
 /** Adresse publique de l'application, pour les liens envoyés par e-mail. */

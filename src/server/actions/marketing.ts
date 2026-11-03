@@ -42,6 +42,29 @@ export async function submitNPS(ticketId: string, score: number) {
   }
 }
 
+// ---- Accord pour les messages d'information de l'établissement (depuis le ticket) ----
+
+/** État de l'accord du visiteur de ce ticket (null si le ticket n'a pas de numéro rattaché). */
+export async function getTicketConsent(ticketId: string) {
+  const ticket = await getOwnTicket(ticketId)
+  if (!ticket) return null
+  const t = await prisma.ticket.findUnique({ where: { id: ticket.id }, select: { customer: { select: { phone: true, consentAt: true, organization: { select: { name: true } } } } } })
+  if (!t?.customer?.phone) return null
+  return { orgName: t.customer.organization.name, consent: !!t.customer.consentAt }
+}
+
+export async function setTicketConsent(ticketId: string, consent: boolean) {
+  const ticket = await getOwnTicket(ticketId)
+  if (!ticket) return { success: false }
+  const t = await prisma.ticket.findUnique({ where: { id: ticket.id }, select: { customerId: true } })
+  if (!t?.customerId) return { success: false }
+  await prisma.customer.update({
+    where: { id: t.customerId },
+    data: consent ? { consentAt: new Date(), consentChannel: 'APP', optedOutAt: null } : { consentAt: null, consentChannel: null }
+  })
+  return { success: true }
+}
+
 // ---- Promotions (public : pour la page ticket) ----
 export async function getPromotionsByOrg(orgId: string) {
   try {

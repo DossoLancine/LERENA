@@ -6,34 +6,23 @@ import { getReceptionContext } from '@/lib/session'
 import { normalizePhone } from '@/lib/phone'
 import { audit } from '@/lib/audit'
 import { backfillCustomers, findOrCreateCustomer } from '@/lib/customers'
+import { SEGMENTS, segmentWhere, type CustomerSegment } from '@/lib/customer-segments'
 import { TAG_COLORS } from '@/lib/customer-labels'
 import { hasFeature } from '@/lib/billing'
 import { startOfDayUtc } from '@/lib/followups'
 import { AppointmentError, bookAppointment } from '@/lib/appointments'
-import { sendSmsMessage } from '@/lib/messaging'
+import { sendSmsMessage, sendSmsWithStatus } from '@/lib/messaging'
+import { MAX_BODY, normalizeSms } from '@/lib/campaign-text'
+import { rateLimit } from '@/lib/rate-limit'
 import { randomUUID } from 'crypto'
 
 // CRM des visiteurs : responsable et accueil. Chaque établissement ne voit que ses propres fiches.
 
-export type CustomerSegment = 'all' | 'new' | 'regular' | 'lapsed' | 'noshow' | 'unhappy'
+export type { CustomerSegment } from '@/lib/customer-segments'
 export type CustomerSort = 'recent' | 'visits' | 'noshows' | 'name'
 
-const DAY = 86400_000
 const PAGE_SIZE = 40
 
-function segmentWhere(segment: CustomerSegment): Prisma.CustomerWhereInput {
-  const now = Date.now()
-  switch (segment) {
-    case 'new': return { firstSeenAt: { gte: new Date(now - 30 * DAY) } }
-    case 'regular': return { visits: { gte: 3 } }
-    case 'lapsed': return { visits: { gte: 1 }, lastSeenAt: { lt: new Date(now - 90 * DAY) } }
-    case 'noshow': return { noShows: { gte: 2 } }
-    case 'unhappy': return { lastRating: { lte: 2 } }
-    default: return {}
-  }
-}
-
-const SEGMENTS: CustomerSegment[] = ['all', 'new', 'regular', 'lapsed', 'noshow', 'unhappy']
 
 const tagSelect = { tag: { select: { id: true, name: true, color: true } } } as const
 
@@ -86,7 +75,8 @@ export async function getCustomer(id: string) {
     where: { id, organizationId: ctx.orgId },
     select: {
       id: true, name: true, phone: true, userId: true, visits: true, noShows: true, ratingAvg: true, lastRating: true,
-      firstSeenAt: true, lastVisitAt: true, consentAt: true, consentChannel: true, createdAt: true,
+      firstSeenAt: true, lastVisitAt: true, consentAt: true, consentChannel: true, optedOutAt: true, createdAt: true,
+      organization: { select: { name: true } },
       tags: { select: tagSelect, orderBy: { createdAt: 'asc' } },
       notes: { orderBy: { createdAt: 'desc' }, take: 100, select: { id: true, text: true, authorId: true, authorName: true, createdAt: true } },
       tickets: {
@@ -134,7 +124,7 @@ export async function getCustomer(id: string) {
     customer: {
       id: c.id, name: c.name, phone: c.phone, hasAccount: !!c.userId, visits: c.visits, noShows: c.noShows,
       ratingAvg: c.ratingAvg, lastRating: c.lastRating, firstSeenAt: c.firstSeenAt, lastVisitAt: c.lastVisitAt,
-      consentAt: c.consentAt, consentChannel: c.consentChannel,
+      consentAt: c.consentAt, consentChannel: c.consentChannel, optedOutAt: c.optedOutAt, orgName: c.organization.name,
       upcoming: c.appointments.filter(a => a.status === 'CONFIRMED' && a.scheduledDate.getTime() > now).length,
       tags: c.tags.map(l => l.tag)
     },
@@ -179,7 +169,7 @@ export async function renameCustomer(id: string, name: string): Promise<Result> 
 export async function setCustomerConsent(id: string, consent: boolean): Promise<Result> {
   const ctx = await ownCustomer(id)
   if (!ctx) return denied
-  await prisma.customer.update({ where: { id }, data: consent ? { consentAt: new Date(), consentChannel: 'RECEPTION' } : { consentAt: null, consentChannel: null } })
+  await prisma.customer.update({ where: { id }, data: consent ? { consentAt: new Date(), consentChannel: 'RECEPTION', optedOutAt: null } : { consentAt: null, consentChannel: null } })
   await audit({ action: consent ? 'CUSTOMER_CONSENT_GIVEN' : 'CUSTOMER_CONSENT_WITHDRAWN', targetType: 'Customer', targetId: id, organizationId: ctx.orgId })
   return { success: true }
 }
@@ -381,4 +371,48 @@ export async function bookSeriesForCustomer(customerId: string, input: { service
   })
   await audit({ action: 'APPOINTMENT_SERIES_BOOKED', targetType: 'Customer', targetId: customerId, organizationId: ctx.orgId, details: `${booked.length} RDV, ${skipped.length} indisponibles` })
   return { success: true as const, booked, skipped }
+}
+
+// ---- Messages individuels (forfaits avec « Messages et campagnes SMS ») ----
+
+const PURPOSE_LABELS: Record<string, string> = {
+  DIRECT: 'Message', CAMPAIGN: 'Campagne', FOLLOW_UP: 'Rappel de suivi', APPOINTMENT_MISSED: 'Rendez-vous manqué',
+  APPOINTMENT_CONFIRMED: 'Confirmation de rendez-vous', APPOINTMENT_REMINDER: 'Rappel de rendez-vous', APPOINTMENT_CANCELLED: 'Annulation', TURN_SOON: 'Bientôt son tour'
+}
+
+/** SMS reçus par le visiteur de la part de l'établissement (les 20 derniers) et possibilité d'en écrire un. */
+export async function getCustomerMessages(customerId: string) {
+  const ctx = await ownCustomer(customerId)
+  if (!ctx) return null
+  const c = await prisma.customer.findUnique({ where: { id: customerId }, select: { phone: true, optedOutAt: true } })
+  const [enabled, messages] = await Promise.all([
+    hasFeature(ctx.orgId, 'CRM_CAMPAIGNS').catch(() => false),
+    c?.phone ? prisma.outboundMessage.findMany({
+      where: { organizationId: ctx.orgId, channel: 'SMS', to: c.phone }, orderBy: { createdAt: 'desc' }, take: 20,
+      select: { id: true, purpose: true, status: true, body: true, createdAt: true }
+    }) : []
+  ])
+  return {
+    enabled,
+    optedOut: !!c?.optedOutAt,
+    messages: messages.map(m => ({ ...m, label: PURPOSE_LABELS[m.purpose] ?? 'SMS' }))
+  }
+}
+
+/** SMS écrit par l'équipe à un visiteur (résultats prêts, document manquant…). Jamais à quelqu'un qui a répondu STOP. */
+export async function sendDirectSms(customerId: string, text: string): Promise<Result> {
+  const ctx = await ownCustomer(customerId)
+  if (!ctx) return denied
+  if (!(await hasFeature(ctx.orgId, 'CRM_CAMPAIGNS').catch(() => false))) return { success: false, error: 'Les SMS aux visiteurs sont inclus à partir du forfait Pro (Abonnement).' }
+  const c = await prisma.customer.findUnique({ where: { id: customerId }, select: { phone: true, optedOutAt: true } })
+  if (!c?.phone) return { success: false, error: 'Ce visiteur n’a pas de numéro' }
+  if (c.optedOutAt) return { success: false, error: 'Ce visiteur a demandé à ne plus recevoir de messages' }
+  const body = normalizeSms(text).trim().slice(0, MAX_BODY)
+  if (body.length < 2) return { success: false, error: 'Le message est vide' }
+  if (!(await rateLimit(`direct-sms:${ctx.userId}`, 30, 3600_000))) return { success: false, error: 'Trop de messages envoyés : réessayez dans une heure' }
+  const org = await prisma.organization.findUnique({ where: { id: ctx.orgId }, select: { name: true } })
+  const status = await sendSmsWithStatus({ to: c.phone, text: `${org?.name ?? 'Lerena'} : ${body}`, purpose: 'DIRECT', organizationId: ctx.orgId })
+  if (status === 'SKIPPED') return { success: false, error: 'Plus de SMS disponibles : achetez un pack dans Abonnement → Boutique' }
+  if (status === 'FAILED') return { success: false, error: 'L’opérateur a refusé le message. Vérifiez le numéro.' }
+  return { success: true }
 }

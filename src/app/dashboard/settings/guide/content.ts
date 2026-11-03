@@ -1,7 +1,7 @@
 // Guide d'utilisation affiché dans Paramètres → Guide d'utilisation.
 // À METTRE À JOUR à chaque évolution de l'application (nouvel écran, nouvelle étape, changement de nom).
 
-export const GUIDE_UPDATED_AT = '3 novembre 2026 (fichier visiteurs, suivis, rendez-vous récurrents)'
+export const GUIDE_UPDATED_AT = '3 novembre 2026 (fichier visiteurs, suivis, campagnes SMS)'
 
 export interface GuideSection {
   id: string
@@ -138,6 +138,23 @@ export const GUIDE: GuideSection[] = [
       'Menu « À faire » (bouton « À faire » à l’accueil) : suivis en retard et du jour, puis ceux des 14 prochains jours. Appelez, puis cochez : le suivi passe dans « Faits cette semaine ». La pastille du menu indique ce qui reste pour aujourd’hui.',
       'Rendez-vous récurrents : fiche → « Rendez-vous » → choisissez le premier créneau, puis « Chaque semaine », « Toutes les 2 semaines » ou « Chaque mois » et le nombre de rendez-vous. Toute la série est réservée d’un coup ; un seul SMS récapitule les dates et chaque rendez-vous a son rappel la veille. Les dates impossibles (jour fermé, complet) sont listées.',
       'Absences : après un rendez-vous manqué, le visiteur reçoit un SMS avec le lien pour reprendre un créneau (réglable dans Paramètres → Rendez-vous). Au seuil d’absences, sa fiche reçoit l’étiquette « Absences répétées ».'
+    ]
+  },
+  {
+    id: 'campagnes',
+    title: 'Messages et campagnes SMS',
+    intro: 'Écrire à un visiteur ou prévenir tout un groupe en quelques minutes. Inclus à partir du forfait Pro ; chaque SMS est décompté de vos SMS du mois, puis de vos packs.',
+    steps: [
+      'Accord des visiteurs : ils acceptent vos messages depuis leur ticket (« Nouvelles de … par SMS ») ou à l’accueil (« Il accepte » sur la fiche). Les campagnes ne partent qu’à eux.',
+      'Menu « Campagnes » → « Nouvelle campagne » : 1. destinataires (segment, étiquette ou visiteurs choisis), 2. message (modèle prêt à l’emploi, variables {prénom}, {établissement}, {lien}, {service}, {date}), 3. maintenant ou à une date. L’aperçu montre le SMS reçu ; le nombre de SMS et votre solde s’affichent avant l’envoi.',
+      'Remplacez les passages entre crochets des modèles ([date], [service]) : l’envoi reste bloqué tant qu’il en reste.',
+      'Les SMS partent entre 8 h et 20 h. Suivez l’envoi sur la page de la campagne : envoyés, échecs, non envoyés, désinscriptions. Une campagne programmée ou en cours peut être annulée ; « Dupliquer » repart du même message.',
+      'Chaque SMS de campagne se termine par un lien STOP : un appui suffit pour ne plus rien recevoir de votre établissement. La fiche indique alors « A répondu STOP ».',
+      'SMS à une personne : fiche visiteur → « SMS » (résultats prêts, document manquant…). Les SMS qu’il a reçus de vous s’affichent sur sa fiche.'
+    ],
+    tips: [
+      'Pas de diagnostic ni d’information médicale par SMS.',
+      'Si vos SMS s’épuisent pendant une campagne, le reste n’est pas envoyé : achetez un pack (Abonnement → Boutique) puis dupliquez la campagne vers les visiteurs restants.'
     ]
   },
   {

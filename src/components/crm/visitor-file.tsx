@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import {
   ArrowLeft, Phone, MessageCircle, CalendarPlus, Pencil, Star, Ticket, CalendarDays, CalendarX2, Clock, Trash2,
-  ShieldCheck, Tag as TagIcon, Plus, Check, Smartphone, StickyNote
+  ShieldCheck, Tag as TagIcon, Plus, Check, Smartphone, StickyNote, MessageSquareText
 } from 'lucide-react'
 import {
   getCustomer, renameCustomer, setCustomerConsent, addCustomerNote, deleteCustomerNote, setCustomerTags, createCustomerTag, deleteCustomerTag
@@ -15,6 +15,7 @@ import { cn } from '@/lib/cn'
 import { TagChip, Initials, sinceLabel } from './parts'
 import { BookForVisitor } from './book-for-visitor'
 import { FollowUpsCard } from './follow-ups'
+import { MessagesCard } from './messages-card'
 
 type Data = NonNullable<Awaited<ReturnType<typeof getCustomer>>>
 type Entry = Data['timeline'][number]
@@ -33,6 +34,7 @@ export function VisitorFile({ id, basePath }: { id: string; basePath: string }) 
   const [showRename, setShowRename] = useState(false)
   const [showBook, setShowBook] = useState(false)
   const [rename, setRename] = useState('')
+  const [showSms, setShowSms] = useState(false)
 
   const load = useCallback(async () => setData(await getCustomer(id).catch(() => null)), [id])
   useEffect(() => { load() }, [load])
@@ -101,7 +103,7 @@ export function VisitorFile({ id, basePath }: { id: string; basePath: string }) 
           </div>
         </div>
 
-        <div className="mt-5 grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
+        <div className="mt-5 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
           <a href={c.phone ? `tel:${c.phone}` : undefined} aria-disabled={!c.phone}
             className={cn('flex items-center justify-center gap-2 rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-white', !c.phone && 'pointer-events-none opacity-40')}>
             <Phone size={16} /> Appeler
@@ -113,6 +115,10 @@ export function VisitorFile({ id, basePath }: { id: string; basePath: string }) 
           <button onClick={() => setShowBook(true)} disabled={!c.phone}
             className="flex items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-ink shadow-sm disabled:opacity-40">
             <CalendarPlus size={16} className="text-brand" /> <span className="truncate">Rendez-vous</span>
+          </button>
+          <button onClick={() => setShowSms(true)} disabled={!c.phone || !!c.optedOutAt}
+            className="flex items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-ink shadow-sm disabled:opacity-40">
+            <MessageSquareText size={16} className="text-brand" /> SMS
           </button>
         </div>
       </section>
@@ -128,6 +134,7 @@ export function VisitorFile({ id, basePath }: { id: string; basePath: string }) 
       </div>
 
       <div className="grid gap-5 lg:grid-cols-[1fr_380px]">
+        <div className="space-y-5">
         {/* Historique */}
         <section className="rounded-card border border-surface-line bg-white shadow-card">
           <header className="flex items-center justify-between border-b border-surface-line px-5 py-4">
@@ -143,6 +150,8 @@ export function VisitorFile({ id, basePath }: { id: string; basePath: string }) 
             </ol>
           )}
         </section>
+        {c.phone && <MessagesCard customerId={c.id} orgName={c.orgName} name={c.name || 'ce visiteur'} open={showSms} onOpenChange={setShowSms} />}
+        </div>
 
         <div className="space-y-5">
         <FollowUpsCard customerId={c.id} hasPhone={!!c.phone} />
@@ -181,9 +190,10 @@ export function VisitorFile({ id, basePath }: { id: string; basePath: string }) 
           <div className="flex items-start gap-3 border-t border-surface-line px-5 py-4">
             <ShieldCheck size={18} className={cn('mt-0.5 shrink-0', c.consentAt ? 'text-success' : 'text-ink-subtle')} />
             <div className="min-w-0 flex-1 text-sm">
-              <p className="font-semibold text-ink">{c.consentAt ? 'Accepte les messages d’information' : 'Pas d’accord pour les messages d’information'}</p>
+              <p className="font-semibold text-ink">{c.consentAt ? 'Accepte les messages d’information' : c.optedOutAt ? 'A répondu STOP aux messages d’information' : 'Pas d’accord pour les messages d’information'}</p>
               <p className="text-xs text-ink-muted">
-                {c.consentAt ? `Depuis le ${fullDate(c.consentAt)}${c.consentChannel === 'RECEPTION' ? ', recueilli par l’équipe' : ''}.` : 'Les SMS liés à ses tickets et rendez-vous partent quand même.'}
+                {c.consentAt ? `Depuis le ${fullDate(c.consentAt)}${c.consentChannel === 'RECEPTION' ? ', recueilli par l’équipe' : c.consentChannel === 'APP' ? ', donné dans l’application' : ''}.`
+                  : c.optedOutAt ? `Le ${fullDate(c.optedOutAt)}. Ne cochez « Il accepte » que s’il vous le redemande.` : 'Les SMS liés à ses tickets et rendez-vous partent quand même.'}
               </p>
             </div>
             <button onClick={() => run(setCustomerConsent(c.id, !c.consentAt), c.consentAt ? 'Accord retiré' : 'Accord enregistré')}

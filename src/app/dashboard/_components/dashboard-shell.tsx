@@ -26,6 +26,7 @@ const GROUPS: SidebarGroup[] = [
       { href: '/dashboard/agenda', label: t('dashboard.tabs.agenda'), icon: 'CalendarDays' },
       { href: '/dashboard/visitors', label: 'Visiteurs', icon: 'Contact' },
       { href: '/dashboard/followups', label: 'À faire', icon: 'ClipboardList' },
+      { href: '/dashboard/campaigns', label: 'Campagnes', icon: 'MessageSquare' },
       { href: '/dashboard/analytics', label: t('dashboard.tabs.analytics'), icon: 'BarChart3' }
     ]
   },

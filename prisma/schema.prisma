@@ -100,6 +100,7 @@ model Organization {
   customers          Customer[]
   customerTags       CustomerTag[]
   followUps          CustomerFollowUp[]
+  campaigns          Campaign[]
   network            Network?             @relation(fields: [networkId], references: [id], onDelete: SetNull)
   sector             Sector?              @relation(fields: [sectorId], references: [id], onDelete: SetNull)
 }
@@ -796,16 +797,19 @@ model Customer {
   lastSeenAt     DateTime  @default(now()) // dernière activité, rendez-vous à venir compris (relances, conservation)
   consentAt      DateTime? // accord pour recevoir des messages d'information
   consentChannel String? // APP | RECEPTION | IMPORT
+  optedOutAt     DateTime? // « STOP » : ne veut plus de messages d'information
+  unsubToken     String?   @unique // lien de désinscription court envoyé dans les campagnes
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
-  organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  user         User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
-  tickets      Ticket[]
-  appointments Appointment[]
-  notes        CustomerNote[]
-  tags         CustomerTagLink[]
-  followUps    CustomerFollowUp[]
+  organization  Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user          User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+  tickets       Ticket[]
+  appointments  Appointment[]
+  notes         CustomerNote[]
+  tags          CustomerTagLink[]
+  followUps     CustomerFollowUp[]
+  campaignSends CampaignRecipient[]
 
   @@unique([organizationId, phone])
   @@unique([organizationId, userId])
@@ -873,5 +877,48 @@ model CustomerFollowUp {
   customer     Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   @@index([organizationId, status, dueDate])
+  @@index([customerId])
+}
+
+// Campagne SMS vers des visiteurs ayant donné leur accord (segment, étiquette ou sélection)
+model Campaign {
+  id             String    @id @default(cuid())
+  organizationId String
+  name           String
+  body           String // avec variables {prénom}, {établissement}, {lien}, {service}, {date}
+  target         Json // { segment?, tagId?, customerIds? }
+  status         String    @default("SCHEDULED") // SCHEDULED | SENDING | SENT | CANCELLED
+  scheduledAt    DateTime
+  startedAt      DateTime?
+  finishedAt     DateTime?
+  recipients     Int       @default(0)
+  sent           Int       @default(0)
+  failed         Int       @default(0)
+  skipped        Int       @default(0) // plus de SMS, accord retiré entre-temps
+  unsubscribed   Int       @default(0)
+  createdById    String?
+  createdByName  String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  sends        CampaignRecipient[]
+
+  @@index([status, scheduledAt])
+  @@index([organizationId, createdAt])
+}
+
+model CampaignRecipient {
+  id         String    @id @default(cuid())
+  campaignId String
+  customerId String?
+  status     String    @default("PENDING") // PENDING | SENDING | SENT | FAILED | SKIPPED
+  error      String?
+  sentAt     DateTime?
+
+  campaign Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  @@index([campaignId, status])
   @@index([customerId])
 }
