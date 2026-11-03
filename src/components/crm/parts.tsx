@@ -39,3 +39,7 @@ export function sinceLabel(date: Date | string) {
   const years = Math.floor(months / 12)
   return `il y a ${years} an${years > 1 ? 's' : ''}`
 }
+
+/** Événement qui fait relire les pastilles du menu (suivis du jour, avis à traiter). */
+export const COUNTS_EVENT = 'lerena:counts'
+export const refreshMenuCounts = () => { try { window.dispatchEvent(new Event(COUNTS_EVENT)) } catch {} }

@@ -6,7 +6,7 @@ import { BellRing, Check, CalendarClock, MessageSquareText, RotateCcw, X, ListCh
 import { createFollowUp, getCustomerFollowUps, listFollowUps, setFollowUpStatus } from '@/server/actions/customers'
 import { Button, useToast } from '@/components/ui'
 import { cn } from '@/lib/cn'
-import { TagChip } from './parts'
+import { TagChip, refreshMenuCounts } from './parts'
 
 // Suivis datés : carte de la fiche visiteur et page « À faire ».
 
@@ -68,6 +68,7 @@ export function FollowUpsCard({ customerId, hasPhone }: { customerId: string; ha
   const setStatus = async (id: string, status: 'OPEN' | 'DONE' | 'CANCELLED') => {
     const res = await setFollowUpStatus(id, status)
     if (!res.success) toast(res.error, 'error')
+    else refreshMenuCounts()
     load()
   }
 
@@ -167,7 +168,7 @@ export function FollowUpsBoard({ visitorsPath }: { visitorsPath: string }) {
     setLeaving(l => [...l, f.id])
     const res = await setFollowUpStatus(f.id, 'DONE')
     if (!res.success) toast(res.error, 'error')
-    else toast(`« ${f.title} » fait`, 'success')
+    else { toast(`« ${f.title} » fait`, 'success'); refreshMenuCounts() }
     await load()
     setLeaving(l => l.filter(x => x !== f.id))
   }

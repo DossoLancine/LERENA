@@ -15,6 +15,7 @@ import { getBillingBanner } from '@/server/actions/billing'
 import { getNewAppointmentsCount } from '@/server/actions/appointments'
 import { getDueFollowUpsCount } from '@/server/actions/customers'
 import { getOpenComplaintsCount } from '@/server/actions/feedback'
+import { COUNTS_EVENT } from '@/components/crm/parts'
 import { usePathname } from 'next/navigation'
 import { usePolling } from '@/hooks/use-polling'
 
@@ -77,8 +78,14 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   const [dueFollowUps, setDueFollowUps] = useState(0)
   const [openComplaints, setOpenComplaints] = useState(0)
   useEffect(() => {
-    getDueFollowUpsCount().then(setDueFollowUps).catch(() => null)
-    getOpenComplaintsCount().then(setOpenComplaints).catch(() => null)
+    const refresh = () => {
+      getDueFollowUpsCount().then(setDueFollowUps).catch(() => null)
+      getOpenComplaintsCount().then(setOpenComplaints).catch(() => null)
+    }
+    refresh()
+    // Les pages préviennent quand un suivi est coché ou un avis clôturé
+    window.addEventListener(COUNTS_EVENT, refresh)
+    return () => window.removeEventListener(COUNTS_EVENT, refresh)
   }, [pathname])
   const counts: Record<string, number> = { '/dashboard/agenda': newAppts, '/dashboard/followups': dueFollowUps, '/dashboard/feedback': openComplaints }
   const groups = GROUPS.map(g => ({ ...g, items: g.items.map(i => (i.href in counts ? { ...i, count: counts[i.href] } : i)) }))

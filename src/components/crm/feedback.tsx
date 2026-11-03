@@ -9,6 +9,7 @@ import { FEEDBACK_REASONS, type FeedbackReason } from '@/lib/customer-labels'
 import { Badge, Button, Dialog, useToast } from '@/components/ui'
 import { BarChart } from '@/components/charts/bar-chart'
 import { cn } from '@/lib/cn'
+import { refreshMenuCounts } from './parts'
 
 type Tab = 'open' | 'closed' | 'stats'
 type List = NonNullable<Awaited<ReturnType<typeof listComplaints>>>
@@ -139,6 +140,7 @@ function ComplaintDialog({ id, onClose }: { id: string | null; onClose: () => vo
     if (!res.success) return toast(res.error ?? 'Action impossible', 'error')
     toast(ok, 'success')
     setMode(null); setText('')
+    refreshMenuCounts()
     load()
   }
 
