@@ -90,7 +90,7 @@ export function ShopPanel({ source, refreshKey }: { source: Source; refreshKey?:
                     {STEPS.map((s, i) => <li key={s} className={cn('h-1.5 flex-1 rounded-full transition-colors duration-500', i <= at ? 'bg-brand' : 'bg-gray-200')}><span className="sr-only">{ORDER_STATUS[s].label}{i <= at ? ' : fait' : ''}</span></li>)}
                   </ol>
                 )}
-                <p className="mt-2 text-xs text-ink-muted">{st?.visitor}</p>
+                {o.status !== 'DELIVERED' && <p className="mt-2 text-xs text-ink-muted">{st?.visitor}</p>}
                 <ul className="mt-2 space-y-1 text-sm">
                   {o.items.map((i, k) => (
                     <li key={k}>
@@ -168,7 +168,7 @@ function DigitalContent({ value }: { value: string }) {
   const link = /^https?:\/\//.test(value)
   return (
     <span className="mt-1 flex items-center gap-2 rounded-xl bg-success-soft px-3 py-2 text-xs text-success-ink">
-      {link ? <a href={value} target="_blank" rel="noopener noreferrer" className="min-w-0 flex-1 truncate font-semibold underline">Ouvrir</a> : <span className="min-w-0 flex-1 break-all font-mono font-semibold">{value}</span>}
+      {link ? <a href={value} target="_blank" rel="noopener noreferrer" className="min-w-0 flex-1 truncate font-semibold underline">Ouvrir le document</a> : <span className="min-w-0 flex-1 break-all font-mono font-semibold">{value}</span>}
       <button onClick={() => navigator.clipboard?.writeText(value).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1500) }).catch(() => null)} className="shrink-0 rounded-full p-1" aria-label="Copier">{copied ? <Check size={13} /> : <Copy size={13} />}</button>
     </span>
   )
