@@ -37,17 +37,22 @@ export function Dialog({ open, onClose, title, children, size = 'md' }: {
     return () => clearTimeout(timer)
   }, [open])
 
+  // onClose change à chaque rendu du parent : gardé à part pour ne pas relancer le placement du focus pendant la saisie
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
+
   useEffect(() => {
     if (!open || !mounted) return
     const previous = document.activeElement as HTMLElement | null
-    panelRef.current?.focus({ preventScroll: true })
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    // Un champ en autoFocus garde le focus ; sinon la fenêtre le prend
+    if (!panelRef.current?.contains(document.activeElement)) panelRef.current?.focus({ preventScroll: true })
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onCloseRef.current()
     window.addEventListener('keydown', onKey)
     return () => {
       window.removeEventListener('keydown', onKey)
       previous?.focus?.({ preventScroll: true })
     }
-  }, [open, mounted, onClose])
+  }, [open, mounted])
 
   if (!mounted) return null
 
