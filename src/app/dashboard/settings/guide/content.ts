@@ -1,7 +1,7 @@
 // Guide d'utilisation affiché dans Paramètres → Guide d'utilisation.
 // À METTRE À JOUR à chaque évolution de l'application (nouvel écran, nouvelle étape, changement de nom).
 
-export const GUIDE_UPDATED_AT = '3 novembre 2026 (fichier visiteurs, suivis, campagnes SMS, avis)'
+export const GUIDE_UPDATED_AT = '3 novembre 2026 (fichier visiteurs complet : pilotage, import, doublons, export)'
 
 export interface GuideSection {
   id: string
@@ -167,6 +167,18 @@ export const GUIDE: GuideSection[] = [
       '« Clôturer avec la cause » : attente, accueil, erreur ou oubli, propreté, autre, et ce qui a été fait. L’avis passe dans « Traités » ; il peut être rouvert.',
       'Onglet « Satisfaction » : note moyenne et part des passages notés sur 8 semaines, évolution par semaine, répartition des notes, causes les plus fréquentes, services et guichets les moins bien notés, part des avis traités sous 48 h.',
       'Le commentaire du visiteur apparaît aussi dans l’historique de sa fiche.'
+    ]
+  },
+  {
+    id: 'pilotage-visiteurs',
+    title: 'Pilotage, import, doublons et export des visiteurs',
+    intro: 'Onglets en haut de « Visiteurs » (responsable). Inclus à partir du forfait Pro.',
+    steps: [
+      'Pilotage : visiteurs actifs (venus ces 90 jours), nouveaux du mois, taux de retour, perdus de vue, absences aux rendez-vous, satisfaction, part des visiteurs joignables par SMS ; nouveaux et revenus sur 6 mois ; « À surveiller » mène directement au bon segment.',
+      'Import : enregistrez votre liste Excel en « CSV (séparateur : point-virgule) », déposez-la, vérifiez les colonnes reconnues (nom, prénom, téléphone, étiquettes, note, accord), puis indiquez si ces personnes ont accepté vos messages. « Analyser » montre ce qui sera créé ou complété avant l’import.',
+      'Les numéros ivoiriens sont mis au bon format tout seuls (07 01 02 03 04 → +225 07 01 02 03 04). Une fiche existante n’est jamais écrasée : le nom manquant, les étiquettes et les notes s’ajoutent.',
+      'Doublons : deux fiches au même nom sont proposées côte à côte. « Fusionner » garde la fiche choisie avec tout l’historique des deux ; « Deux personnes différentes » retire la paire de la liste.',
+      'Export : bouton « Exporter » du fichier visiteurs, pour le segment ou l’étiquette affichés (fichier CSV pour Excel). Réservé au responsable et inscrit au journal : gardez le fichier en lieu sûr.'
     ]
   },
   {

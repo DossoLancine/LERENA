@@ -12,6 +12,7 @@ export const FEATURES = {
   BRANDING: 'Couleurs et logo personnalisés',
   CRM_FOLLOWUPS: 'Suivis et relances des visiteurs',
   CRM_CAMPAIGNS: 'Messages et campagnes SMS',
+  CRM_INSIGHTS: 'Pilotage, import et export des visiteurs',
   PRIORITY_SUPPORT: 'Support prioritaire'
 } as const
 export type Feature = keyof typeof FEATURES

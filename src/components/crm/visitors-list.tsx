@@ -2,14 +2,17 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { Search, UserPlus, ChevronRight, Star, CalendarX2, Tag as TagIcon, X, Contact } from 'lucide-react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Search, UserPlus, ChevronRight, Star, CalendarX2, Tag as TagIcon, X, Contact, Download } from 'lucide-react'
 import { listCustomers, createCustomer, type CustomerSegment, type CustomerSort } from '@/server/actions/customers'
 import { SEGMENT_LABELS } from '@/lib/customer-labels'
 import { Button, Dialog, TextInput, useToast } from '@/components/ui'
 import PhoneInput from '@/components/ui/phone-input'
 import { cn } from '@/lib/cn'
 import { TagChip, Initials, sinceLabel } from './parts'
+import { CrmTabs } from './insights'
+import { exportCustomers } from '@/server/actions/crm-insights'
+import { SEGMENTS } from '@/lib/customer-segments'
 
 type Data = NonNullable<Awaited<ReturnType<typeof listCustomers>>>
 
@@ -24,7 +27,12 @@ const SORTS: { id: CustomerSort; label: string }[] = [
 export function VisitorsList({ basePath }: { basePath: string }) {
   const router = useRouter()
   const toast = useToast()
-  const [segment, setSegment] = useState<CustomerSegment>('all')
+  // Segment ouvert depuis un lien (tableau de bord « À surveiller »)
+  const params = useSearchParams()
+  const initial = params.get('segment') as CustomerSegment | null
+  const [segment, setSegment] = useState<CustomerSegment>(initial && SEGMENTS.includes(initial) ? initial : 'all')
+  const manager = basePath.startsWith('/dashboard')
+  const [exporting, setExporting] = useState(false)
   const [tagId, setTagId] = useState<string | null>(null)
   const [sort, setSort] = useState<CustomerSort>('recent')
   const [q, setQ] = useState('')
@@ -67,8 +75,26 @@ export function VisitorsList({ basePath }: { basePath: string }) {
 
   const activeTag = data?.tags.find(t => t.id === tagId)
 
+  // Export du segment ou de l'étiquette affichés (responsable, forfaits avec pilotage), inscrit au journal
+  const exportCsv = async () => {
+    const shown = activeTag ? `l’étiquette « ${activeTag.name} »` : `« ${SEGMENT_LABELS[segment].label} »`
+    if (!window.confirm(`Exporter les fiches de ${shown} ? Le fichier contient des données personnelles : gardez-le en lieu sûr. L’export est inscrit au journal.`)) return
+    setExporting(true)
+    const res = await exportCustomers({ segment, tagId })
+    setExporting(false)
+    if (!res.success) return toast(res.error, 'error')
+    const url = URL.createObjectURL(new Blob([res.csv], { type: 'text/csv;charset=utf-8' }))
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `visiteurs-${segment}-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+    toast(`${res.count} fiches exportées`, 'success')
+  }
+
   return (
     <div className="space-y-5">
+      {manager && <CrmTabs />}
       {/* En-tête */}
       <header className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#fde3cc] via-[#fff1e5] to-surface-sunken px-5 py-6 sm:px-7">
         <div className="flex flex-wrap items-end justify-between gap-4">
@@ -79,7 +105,10 @@ export function VisitorsList({ basePath }: { basePath: string }) {
             </h1>
             <p className="mt-1 max-w-md text-sm text-ink-muted">Chaque ticket et chaque rendez-vous complète la fiche du visiteur, sans saisie.</p>
           </div>
-          <Button icon={<UserPlus size={16} />} onClick={() => setShowNew(true)}>Nouvelle fiche</Button>
+          <div className="flex gap-2">
+            {manager && <Button variant="secondary" icon={<Download size={16} />} loading={exporting} onClick={exportCsv}>Exporter</Button>}
+            <Button icon={<UserPlus size={16} />} onClick={() => setShowNew(true)}>Nouvelle fiche</Button>
+          </div>
         </div>
 
         {/* Recherche */}

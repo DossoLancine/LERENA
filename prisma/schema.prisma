@@ -966,3 +966,13 @@ model ComplaintEvent {
 
   @@index([complaintId, createdAt])
 }
+
+// Paire de fiches signalée comme doublon possible mais confirmée différente par l'établissement
+model CustomerDuplicateIgnore {
+  organizationId String
+  customerA      String // le plus petit identifiant des deux
+  customerB      String
+  createdAt      DateTime @default(now())
+
+  @@id([organizationId, customerA, customerB])
+}

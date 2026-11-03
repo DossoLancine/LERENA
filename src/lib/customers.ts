@@ -201,3 +201,44 @@ export async function deleteCustomersOfUser(userId: string, phone: string | null
   const p = normalizePhone(phone)
   return prisma.customer.deleteMany({ where: { OR: [{ userId }, ...(p ? [{ phone: p }] : [])] } })
 }
+
+/**
+ * Fusion de deux fiches du même visiteur : tickets, rendez-vous, notes, étiquettes, suivis, avis et campagnes
+ * passent sur la fiche gardée, qui reprend aussi le nom, le numéro ou le compte qui lui manquaient.
+ */
+export async function mergeCustomers(orgId: string, keepId: string, removeId: string) {
+  if (keepId === removeId) throw new Error('Deux fiches différentes sont nécessaires')
+  const [keep, remove] = await Promise.all([
+    prisma.customer.findFirst({ where: { id: keepId, organizationId: orgId } }),
+    prisma.customer.findFirst({ where: { id: removeId, organizationId: orgId } })
+  ])
+  if (!keep || !remove) throw new Error('Fiche introuvable')
+
+  const earliest = (a: Date | null, b: Date | null) => (a && b ? (a < b ? a : b) : a ?? b)
+  await prisma.$transaction([
+    prisma.ticket.updateMany({ where: { customerId: removeId }, data: { customerId: keepId } }),
+    prisma.appointment.updateMany({ where: { customerId: removeId }, data: { customerId: keepId } }),
+    prisma.customerNote.updateMany({ where: { customerId: removeId }, data: { customerId: keepId } }),
+    prisma.customerFollowUp.updateMany({ where: { customerId: removeId }, data: { customerId: keepId } }),
+    prisma.complaint.updateMany({ where: { customerId: removeId }, data: { customerId: keepId } }),
+    prisma.campaignRecipient.updateMany({ where: { customerId: removeId }, data: { customerId: keepId } }),
+    prisma.$executeRaw`INSERT INTO "CustomerTagLink" ("customerId", "tagId", "createdAt") SELECT ${keepId}, "tagId", "createdAt" FROM "CustomerTagLink" WHERE "customerId" = ${removeId} ON CONFLICT DO NOTHING`,
+    // Supprimée avant la mise à jour : son numéro et son compte (uniques par établissement) se libèrent pour la fiche gardée
+    prisma.customer.delete({ where: { id: removeId } }),
+    prisma.customer.update({
+      where: { id: keepId },
+      data: {
+        name: keep.name ?? remove.name,
+        phone: keep.phone ?? remove.phone,
+        userId: keep.userId ?? remove.userId,
+        // Un « STOP » sur l'une des deux fiches l'emporte ; sinon l'accord le plus ancien reste
+        optedOutAt: keep.optedOutAt ?? remove.optedOutAt,
+        consentAt: keep.optedOutAt || remove.optedOutAt ? null : earliest(keep.consentAt, remove.consentAt),
+        consentChannel: keep.optedOutAt || remove.optedOutAt ? null : keep.consentChannel ?? remove.consentChannel,
+        unsubToken: keep.unsubToken ?? remove.unsubToken
+      }
+    })
+  ])
+  await refreshCustomerStats([keepId])
+  await prisma.customerDuplicateIgnore.deleteMany({ where: { organizationId: orgId, OR: [{ customerA: removeId }, { customerB: removeId }] } })
+}
