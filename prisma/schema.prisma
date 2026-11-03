@@ -1078,3 +1078,18 @@ model Report {
   @@unique([organizationId, kind, periodStart])
   @@index([organizationId, createdAt])
 }
+
+// Analyse avancée par l'IA (connecteur « IA ») : synthèse des avis anonymisés, conservée pour l'affichage
+model AiInsight {
+  id             String   @id @default(cuid())
+  organizationId String
+  scopeKey       String // « all » ou sites du lecteur, triés
+  content        Json
+  model          String?
+  inputTokens    Int?
+  outputTokens   Int?
+  createdById    String?
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId, scopeKey, createdAt])
+}

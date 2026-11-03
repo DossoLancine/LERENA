@@ -33,7 +33,8 @@ const GROUPS: SidebarGroup[] = [
       { href: '/dashboard/campaigns', label: 'Campagnes', icon: 'MessageSquare' },
       { href: '/dashboard/feedback', label: 'Avis', icon: 'Star' },
       { href: '/dashboard/analytics', label: t('dashboard.tabs.analytics'), icon: 'BarChart3' },
-      { href: '/dashboard/reports', label: 'Rapports', icon: 'FileText' }
+      { href: '/dashboard/reports', label: 'Rapports', icon: 'FileText' },
+      { href: '/dashboard/assistant', label: 'Assistant', icon: 'Sparkles' }
     ]
   },
   {

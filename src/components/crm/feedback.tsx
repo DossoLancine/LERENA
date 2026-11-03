@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Star, Phone, MessageSquareText, StickyNote, CheckCircle2, RotateCcw, Clock, Inbox, BarChart3, Archive } from 'lucide-react'
 import { addComplaintEvent, closeComplaint, getComplaint, getSatisfactionStats, listComplaints, reopenComplaint, replyToComplaint } from '@/server/actions/feedback'
+import { getSuggestedReply } from '@/server/actions/assistant'
 import { FEEDBACK_REASONS, type FeedbackReason } from '@/lib/customer-labels'
 import { Badge, Button, Dialog, useToast } from '@/components/ui'
 import { BarChart } from '@/components/charts/bar-chart'
@@ -177,6 +178,7 @@ function ComplaintDialog({ id, onClose }: { id: string | null; onClose: () => vo
             <div className="animate-rise-in space-y-2 rounded-2xl border border-surface-line p-3">
               {mode === 'sms' && (
                 <div className="flex flex-wrap gap-1.5">
+                  <button onClick={async () => { const r = await getSuggestedReply(c.id); if (r) setText(r) }} className="inline-flex items-center gap-1 rounded-full bg-brand-50 px-2.5 py-1 text-xs font-semibold text-brand-700 hover:bg-brand-100">Proposer une réponse</button>
                   {['Bonjour, nous avons bien reçu votre avis et nous vous présentons nos excuses. Pouvons-nous vous appeler pour en parler ?',
                     'Merci pour votre retour. Nous avons pris des mesures pour que cela ne se reproduise pas.'].map(q => (
                     <button key={q} onClick={() => setText(q)} className="rounded-full border border-surface-line px-2.5 py-1 text-left text-xs text-ink-muted hover:text-ink">{q.split('.')[0]}</button>

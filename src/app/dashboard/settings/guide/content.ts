@@ -1,7 +1,7 @@
 // Guide d'utilisation affiché dans Paramètres → Guide d'utilisation.
 // À METTRE À JOUR à chaque évolution de l'application (nouvel écran, nouvelle étape, changement de nom).
 
-export const GUIDE_UPDATED_AT = '3 novembre 2026 (rapports et alertes en direct)'
+export const GUIDE_UPDATED_AT = '3 novembre 2026 (assistant d’analyse)'
 
 export interface GuideSection {
   id: string
@@ -285,6 +285,19 @@ export const GUIDE: GuideSection[] = [
     tips: [
       'Après 5 erreurs de mot de passe, la connexion est bloquée 15 minutes pour ce compte.',
       'Clients : un code PIN d’au moins 6 chiffres. Personnel : un mot de passe de 8 caractères avec lettres et chiffres.'
+    ]
+  },
+  {
+    id: 'assistant',
+    title: 'Assistant d’analyse',
+    intro: 'Menu « Assistant ». Il lit vos propres données, sans service extérieur, et vous dit en phrases simples ce qui sort de l’ordinaire et quoi faire.',
+    steps: [
+      'Ce qu’il faut savoir : aujourd’hui comparé à vos journées habituelles (même jour de la semaine, à la même heure, sur 8 semaines) : affluence inhabituelle, attente plus longue que d’habitude, semaine meilleure ou moins bonne que les précédentes.',
+      'Que faire : recommandations tirées de vos chiffres (guichets à ouvrir aux heures chargées, SMS « bientôt votre tour » si beaucoup d’absents, blocage après plusieurs absences aux rendez-vous, action sur ce qui déplaît le plus), avec un lien vers le bon réglage.',
+      'Demain : visiteurs attendus heure par heure et guichets nécessaires, calculés sur les mêmes jours des semaines passées et la durée moyenne au guichet. Les heures où il faut plus de guichets que ceux actifs sont signalées.',
+      'Ce que disent vos visiteurs : leurs commentaires regroupés par thème (attente, accueil, orientation, propreté, prix, application ; et ce qui plaît : rapidité, gentillesse), avec une citation. Noms, numéros et e-mails sont masqués.',
+      'Avis à traiter : « Proposer une réponse » prépare un SMS d’excuses adapté au motif ; relisez-le et modifiez-le avant l’envoi.',
+      'Analyse avancée (quand l’équipe Lerena l’active) : une IA lit plus finement les commentaires libres et propose des actions ; seuls des textes anonymisés lui sont transmis, 3 analyses par jour au plus.'
     ]
   },
   {
