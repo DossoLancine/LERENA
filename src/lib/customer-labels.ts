@@ -16,3 +16,13 @@ export const SOURCE_LABELS: Record<string, string> = { APP: 'application', GUEST
 export const APPOINTMENT_STATUS_LABELS: Record<string, string> = {
   CONFIRMED: 'Confirmé', COMPLETED: 'Honoré', CANCELLED: 'Annulé', NO_SHOW: 'Absent'
 }
+
+// Motifs d'insatisfaction : choisis par le visiteur avec sa note, puis retenus par l'établissement à la clôture
+export const FEEDBACK_REASONS = {
+  WAIT: 'Attente trop longue',
+  WELCOME: 'Accueil',
+  ERROR: 'Erreur ou oubli',
+  CLEANLINESS: 'Propreté, confort',
+  OTHER: 'Autre'
+} as const
+export type FeedbackReason = keyof typeof FEEDBACK_REASONS

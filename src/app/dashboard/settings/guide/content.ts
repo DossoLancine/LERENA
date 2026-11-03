@@ -1,7 +1,7 @@
 // Guide d'utilisation affiché dans Paramètres → Guide d'utilisation.
 // À METTRE À JOUR à chaque évolution de l'application (nouvel écran, nouvelle étape, changement de nom).
 
-export const GUIDE_UPDATED_AT = '3 novembre 2026 (fichier visiteurs, suivis, campagnes SMS)'
+export const GUIDE_UPDATED_AT = '3 novembre 2026 (fichier visiteurs, suivis, campagnes SMS, avis)'
 
 export interface GuideSection {
   id: string
@@ -155,6 +155,18 @@ export const GUIDE: GuideSection[] = [
     tips: [
       'Pas de diagnostic ni d’information médicale par SMS.',
       'Si vos SMS s’épuisent pendant une campagne, le reste n’est pas envoyé : achetez un pack (Abonnement → Boutique) puis dupliquez la campagne vers les visiteurs restants.'
+    ]
+  },
+  {
+    id: 'avis',
+    title: 'Avis des visiteurs et réclamations',
+    intro: 'Après son passage, le visiteur note de 1 à 5 étoiles sur son ticket, puis peut préciser ce qui n’a pas été et laisser un commentaire. Inclus dans tous les forfaits.',
+    steps: [
+      'Une note de 2 étoiles ou moins, ou un 3 avec un motif ou un commentaire négatif, arrive dans le menu « Avis » (pastille), et les responsables reçoivent un e-mail. Objectif : traiter sous 48 h ; les avis plus anciens sont signalés en rouge.',
+      'Ouvrez l’avis : note, commentaire, ticket, service, guichet, attente. « Appeler » (l’appel est noté dans l’historique), « SMS » pour répondre au visiteur, « Note » pour garder une trace.',
+      '« Clôturer avec la cause » : attente, accueil, erreur ou oubli, propreté, autre, et ce qui a été fait. L’avis passe dans « Traités » ; il peut être rouvert.',
+      'Onglet « Satisfaction » : note moyenne et part des passages notés sur 8 semaines, évolution par semaine, répartition des notes, causes les plus fréquentes, services et guichets les moins bien notés, part des avis traités sous 48 h.',
+      'Le commentaire du visiteur apparaît aussi dans l’historique de sa fiche.'
     ]
   },
   {

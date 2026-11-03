@@ -6,7 +6,7 @@ import { getManagerContext, getSessionUser } from "@/lib/session"
 import { branchFilter } from '@/lib/sites'
 import { notifyOrg } from "@/lib/realtime"
 import { assertFeature, checkLimit } from '@/lib/billing'
-import { refreshCustomersOfTickets } from '@/lib/customers'
+import { recordRating } from '@/lib/complaints'
 
 // Ticket du client connecté (les tickets sans compte restent modifiables via leur lien)
 async function getOwnTicket(ticketId: string) {
@@ -23,17 +23,14 @@ async function getOwnTicket(ticketId: string) {
 }
 
 // ---- NPS ----
-export async function submitNPS(ticketId: string, score: number) {
+export async function submitNPS(ticketId: string, score: number, extra?: { comment?: string | null; reason?: string | null }) {
   try {
     if (!Number.isInteger(score) || score < 1 || score > 5) return { success: false }
     const ticket = await getOwnTicket(ticketId)
-    if (!ticket) return { success: false }
+    if (!ticket || ticket.status !== 'COMPLETED') return { success: false }
 
-    await prisma.ticket.update({
-      where: { id: ticket.id },
-      data: { npsScore: score }
-    })
-    await refreshCustomersOfTickets([ticket.id])
+    // Note, commentaire et motif ; un avis négatif part dans « Avis à traiter » de l'établissement
+    await recordRating(ticket.id, score, extra ?? {})
     revalidatePath(`/ticket/${ticketId}`)
     return { success: true }
   } catch (error) {

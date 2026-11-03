@@ -14,6 +14,7 @@ import { SidebarShell, type SidebarGroup } from '@/components/layout/sidebar-she
 import { getBillingBanner } from '@/server/actions/billing'
 import { getNewAppointmentsCount } from '@/server/actions/appointments'
 import { getDueFollowUpsCount } from '@/server/actions/customers'
+import { getOpenComplaintsCount } from '@/server/actions/feedback'
 import { usePathname } from 'next/navigation'
 import { usePolling } from '@/hooks/use-polling'
 
@@ -27,6 +28,7 @@ const GROUPS: SidebarGroup[] = [
       { href: '/dashboard/visitors', label: 'Visiteurs', icon: 'Contact' },
       { href: '/dashboard/followups', label: 'À faire', icon: 'ClipboardList' },
       { href: '/dashboard/campaigns', label: 'Campagnes', icon: 'MessageSquare' },
+      { href: '/dashboard/feedback', label: 'Avis', icon: 'Star' },
       { href: '/dashboard/analytics', label: t('dashboard.tabs.analytics'), icon: 'BarChart3' }
     ]
   },
@@ -73,8 +75,12 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   usePolling(checkAppts, 60_000, !pathname.startsWith('/dashboard/agenda'))
   // Suivis en retard ou du jour (pastille « À faire »), relus à chaque page
   const [dueFollowUps, setDueFollowUps] = useState(0)
-  useEffect(() => { getDueFollowUpsCount().then(setDueFollowUps).catch(() => null) }, [pathname])
-  const counts: Record<string, number> = { '/dashboard/agenda': newAppts, '/dashboard/followups': dueFollowUps }
+  const [openComplaints, setOpenComplaints] = useState(0)
+  useEffect(() => {
+    getDueFollowUpsCount().then(setDueFollowUps).catch(() => null)
+    getOpenComplaintsCount().then(setOpenComplaints).catch(() => null)
+  }, [pathname])
+  const counts: Record<string, number> = { '/dashboard/agenda': newAppts, '/dashboard/followups': dueFollowUps, '/dashboard/feedback': openComplaints }
   const groups = GROUPS.map(g => ({ ...g, items: g.items.map(i => (i.href in counts ? { ...i, count: counts[i.href] } : i)) }))
 
   if (loading && !stats) return <DashboardSkeleton />

@@ -24,8 +24,8 @@ export async function runRetentionJobs() {
     prisma.outboundMessage.updateMany({ where: { createdAt: { lt: ago(183) }, NOT: { body: '[effacé]' } }, data: { body: '[effacé]', to: '[effacé]' } }),
     prisma.outboundMessage.deleteMany({ where: { createdAt: { lt: cutoff } } }),
     prisma.ticket.updateMany({
-      where: { createdAt: { lt: cutoff }, OR: [{ guestName: { not: null } }, { guestPhone: { not: null } }, { userId: { not: null } }, { notes: { not: null } }] },
-      data: { guestName: null, guestPhone: null, userId: null, notes: null }
+      where: { createdAt: { lt: cutoff }, OR: [{ guestName: { not: null } }, { guestPhone: { not: null } }, { userId: { not: null } }, { notes: { not: null } }, { npsComment: { not: null } }] },
+      data: { guestName: null, guestPhone: null, userId: null, notes: null, npsComment: null }
     }),
     prisma.appointment.updateMany({
       where: { scheduledDate: { lt: cutoff }, OR: [{ guestName: { not: null } }, { guestPhone: { not: null } }, { userId: { not: null } }, { notes: { not: null } }] },
@@ -34,6 +34,7 @@ export async function runRetentionJobs() {
     prisma.notification.deleteMany({ where: { createdAt: { lt: cutoff } } })
   ])
   // Fiches visiteurs sans passage ni rendez-vous depuis la durée réglée, sauf accord pour recevoir des messages
+  const complaints = await prisma.complaint.deleteMany({ where: { createdAt: { lt: cutoff } } })
   const customers = await prisma.customer.deleteMany({ where: { lastSeenAt: { lt: cutoff }, consentAt: null } })
   // Notes libres des agents sur l'historique des tickets
   const notes = await prisma.ticketEvent.updateMany({ where: { createdAt: { lt: cutoff }, note: { not: null } }, data: { note: null } })
@@ -46,7 +47,8 @@ export async function runRetentionJobs() {
       ticketsAnonymized: tickets.count,
       appointmentsAnonymized: appointments.count,
       notesErased: notes.count,
-      customersDeleted: customers.count
+      customersDeleted: customers.count,
+      complaintsDeleted: complaints.count
     }
   }
 }

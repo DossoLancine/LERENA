@@ -101,6 +101,7 @@ model Organization {
   customerTags       CustomerTag[]
   followUps          CustomerFollowUp[]
   campaigns          Campaign[]
+  complaints         Complaint[]
   network            Network?             @relation(fields: [networkId], references: [id], onDelete: SetNull)
   sector             Sector?              @relation(fields: [sectorId], references: [id], onDelete: SetNull)
 }
@@ -196,6 +197,9 @@ model Ticket {
   priorityScore     Int       @default(1)
   priorityReason    String? // motif de priorité choisi parmi ceux de l'établissement (ex. « Femme enceinte »)
   npsScore          Int? // 1-5 stars, null if not yet rated
+  npsComment        String? // commentaire du visiteur avec sa note
+  npsReason         String? // motif choisi : WAIT | WELCOME | ERROR | CLEANLINESS | OTHER
+  npsAt             DateTime?
   claimedPromoTitle String?
   claimedPromoPrice String?
   customerId        String? // fiche visiteur de l'établissement (CRM)
@@ -214,6 +218,7 @@ model Ticket {
   counter           Counter?           @relation(fields: [counterId], references: [id], onDelete: SetNull)
   customer          Customer?          @relation(fields: [customerId], references: [id], onDelete: SetNull)
   events            TicketEvent[]
+  complaint         Complaint?
 
   @@index([customerId])
 }
@@ -810,6 +815,7 @@ model Customer {
   tags          CustomerTagLink[]
   followUps     CustomerFollowUp[]
   campaignSends CampaignRecipient[]
+  complaints    Complaint[]
 
   @@unique([organizationId, phone])
   @@unique([organizationId, userId])
@@ -921,4 +927,42 @@ model CampaignRecipient {
 
   @@index([campaignId, status])
   @@index([customerId])
+}
+
+// Avis négatif à traiter (note de 2 étoiles ou moins, ou commentaire négatif) : appel, SMS, note, clôture avec motif
+model Complaint {
+  id             String    @id @default(cuid())
+  organizationId String
+  ticketId       String    @unique
+  customerId     String?
+  rating         Int
+  comment        String?
+  reason         String? // motif donné par le visiteur
+  status         String    @default("OPEN") // OPEN | CLOSED
+  closeReason    String? // WAIT | WELCOME | ERROR | CLEANLINESS | OTHER : cause retenue par l'établissement
+  resolution     String? // ce qui a été fait
+  closedAt       DateTime?
+  closedByName   String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  ticket       Ticket           @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  customer     Customer?        @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  events       ComplaintEvent[]
+
+  @@index([organizationId, status, createdAt])
+}
+
+model ComplaintEvent {
+  id          String   @id @default(cuid())
+  complaintId String
+  kind        String // NOTE | SMS | CALL | CLOSED | REOPENED
+  text        String?
+  authorName  String?
+  createdAt   DateTime @default(now())
+
+  complaint Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+
+  @@index([complaintId, createdAt])
 }

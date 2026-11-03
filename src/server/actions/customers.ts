@@ -83,7 +83,7 @@ export async function getCustomer(id: string) {
         orderBy: { createdAt: 'desc' }, take: 100,
         select: {
           id: true, displayNum: true, status: true, createdAt: true, queuedAt: true, calledAt: true, startedAt: true, completedAt: true,
-          counterName: true, priorityReason: true, npsScore: true, notes: true,
+          counterName: true, priorityReason: true, npsScore: true, npsComment: true, notes: true,
           service: { select: { name: true } }, queue: { select: { branch: { select: { name: true } } } }
         }
       },
@@ -105,7 +105,7 @@ export async function getCustomer(id: string) {
   const timeline = [
     ...c.tickets.map(t => ({
       kind: 'ticket' as const, id: t.id, at: t.createdAt, status: t.status, label: t.displayNum, service: t.service.name,
-      site: multiSite ? t.queue.branch.name : null, counter: t.counterName, priority: t.priorityReason, rating: t.npsScore, note: t.notes,
+      site: multiSite ? t.queue.branch.name : null, counter: t.counterName, priority: t.priorityReason, rating: t.npsScore, ratingComment: t.npsComment, note: t.notes,
       waitMin: t.calledAt ? Math.max(0, Math.round((t.calledAt.getTime() - t.queuedAt.getTime()) / 60000)) : null,
       // Au-delà de 4 h, le ticket a été clôturé par la tâche de fin de journée : durée non significative
       serviceMin: t.startedAt && t.completedAt && t.completedAt.getTime() - t.startedAt.getTime() <= 4 * 3600_000 ? Math.max(1, Math.round((t.completedAt.getTime() - t.startedAt.getTime()) / 60000)) : null

@@ -7,7 +7,7 @@ import { signOut } from 'next-auth/react'
 import {
   BarChart3, BookOpen, Building2, CalendarClock, CalendarDays, ChevronsLeft, ClipboardList, Contact, CreditCard, FileText,
   Gauge, Headset, LayoutDashboard, Layers, ListOrdered, LogOut, Megaphone, Menu, MessageSquare, MonitorSmartphone,
-  Network, Package, Receipt, Settings, ShieldCheck, Sparkles, Store, Tags, Users, Wallet, X, type LucideIcon
+  Network, Package, Receipt, Settings, ShieldCheck, Sparkles, Star, Store, Tags, Users, Wallet, X, type LucideIcon
 } from 'lucide-react'
 import { Badge } from '@/components/ui'
 import { cn } from '@/lib/cn'
@@ -17,7 +17,7 @@ import { useSlidingIndicator } from '@/hooks/use-sliding-indicator'
 const ICONS = {
   BarChart3, BookOpen, Building2, CalendarClock, CalendarDays, ClipboardList, Contact, CreditCard, FileText, Gauge, Headset,
   LayoutDashboard, Layers, ListOrdered, Megaphone, MessageSquare, MonitorSmartphone, Network, Package, Receipt,
-  Settings, ShieldCheck, Sparkles, Store, Tags, Users, Wallet
+  Settings, ShieldCheck, Sparkles, Star, Store, Tags, Users, Wallet
 } satisfies Record<string, LucideIcon>
 export type SidebarIcon = keyof typeof ICONS
 

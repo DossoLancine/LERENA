@@ -49,8 +49,9 @@ export async function deleteUserData(userId: string) {
   const to = [user.phone, user.email].filter((v): v is string => !!v)
   // Fiches visiteurs (CRM) dans tous les établissements : notes et étiquettes comprises
   await deleteCustomersOfUser(userId, user.phone)
+  await prisma.complaint.deleteMany({ where: { ticket: { userId } } })
   await prisma.$transaction([
-    prisma.ticket.updateMany({ where: { userId }, data: { userId: null, guestName: null, guestPhone: null, notes: null } }),
+    prisma.ticket.updateMany({ where: { userId }, data: { userId: null, guestName: null, guestPhone: null, notes: null, npsComment: null } }),
     prisma.appointment.updateMany({ where: { userId }, data: { userId: null, guestName: null, guestPhone: null, notes: null, manageTokenHash: null } }),
     ...(user.phone ? [
       prisma.ticket.updateMany({ where: { guestPhone: user.phone }, data: { guestName: null, guestPhone: null } }),

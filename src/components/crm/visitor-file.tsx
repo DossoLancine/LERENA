@@ -257,6 +257,7 @@ function TimelineItem({ e }: { e: Entry }) {
             )}
           </p>
         )}
+        {isTicket && e.ratingComment && <p className="mt-1.5 border-l-2 border-amber-300 pl-2.5 text-xs italic text-ink-muted">« {e.ratingComment} »</p>}
         {isTicket && e.note && <p className="mt-1.5 rounded-lg bg-surface-sunken px-2.5 py-1.5 text-xs text-ink">{e.note}</p>}
       </div>
     </li>
