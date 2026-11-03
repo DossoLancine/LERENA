@@ -11,6 +11,8 @@ import { runFollowUpJobs } from '@/lib/followups'
 import { runCampaignJobs } from '@/lib/campaigns'
 import { notify } from '@/lib/notifications'
 import { runAccessReview } from '@/lib/access-review'
+import { runReportJobs } from '@/lib/reports'
+import { runLiveAlerts } from '@/lib/live-alerts'
 
 // Rendez-vous : réservation, arrivée sur place (le RDV devient un ticket placé à son heure),
 // rappels automatiques et absences. Utilisé par l'application, les invités, l'accueil et la borne.
@@ -215,6 +217,8 @@ export async function runAppointmentJobs(force = false) {
   const followUps = await runFollowUpJobs(now).catch(error => { console.error('Follow-up jobs error:', error); return null })
   const campaigns = await runCampaignJobs(now).catch(error => { console.error('Campaign jobs error:', error); return null })
   const accessReview = await runAccessReview(now).catch(error => { console.error('Access review error:', error); return null })
+  const reports = await runReportJobs(now).catch(error => { console.error('Report jobs error:', error); return null })
+  const liveAlerts = await runLiveAlerts(now).catch(error => { console.error('Live alerts error:', error); return null })
 
-  return { skipped: false, remindersDay: dayBefore.length, remindersHour: twoHours.length, noShows: noShow.length, closedTickets: served.count + dropped.count, ...followUps, ...campaigns, ...accessReview }
+  return { skipped: false, remindersDay: dayBefore.length, remindersHour: twoHours.length, noShows: noShow.length, closedTickets: served.count + dropped.count, ...followUps, ...campaigns, ...accessReview, ...reports, ...liveAlerts }
 }

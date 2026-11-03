@@ -98,6 +98,7 @@ export const MENU_PERMISSIONS: Record<string, Permission> = {
   '/dashboard/campaigns': 'campaigns.manage',
   '/dashboard/feedback': 'visitors.view',
   '/dashboard/analytics': 'stats.view',
+  '/dashboard/reports': 'stats.view',
   '/dashboard/services': 'settings.manage',
   '/dashboard/counters': 'settings.manage',
   '/dashboard/planning': 'settings.manage',

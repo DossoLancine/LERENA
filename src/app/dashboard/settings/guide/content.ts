@@ -1,7 +1,7 @@
 // Guide d'utilisation affiché dans Paramètres → Guide d'utilisation.
 // À METTRE À JOUR à chaque évolution de l'application (nouvel écran, nouvelle étape, changement de nom).
 
-export const GUIDE_UPDATED_AT = '3 novembre 2026 (équipe et accès : rôles, sites, régions)'
+export const GUIDE_UPDATED_AT = '3 novembre 2026 (rapports et alertes en direct)'
 
 export interface GuideSection {
   id: string
@@ -285,6 +285,19 @@ export const GUIDE: GuideSection[] = [
     tips: [
       'Après 5 erreurs de mot de passe, la connexion est bloquée 15 minutes pour ce compte.',
       'Clients : un code PIN d’au moins 6 chiffres. Personnel : un mot de passe de 8 caractères avec lettres et chiffres.'
+    ]
+  },
+  {
+    id: 'rapports',
+    title: 'Rapports et alertes en direct',
+    intro: 'Menu « Rapports ». Lerena prépare vos rapports à partir de vos données, sans rien à saisir : chaque lundi à 8 h (semaine précédente), le 1er du mois (mois précédent) et, si vous le voulez, chaque matin (la veille).',
+    steps: [
+      'Le rapport arrive dans la cloche, sur le téléphone et par e-mail des propriétaires, directeurs et responsables de site, chacun pour ses sites. Il reste archivé dans « Rapports ».',
+      'Il donne 4 chiffres (visiteurs, attente moyenne, satisfaction, absences aux rendez-vous) avec leur évolution, ce qu’il faut retenir en quelques phrases, l’heure la plus chargée et les sites à surveiller.',
+      '« Imprimer ou PDF » : pour le conseil d’administration, choisissez « Enregistrer en PDF » dans la fenêtre d’impression.',
+      '« M’envoyer un exemple maintenant » : un rapport des 7 derniers jours, pour voir à quoi il ressemble.',
+      'Réglages : rapports à recevoir, adresses en plus (DG ou DAF hors de l’équipe), et alertes en direct avec leurs seuils.',
+      'Alertes en direct, sur le téléphone des responsables du site concerné, même pendant les heures de silence : attente trop longue (45 min), file trop longue (30 personnes), personne appelé depuis 20 min alors que des visiteurs attendent, 3 avis négatifs en une heure. Une même alerte ne se répète pas avant 1 heure.'
     ]
   },
   {

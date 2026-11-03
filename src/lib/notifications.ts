@@ -23,6 +23,8 @@ export interface NotifyInput {
   /** Titre quand plusieurs notifications sont regroupées. */
   groupTitle?: (count: number) => string
   ticketId?: string | null
+  /** Événement propre à un site : seuls les membres dont le périmètre couvre ce site sont prévenus. */
+  siteId?: string | null
 }
 
 type Recipient = { userId: string; role: string; email: string | null; phone: string | null }
@@ -42,11 +44,16 @@ async function recipientsFor(input: NotifyInput): Promise<Recipient[]> {
   const list: Recipient[] = []
   const orgRoles = roles.filter(r => r !== 'SUPER_ADMIN')
   if (input.orgId && orgRoles.length) {
-    const members = await prisma.organizationMember.findMany({
-      where: { organizationId: input.orgId, role: { in: orgRoles } },
-      select: { role: true, user: { select: { id: true, email: true, phone: true } } }
-    })
-    list.push(...members.map(m => ({ userId: m.user.id, role: m.role, email: m.user.email, phone: m.user.phone })))
+    const [members, site] = await Promise.all([
+      prisma.organizationMember.findMany({
+        where: { organizationId: input.orgId, role: { in: orgRoles }, disabledAt: null, OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] },
+        select: { role: true, siteIds: true, regionIds: true, user: { select: { id: true, email: true, phone: true } } }
+      }),
+      input.siteId ? prisma.branch.findUnique({ where: { id: input.siteId }, select: { regionId: true } }) : null
+    ])
+    const covers = (m: { siteIds: string[]; regionIds: string[] }) =>
+      !input.siteId || (!m.siteIds.length && !m.regionIds.length) || m.siteIds.includes(input.siteId) || (!!site?.regionId && m.regionIds.includes(site.regionId))
+    list.push(...members.filter(covers).map(m => ({ userId: m.user.id, role: m.role, email: m.user.email, phone: m.user.phone })))
   }
   if (roles.includes('SUPER_ADMIN')) {
     const admins = await prisma.user.findMany({ where: { role: 'SUPER_ADMIN' }, select: { id: true, email: true, phone: true } })

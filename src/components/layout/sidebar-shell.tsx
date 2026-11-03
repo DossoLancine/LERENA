@@ -190,7 +190,7 @@ export function SidebarShell({ eyebrow, title, badge, groups, header, footer, on
         </div>
       )}
 
-      <div className={cn('transition-[padding] duration-500 ease-spring', collapsed ? 'lg:pl-[76px]' : 'lg:pl-64')}>
+      <div className={cn('transition-[padding] duration-500 ease-spring print:!pl-0', collapsed ? 'lg:pl-[76px]' : 'lg:pl-64')}>
         <main key={pathname.split('/').slice(0, 3).join('/')} className="mx-auto max-w-6xl animate-page-in space-y-4 px-4 py-5 pb-10 lg:px-8 lg:py-7">
           {children}
         </main>

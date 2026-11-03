@@ -36,6 +36,8 @@ export async function runRetentionJobs() {
   ])
   // Fiches visiteurs sans passage ni rendez-vous depuis la durée réglée, sauf accord pour recevoir des messages
   const complaints = await prisma.complaint.deleteMany({ where: { createdAt: { lt: cutoff } } })
+  await prisma.report.deleteMany({ where: { OR: [{ kind: 'SAMPLE', createdAt: { lt: ago(30) } }, { createdAt: { lt: ago(730) } }] } })
+  await prisma.jobRun.deleteMany({ where: { id: { startsWith: 'alert:' }, lastRunAt: { lt: ago(2) } } })
   const customers = await prisma.customer.deleteMany({ where: { lastSeenAt: { lt: cutoff }, consentAt: null } })
   // Notes libres des agents sur l'historique des tickets
   const notes = await prisma.ticketEvent.updateMany({ where: { createdAt: { lt: cutoff }, note: { not: null } }, data: { note: null } })

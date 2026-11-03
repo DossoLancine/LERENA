@@ -1053,3 +1053,28 @@ model CustomRole {
 
   @@unique([organizationId, name])
 }
+
+// Rapports et alertes de l'établissement : envois choisis, destinataires supplémentaires, seuils d'alerte
+model ReportSettings {
+  organizationId String   @id
+  daily          Boolean  @default(false)
+  weekly         Boolean  @default(true)
+  monthly        Boolean  @default(true)
+  extraEmails    String[] @default([])
+  alerts         Json     @default("{}") // { waitHigh: { on, min }, queueLong: { on, max }, noCall: { on, min }, complaintBurst: { on, count } }
+  updatedAt      DateTime @updatedAt
+}
+
+// Rapport archivé : chiffres par site figés pour la période (le total se recalcule selon le périmètre du lecteur)
+model Report {
+  id             String   @id @default(cuid())
+  organizationId String
+  kind           String // DAILY | WEEKLY | MONTHLY
+  periodStart    DateTime
+  periodEnd      DateTime
+  data           Json
+  createdAt      DateTime @default(now())
+
+  @@unique([organizationId, kind, periodStart])
+  @@index([organizationId, createdAt])
+}
