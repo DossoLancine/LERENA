@@ -375,7 +375,7 @@ export async function bookSeriesForCustomer(customerId: string, input: { service
   const list = booked.slice(0, 8).map(b => fmt(b.date)).join(', ') + (booked.length > 8 ? '…' : '')
   await sendSmsMessage({
     to: customer.phone,
-    text: `Lerena : ${booked.length} rendez-vous confirmés chez ${org?.name ?? ''} à ${booked[0].date.slice(11, 16)} : ${list}. Rappel la veille de chacun.`,
+    text: `Lerena : ${booked.length} rendez-vous confirmés chez ${org?.name ?? ''} à ${booked[0].date.slice(11, 16)} : ${list} (rappel la veille de chacun).`,
     purpose: 'APPOINTMENT_CONFIRMED',
     organizationId: ctx.orgId
   })
