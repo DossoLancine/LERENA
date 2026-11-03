@@ -8,7 +8,8 @@ export const SEGMENT_LABELS = {
   regular: { label: 'Habitués', hint: '3 passages et plus' },
   lapsed: { label: 'À relancer', hint: 'Pas revenus depuis 90 jours' },
   noshow: { label: 'Absents répétés', hint: '2 absences et plus' },
-  unhappy: { label: 'Mécontents', hint: 'Dernière note de 2 étoiles ou moins' }
+  unhappy: { label: 'Mécontents', hint: 'Dernière note de 2 étoiles ou moins' },
+  shop: { label: 'Clients de la boutique', hint: 'Au moins un achat payé' }
 } as const
 
 export const SOURCE_LABELS: Record<string, string> = { APP: 'application', GUEST: 'en ligne', RECEPTION: 'accueil' }

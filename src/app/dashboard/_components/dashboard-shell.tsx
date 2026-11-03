@@ -44,7 +44,7 @@ const GROUPS: SidebarGroup[] = [
       { href: '/dashboard/services', label: t('dashboard.tabs.services'), icon: 'Layers' },
       { href: '/dashboard/counters', label: t('dashboard.tabs.counters'), icon: 'Store' },
       { href: '/dashboard/planning', label: t('dashboard.tabs.planning'), icon: 'CalendarClock' },
-      { href: '/dashboard/promotions', label: t('dashboard.tabs.promotions'), icon: 'Megaphone' }
+      { href: '/dashboard/shop', label: 'Boutique', icon: 'ShoppingBag' }
     ]
   },
   {

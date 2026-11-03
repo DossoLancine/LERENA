@@ -13,7 +13,7 @@ import { getIntegration } from '@/lib/integrations'
 export type MessagePurpose =
   | 'RESET_PASSWORD' | 'OTP' | 'WELCOME' | 'TEMP_PASSWORD' | 'TURN_SOON'
   | 'APPOINTMENT_CONFIRMED' | 'APPOINTMENT_NEW' | 'APPOINTMENT_REMINDER' | 'APPOINTMENT_CANCELLED' | 'APPOINTMENT_MISSED' | 'FOLLOW_UP' | 'CAMPAIGN' | 'DIRECT' | 'COMPLAINT_NEW' | 'COMPLAINT_REPLY' | 'INVOICE' | 'ANNOUNCEMENT'
-  | 'REPORT' | 'ALERT' | 'TEST'
+  | 'REPORT' | 'ALERT' | 'TEST' | 'SHOP_ORDER'
 
 type Status = 'SENT' | 'FAILED' | 'SIMULATED' | 'SKIPPED'
 type Channel = 'SMS' | 'EMAIL' | 'WHATSAPP'

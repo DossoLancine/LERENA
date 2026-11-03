@@ -16,6 +16,9 @@ export interface SiteFigures {
   noShows: number
   complaints: number
   peakHour: number | null
+  /** Boutique : ventes payées et montant (FCFA) sur la période. */
+  salesCount?: number
+  salesAmount?: number
 }
 
 export interface ReportData {
@@ -93,6 +96,9 @@ export function summarize(data: ReportData, siteIds: string[] | null) {
   else if (now.noShowRate != null && before.noShowRate != null && before.noShowRate - now.noShowRate >= 5) lines.push({ tone: 'good', text: `Moins de rendez-vous manqués : ${before.noShowRate} % → ${now.noShowRate} %.` })
   if (now.absentRate != null && now.absentRate >= 10) lines.push({ tone: 'bad', text: `${now.absentRate} % des visiteurs appelés étaient absents.` })
   if (now.complaints > 0) lines.push({ tone: 'bad', text: `${now.complaints} avis négatif${now.complaints > 1 ? 's' : ''} à suivre.` })
+  const salesCount = sites.reduce((s, r) => s + (r.salesCount ?? 0), 0)
+  const salesAmount = sites.reduce((s, r) => s + (r.salesAmount ?? 0), 0)
+  if (salesCount > 0) lines.push({ tone: 'neutral', text: `Boutique : ${salesCount} vente${salesCount > 1 ? 's' : ''} pour ${salesAmount.toLocaleString('fr-FR')} FCFA.` })
   const m = data.money
   if (m && !siteIds && (m.lostAmount || m.atRisk)) {
     const parts = [m.lostAmount ? `absences : ${m.lostAmount.toLocaleString('fr-FR')} FCFA perdus ce mois` : null, m.atRisk ? `${m.atRisk} client${m.atRisk > 1 ? 's' : ''} à risque (${m.atRiskValue.toLocaleString('fr-FR')} FCFA par an)` : null].filter(Boolean)

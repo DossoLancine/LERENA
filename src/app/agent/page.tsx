@@ -20,6 +20,7 @@ import type { TicketStatus } from '@/lib/constants'
 import { cn } from '@/lib/cn'
 import { TagChip } from '@/components/crm/parts'
 import { NotificationBell } from '@/components/notifications/notification-bell'
+import { TicketOrders } from '@/components/shop/orders-board'
 import { priorityText } from '@/lib/priority-text'
 import { t } from '@/lib/i18n'
 
@@ -342,6 +343,7 @@ export default function AgentPage() {
               {current.claimedPromoTitle && (
                 <p className="mt-3 rounded-xl bg-success-soft p-2.5 text-xs font-semibold text-success-ink">🎁 {current.claimedPromoTitle} · {current.claimedPromoPrice}</p>
               )}
+              <TicketOrders ticketId={current.id} dark={dark} />
               {current.notes && (
                 <p className={cn('mt-3 whitespace-pre-line rounded-xl p-2.5 text-xs', dark ? 'bg-yellow-900/30 text-yellow-200' : 'bg-warning-soft text-warning-ink')}>
                   <StickyNote size={12} className="mr-1 inline" />{current.notes}

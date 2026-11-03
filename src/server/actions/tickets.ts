@@ -126,6 +126,8 @@ export async function leaveQueue(ticketId: string) {
     await prisma.ticket.update({ where: { id: ticket.id }, data: { status: 'CANCELLED' } })
 
     const orgId = ticket.queue.branch.organizationId
+    const { cancelUnpaidOrders } = await import('@/lib/shop-orders')
+    await cancelUnpaidOrders({ ticketId: ticket.id }, orgId, 'Ticket quitté par le visiteur').catch(() => null)
     await notifyOrg(orgId)
     revalidatePath(`/ticket/${ticketId}`)
     revalidatePath('/tickets')

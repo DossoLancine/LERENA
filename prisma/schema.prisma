@@ -91,6 +91,8 @@ model Organization {
   branches           Branch[]
   favorites          Favorite[]
   promotions         Promotion[]
+  shopProducts       ShopProduct[]
+  shopOrders         ShopOrder[]
   appointments       Appointment[]
   devices            Device[]
   setupLinks         DeviceSetupLink[]
@@ -156,6 +158,7 @@ model Branch {
   Appointment   Appointment[]
   devices       Device[]
   setupLinks    DeviceSetupLink[]
+  shopOrders    ShopOrder[]
 }
 
 model Service {
@@ -853,6 +856,7 @@ model Customer {
   followUps     CustomerFollowUp[]
   campaignSends CampaignRecipient[]
   complaints    Complaint[]
+  shopOrders    ShopOrder[]
 
   @@unique([organizationId, phone])
   @@unique([organizationId, userId])
@@ -1096,4 +1100,100 @@ model AiInsight {
   createdAt      DateTime @default(now())
 
   @@index([organizationId, scopeKey, createdAt])
+}
+
+// ---- Boutique de l'établissement (N7) ----
+// Produits physiques, numériques ou services proposés pendant la réservation, l'attente ou après le passage.
+// C'est l'établissement qui valide chaque commande : Demandée → Confirmée → Payée → Remise (ou Annulée, Remboursée).
+
+model ShopProduct {
+  id             String   @id @default(cuid())
+  organizationId String
+  type           String   @default("PHYSICAL") // PHYSICAL | DIGITAL | SERVICE
+  name           String
+  description    String?
+  imageUrl       String? // lien https ou image réduite (data:)
+  price          Int      @default(0) // FCFA, 0 = offert
+  compareAtPrice Int? // prix barré (promotion)
+  stock          Int? // vide = stock non suivi
+  lowStockAt     Int?
+  branchIds      String[] // vide = tous les sites
+  serviceIds     String[] // vide = tous les services
+  moments        String[] // BOOKING | WAITING | AFTER
+  digitalContent String? // lien ou code envoyé après paiement (produit numérique)
+  isActive       Boolean  @default(true)
+  sortOrder      Int      @default(0)
+  views          Int      @default(0)
+  adds           Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  items        ShopOrderItem[]
+
+  @@index([organizationId, isActive])
+}
+
+model ShopOrder {
+  id             String    @id @default(cuid())
+  organizationId String
+  branchId       String
+  number         Int // numéro de commande et de reçu, propre à l'établissement
+  status         String    @default("REQUESTED") // REQUESTED | CONFIRMED | PAID | DELIVERED | CANCELLED | REFUNDED
+  total          Int
+  moment         String // BOOKING | WAITING | AFTER
+  ticketId       String?
+  appointmentId  String?
+  customerId     String?
+  userId         String?
+  paymentMethod  String?
+  paidAt         DateTime?
+  paidById       String? // membre de l'équipe qui a encaissé (vendeur)
+  deliveredAt    DateTime?
+  closedAt       DateTime?
+  closedReason   String? // motif d'annulation ou de remboursement
+  digitalSentAt  DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  branch       Branch           @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  customer     Customer?        @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  items        ShopOrderItem[]
+  events       ShopOrderEvent[]
+
+  @@unique([organizationId, number])
+  @@index([organizationId, status, createdAt])
+  @@index([ticketId])
+  @@index([appointmentId])
+  @@index([customerId])
+}
+
+model ShopOrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  productId String?
+  name      String
+  type      String
+  unitPrice Int
+  qty       Int
+  amount    Int
+
+  order   ShopOrder    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product ShopProduct? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([productId])
+}
+
+model ShopOrderEvent {
+  id        String   @id @default(cuid())
+  orderId   String
+  status    String
+  actorId   String? // membre de l'équipe ; vide = le visiteur
+  note      String?
+  createdAt DateTime @default(now())
+
+  order ShopOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
 }

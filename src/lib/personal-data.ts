@@ -21,6 +21,7 @@ export async function exportUserData(userId: string) {
   })
   if (!user) throw new PersonalDataError('Compte introuvable')
   const to = [user.phone, user.email].filter((v): v is string => !!v)
+  const orders = await prisma.shopOrder.findMany({ where: { userId }, orderBy: { createdAt: 'desc' }, select: { number: true, status: true, total: true, createdAt: true, paymentMethod: true, organization: { select: { name: true } }, items: { select: { name: true, qty: true, amount: true } } } })
   const messages = to.length ? await prisma.outboundMessage.findMany({ where: { to: { in: to } }, orderBy: { createdAt: 'desc' }, select: { channel: true, purpose: true, status: true, createdAt: true, body: true } }) : []
   return {
     exportedAt: new Date().toISOString(),
@@ -29,6 +30,7 @@ export async function exportUserData(userId: string) {
     establishments: user.memberships.map(m => ({ establishment: m.organization.name, role: m.role })),
     tickets: user.tickets.map(t => ({ number: t.displayNum, establishment: t.queue.branch.organization.name, site: t.queue.branch.name, service: t.service?.name, status: t.status, priority: t.priorityReason, takenAt: t.createdAt, calledAt: t.calledAt, completedAt: t.completedAt })),
     appointments: user.appointments.map(a => ({ establishment: a.organization.name, service: a.service?.name, date: a.scheduledDate, status: a.status, bookedAt: a.createdAt, via: a.source })),
+    purchases: orders.map(o => ({ establishment: o.organization.name, order: o.number, status: o.status, total: o.total, paymentMethod: o.paymentMethod, orderedAt: o.createdAt, items: o.items })),
     favorites: user.favorites.map(f => ({ establishment: f.organization.name, addedAt: f.createdAt })),
     sessions: user.authSessions.map(s => ({ startedAt: s.createdAt, lastSeenAt: s.lastSeenAt, device: s.userAgent, closedAt: s.revokedAt })),
     messages: messages.map(m => ({ channel: m.channel, purpose: m.purpose, status: m.status, sentAt: m.createdAt, text: m.body }))
@@ -53,6 +55,7 @@ export async function deleteUserData(userId: string) {
   await prisma.$transaction([
     prisma.ticket.updateMany({ where: { userId }, data: { userId: null, guestName: null, guestPhone: null, notes: null, npsComment: null } }),
     prisma.appointment.updateMany({ where: { userId }, data: { userId: null, guestName: null, guestPhone: null, notes: null, manageTokenHash: null } }),
+    prisma.shopOrder.updateMany({ where: { userId }, data: { userId: null } }),
     ...(user.phone ? [
       prisma.ticket.updateMany({ where: { guestPhone: user.phone }, data: { guestName: null, guestPhone: null } }),
       prisma.appointment.updateMany({ where: { guestPhone: user.phone }, data: { guestName: null, guestPhone: null } })

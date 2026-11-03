@@ -10,7 +10,6 @@ import { TicketRoute } from '@/components/ticket/ticket-route'
 import { TicketStub } from '@/components/ticket/ticket-stub'
 import { QueueLine } from '@/components/ticket/queue-line'
 import { getTicketById, leaveQueue } from '@/server/actions/tickets'
-import { getPromotionsByOrg } from '@/server/actions/marketing'
 import { YourTurnOverlay } from '@/components/ticket/your-turn-overlay'
 import { BottomSheet } from '@/components/ui/bottom-sheet'
 import { useWakeLock } from '@/hooks/use-wake-lock'
@@ -19,7 +18,8 @@ import { counterLabel } from '@/lib/constants'
 import { PushOptIn } from '@/components/ticket/push-opt-in'
 import { ConsentOptIn } from '@/components/ticket/consent-opt-in'
 import { LeaveNowCard, SpeakPositionButton } from '@/components/ticket/leave-now-card'
-import { NPSWidget, PromoCarousel } from '@/components/marketing/marketing-widgets'
+import { NPSWidget } from '@/components/marketing/marketing-widgets'
+import { ShopPanel } from '@/components/shop/shop-panel'
 import { usePolling } from '@/hooks/use-polling'
 import { useOrgRealtime } from '@/hooks/use-org-realtime'
 import { cn } from '@/lib/cn'
@@ -47,7 +47,6 @@ export default function TicketPage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const toast = useToast()
   const [ticket, setTicket] = useState<any>(null)
-  const [promotions, setPromotions] = useState<any[]>([])
   const [secondsAgo, setSecondsAgo] = useState(0)
   const [showLeaveDialog, setShowLeaveDialog] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -56,7 +55,6 @@ export default function TicketPage({ params }: { params: { id: string } }) {
   const [sun, setSun] = useState(false)
   const prevStatus = useRef<string | null>(null)
   const prevPosition = useRef<number | null>(null)
-  const promosLoaded = useRef(false)
   // Le bloc de notation reste affiché après la 1re étoile (motif et commentaire), malgré le rafraîchissement du ticket
   const [rating, setRating] = useState(false)
 
@@ -64,11 +62,6 @@ export default function TicketPage({ params }: { params: { id: string } }) {
     const data = await getTicketById(params.id)
     if (data) {
       setTicket(data)
-      if (!promosLoaded.current) {
-        promosLoaded.current = true
-        const orgId = data.queue?.branch?.organizationId
-        if (orgId) getPromotionsByOrg(orgId).then(setPromotions)
-      }
       // Ticket appelé : alerte plein écran, vibration longue et carillon
       if (prevStatus.current === 'WAITING' && data.status === 'CALLED') {
         setShowTurn(true)
@@ -279,10 +272,8 @@ export default function TicketPage({ params }: { params: { id: string } }) {
           </div>
         )}
 
-        {active && promotions.length > 0 && (
-          <PromoCarousel promotions={promotions} ticketId={ticket.id} claimedPromoTitle={ticket.claimedPromoTitle} claimedPromoPrice={ticket.claimedPromoPrice}
-            onPromoClaimed={(title, price) => setTicket((prev: any) => ({ ...prev, claimedPromoTitle: title, claimedPromoPrice: price }))} />
-        )}
+        {/* Boutique : pendant l'attente, puis 24 h après le service ; la commande se suit ici */}
+        <ShopPanel source={{ ticketId: ticket.id }} refreshKey={status} />
 
         {status === 'COMPLETED' && (!ticket.npsScore || rating) && <NPSWidget ticketId={ticket.id} onRated={() => setRating(true)} />}
         {(status === 'WAITING' || status === 'COMPLETED') && <ConsentOptIn ticketId={ticket.id} />}

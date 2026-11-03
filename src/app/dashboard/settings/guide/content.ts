@@ -1,7 +1,7 @@
 // Guide d'utilisation affiché dans Paramètres → Guide d'utilisation.
 // À METTRE À JOUR à chaque évolution de l'application (nouvel écran, nouvelle étape, changement de nom).
 
-export const GUIDE_UPDATED_AT = '3 novembre 2026 (vue direction)'
+export const GUIDE_UPDATED_AT = '4 novembre 2026 (boutique)'
 
 export interface GuideSection {
   id: string
@@ -298,6 +298,22 @@ export const GUIDE: GuideSection[] = [
       'Ce que disent vos visiteurs : leurs commentaires regroupés par thème (attente, accueil, orientation, propreté, prix, application ; et ce qui plaît : rapidité, gentillesse), avec une citation. Noms, numéros et e-mails sont masqués.',
       'Avis à traiter : « Proposer une réponse » prépare un SMS d’excuses adapté au motif ; relisez-le et modifiez-le avant l’envoi.',
       'Analyse avancée (quand l’équipe Lerena l’active) : une IA lit plus finement les commentaires libres et propose des actions ; seuls des textes anonymisés lui sont transmis, 3 analyses par jour au plus.'
+    ]
+  },
+  {
+    id: 'boutique',
+    title: 'Boutique',
+    intro: 'Menu « Boutique » (remplace « Promotions »). Vos visiteurs réservent un produit ou un service depuis leur ticket ou leur rendez-vous, puis règlent sur place. Rien n’est vendu sans la validation de votre équipe.',
+    steps: [
+      'Catalogue : « Nouveau produit », puis le type (produit, numérique, service), le nom, une photo, le prix (0 = offert) et un prix barré pour une promotion. Le stock est facultatif ; sous le seuil d’alerte, les responsables sont prévenus.',
+      'Moments : cochez quand le proposer : à la prise de rendez-vous, pendant l’attente (page du ticket et écran TV) ou après le service (24 h). Vous pouvez le limiter à certains sites et services.',
+      'Produit numérique : indiquez le lien ou le code. Il n’apparaît au visiteur qu’une fois la commande payée, sur son ticket, et part aussi par WhatsApp ou SMS et par e-mail s’il a un compte.',
+      'Côté visiteur : « Ajouter », puis « Réserver ». Il suit sa commande sur son ticket (Demandée, Confirmée, Payée, Remise) et peut l’annuler tant qu’elle n’est pas réglée. S’il quitte la file ou annule son rendez-vous, ses commandes non réglées sont annulées.',
+      'Commandes (accueil : bouton « Commandes » ; tableau de bord : Boutique → Commandes) : à confirmer, à encaisser, à remettre. « Payée » demande le mode de paiement (espèces, Wave, Orange Money, MTN, Moov, carte, virement, offert) ; « Annuler » et « Rembourser » demandent un motif.',
+      'Au guichet : la commande du visiteur appelé s’affiche sous son numéro (« 2 articles · 7 500 FCFA · à encaisser ») avec « Payée », « Remise » et « Annuler ».',
+      'Chaque commande payée a un reçu numéroté, à imprimer ou à garder sur le téléphone. Une annulation remet le stock en vente.',
+      'Ventes : chiffre d’affaires par jour, panier moyen, produits les plus vendus, ventes par site, par vendeur et par mode de paiement, et le parcours vu → ajouté → réservé → payé. Les achats apparaissent sur la fiche du visiteur, et le segment « Clients de la boutique » sert aux campagnes.',
+      'Forfait Essentiel : 10 produits en vente au plus ; Pro et Entreprise : sans limite. Chaque création, suppression et changement de prix est inscrit au journal d’audit. Le paiement en ligne arrivera avec le connecteur Paiement.'
     ]
   },
   {

@@ -5,6 +5,7 @@ import { CalendarDays, MapPin, Clock, CalendarPlus, XCircle, RefreshCw } from 'l
 import { cancelAppointmentByToken, getAppointmentByToken, getAvailableSlots, getBookingDays, rescheduleAppointmentByToken } from '@/server/actions/appointments'
 import { Badge, Button, Card, useToast } from '@/components/ui'
 import { cn } from '@/lib/cn'
+import { ShopPanel } from '@/components/shop/shop-panel'
 
 type Appt = NonNullable<Awaited<ReturnType<typeof getAppointmentByToken>>>
 const STATUS: Record<string, { label: string; tone: 'success' | 'neutral' | 'danger' }> = {
@@ -88,6 +89,8 @@ export default function ManageAppointmentPage({ params }: { params: { token: str
             </div>
           )}
         </Card>
+
+        <ShopPanel source={{ token: params.token }} refreshKey={appt.status} />
 
         {appt.status === 'CONFIRMED' && (
           <Card className="space-y-3 p-5">

@@ -7,6 +7,7 @@ import { APPOINTMENT_STATUSES } from '@/lib/constants'
 import { bookableDays, isSlotAvailable, slotsForDay } from '@/lib/slots'
 import { AppointmentError, bookAppointment, checkIn, runAppointmentJobs } from '@/lib/appointments'
 import { hashSecret, isPlausibleSecret } from '@/lib/secrets'
+import { cancelUnpaidOrders } from '@/lib/shop-orders'
 import { normalizePhone } from '@/lib/phone'
 import { refreshCustomersOfAppointments } from '@/lib/customers'
 import { smsEnabled } from '@/lib/sms'
@@ -112,6 +113,7 @@ export async function cancelAppointmentByToken(token: string) {
   if (!a) return { success: false, error: 'Rendez-vous introuvable' }
   if (!canModify(a)) return { success: false, error: `L’annulation en ligne n’est plus possible (moins de ${a.organization.apptCancelHours} h avant). Contactez l’établissement.` }
   await prisma.appointment.update({ where: { id: a.id }, data: { status: 'CANCELLED', cancelledAt: new Date() } })
+  await cancelUnpaidOrders({ appointmentId: a.id }, a.organizationId, 'Rendez-vous annulé').catch(() => null)
   await notifyOrg(a.organizationId)
   return { success: true }
 }
@@ -200,6 +202,7 @@ export async function updateAppointmentStatus(id: string, status: string) {
       data: { status, ...(status === 'CANCELLED' ? { cancelledAt: new Date() } : {}) }
     })
     if (res.count === 0) return { success: false, error: 'Rendez-vous introuvable' }
+    if (status === 'CANCELLED') await cancelUnpaidOrders({ appointmentId: id }, ctx.orgId, 'Rendez-vous annulé').catch(() => null)
     await refreshCustomersOfAppointments([id])
     revalidatePath(`/dashboard`)
     return { success: true }

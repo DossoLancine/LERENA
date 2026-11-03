@@ -1,5 +1,7 @@
 'use server'
 
+import { productImage } from '@/lib/shop-orders'
+import { priceLabel } from '@/lib/shop'
 import { prisma } from "@/lib/prisma"
 import { runAppointmentJobs } from "@/lib/appointments"
 import { ACTIVE_TICKET_STATUSES, counterLabel } from "@/lib/constants"
@@ -31,9 +33,11 @@ export async function getTVQueue(orgId: string, siteId?: string | null) {
             }
           }
         },
-        promotions: {
-          where: { isActive: true },
-          orderBy: { createdAt: 'desc' }
+        shopProducts: {
+          where: { isActive: true, moments: { has: 'WAITING' } },
+          orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
+          take: 12,
+          select: { id: true, name: true, description: true, imageUrl: true, price: true, compareAtPrice: true, updatedAt: true }
         }
       }
     })
@@ -95,7 +99,7 @@ export async function getTVQueue(orgId: string, siteId?: string | null) {
       tvMode: org.tvMode || 'HYBRID',
       tvQueueDuration: org.tvQueueDuration || 30,
       tvVideoDuration: org.tvVideoDuration || 30,
-      promotions: org.promotions || [],
+      promotions: org.shopProducts.map(p => ({ id: p.id, title: p.name, description: p.description, imageUrl: productImage(p), price: priceLabel(p.price) })),
       recentCalls: recentCalls.map(t => ({ id: t.id, displayNum: t.displayNum, counter: counterLabel(t.counterName), calledAt: t.calledAt!.toISOString() })),
       updatedAt: new Date().toISOString()
     }

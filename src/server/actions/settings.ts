@@ -53,8 +53,7 @@ export async function getOrganizationSettings() {
             }
           },
           orderBy: { createdAt: 'desc' }
-        },
-        promotions: true
+        }
       }
     })
 

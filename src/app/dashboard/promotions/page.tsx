@@ -1,5 +1,6 @@
-import PromotionsTab from '../_components/promotions-tab'
+import { redirect } from 'next/navigation'
 
+// Les promotions font désormais partie de la boutique
 export default function DashboardPromotionsPage() {
-  return <PromotionsTab />
+  redirect('/dashboard/shop')
 }

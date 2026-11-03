@@ -13,6 +13,7 @@ export const FEATURES = {
   CRM_FOLLOWUPS: 'Suivis et relances des visiteurs',
   CRM_CAMPAIGNS: 'Messages et campagnes SMS',
   CRM_INSIGHTS: 'Pilotage, import et export des visiteurs',
+  SHOP_UNLIMITED: 'Boutique sans limite de produits',
   PRIORITY_SUPPORT: 'Support prioritaire'
 } as const
 export type Feature = keyof typeof FEATURES

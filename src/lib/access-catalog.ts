@@ -104,7 +104,7 @@ export const MENU_PERMISSIONS: Record<string, Permission> = {
   '/dashboard/services': 'settings.manage',
   '/dashboard/counters': 'settings.manage',
   '/dashboard/planning': 'settings.manage',
-  '/dashboard/promotions': 'settings.manage',
+  '/dashboard/shop': 'shop.sell',
   '/dashboard/billing': 'billing.view',
   '/dashboard/settings': 'settings.manage'
 }

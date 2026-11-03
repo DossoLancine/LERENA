@@ -16,6 +16,7 @@ import { TagChip, Initials, sinceLabel } from './parts'
 import { BookForVisitor } from './book-for-visitor'
 import { FollowUpsCard } from './follow-ups'
 import { MessagesCard } from './messages-card'
+import { CustomerPurchases } from '@/components/shop/customer-purchases'
 
 type Data = NonNullable<Awaited<ReturnType<typeof getCustomer>>>
 type Entry = Data['timeline'][number]
@@ -155,6 +156,7 @@ export function VisitorFile({ id, basePath }: { id: string; basePath: string }) 
 
         <div className="space-y-5">
         <FollowUpsCard customerId={c.id} hasPhone={!!c.phone} />
+        <CustomerPurchases customerId={c.id} />
 
         {/* Notes internes */}
         <section className="h-fit rounded-card border border-surface-line bg-white shadow-card">

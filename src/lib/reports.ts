@@ -139,6 +139,9 @@ export async function issueReport(orgId: string, kind: ReportKind, now = new Dat
     prisma.organization.findUnique({ where: { id: orgId }, select: { name: true } })
   ])
   const money = await moneyView(orgId, null, now).catch(() => null)
+  // Ventes de la boutique par site sur la période
+  const sales = await prisma.shopOrder.groupBy({ by: ['branchId'], where: { organizationId: orgId, status: { in: ['PAID', 'DELIVERED'] }, paidAt: { gte: p.start, lt: p.end } }, _count: true, _sum: { total: true } }).catch(() => [])
+  for (const s of sites) { const x = sales.find(r => r.branchId === s.id); if (x) { s.salesCount = x._count; s.salesAmount = x._sum.total ?? 0 } }
   const data: ReportData = {
     sites, previous, waitAlertMin: settings.alerts.waitHigh.min,
     ...(money?.valuesConfigured ? { money: { lostAmount: money.lostAmount, noShows: money.noShows, atRisk: money.atRisk.count, atRiskValue: money.atRisk.value } } : {})
