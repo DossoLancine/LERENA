@@ -1,5 +1,6 @@
 'use server'
 
+import type { Permission } from '@/lib/access-catalog'
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import bcrypt from "bcryptjs"
@@ -14,8 +15,8 @@ import { sendCredentialsEmail } from "@/lib/messaging"
 
 // Toutes les actions de ce fichier agissent uniquement sur l'organisation du manager connecté.
 // Le paramètre orgId reçu de l'interface est vérifié, jamais utilisé tel quel.
-async function requireOwnOrg(orgId?: string) {
-  const ctx = await getManagerContext()
+async function requireOwnOrg(orgId?: string, permission?: Permission) {
+  const ctx = await getManagerContext(permission)
   if (!ctx) return null
   if (orgId && orgId !== ctx.orgId) return null
   return ctx
@@ -85,7 +86,7 @@ export async function updateOrganizationProfile(orgId: string, data: {
   tvVideoDuration?: number
 }) {
   try {
-    const ctx = await requireOwnOrg(orgId)
+    const ctx = await requireOwnOrg(orgId, 'settings.manage')
     if (!ctx) return DENIED
 
     // Le secteur vient de la liste gérée en base ; son nom sert de catégorie affichée
@@ -133,7 +134,7 @@ export async function addMemberToOrganization(orgId: string, data: {
   role?: 'RECEPTION' | 'AGENT' | 'MANAGER'
 }) {
   try {
-    const ctx = await requireOwnOrg(orgId)
+    const ctx = await requireOwnOrg(orgId, 'team.manage')
     if (!ctx) return DENIED
 
     const email = data.email.trim().toLowerCase()
@@ -206,7 +207,7 @@ export async function addMemberToOrganization(orgId: string, data: {
 // 4. Retirer un agent / membre de l'organisation
 export async function removeMemberFromOrganization(memberId: string) {
   try {
-    const ctx = await requireOwnOrg()
+    const ctx = await requireOwnOrg(undefined, 'team.manage')
     if (!ctx) return DENIED
 
     const res = await prisma.organizationMember.deleteMany({
@@ -230,7 +231,7 @@ export async function updateQueueConfig(queueId: string, data: {
   status?: string
 }) {
   try {
-    const ctx = await requireOwnOrg()
+    const ctx = await requireOwnOrg(undefined, 'queue.manage')
     if (!ctx) return DENIED
 
     const queue = await prisma.queue.findFirst({
@@ -260,7 +261,7 @@ export async function updateQueueConfig(queueId: string, data: {
 // 6. Réinitialiser la file du jour (clôture des tickets non servis)
 export async function resetDailyQueue(orgId: string) {
   try {
-    const ctx = await requireOwnOrg(orgId)
+    const ctx = await requireOwnOrg(orgId, 'queue.manage')
     if (!ctx) return DENIED
 
     const queueIds = await siteQueueIds(ctx.orgId, await siteScope(ctx.orgId))
@@ -292,7 +293,7 @@ export async function resetDailyQueue(orgId: string) {
 // 7. Exporter l'historique des tickets en format structuré pour CSV
 export async function exportTicketsHistory(orgId: string) {
   try {
-    const ctx = await requireOwnOrg(orgId)
+    const ctx = await requireOwnOrg(orgId, 'stats.export')
     if (!ctx) return DENIED
 
     const tickets = await prisma.ticket.findMany({

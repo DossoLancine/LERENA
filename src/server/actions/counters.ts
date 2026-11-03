@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { getManagerContext } from '@/lib/session'
-import { branchFilter, siteForWrite } from '@/lib/sites'
+import { branchFilter, siteForWrite, scopedBranch } from '@/lib/sites'
 import { notifyOrg } from '@/lib/realtime'
 import { assertCanAddCounter, checkLimit } from '@/lib/billing'
 
@@ -32,7 +32,7 @@ export async function getCounters() {
 }
 
 export async function createCounter(name: string) {
-  const ctx = await getManagerContext()
+  const ctx = await getManagerContext('settings.manage')
   if (!ctx) return { success: false, error: 'Non autorisé' }
   const clean = name.trim().slice(0, 40)
   if (!clean) return { success: false, error: 'Donnez un nom au guichet' }
@@ -53,17 +53,17 @@ export async function createCounter(name: string) {
 }
 
 export async function updateCounter(id: string, data: { name?: string; isActive?: boolean; serviceIds?: string[] }) {
-  const ctx = await getManagerContext()
+  const ctx = await getManagerContext('settings.manage')
   if (!ctx) return { success: false, error: 'Non autorisé' }
 
-  const counter = await prisma.counter.findFirst({ where: { id, branch: { organizationId: ctx.orgId } } })
+  const counter = await prisma.counter.findFirst({ where: { id, branch: await scopedBranch(ctx.orgId) } })
   if (!counter) return { success: false, error: 'Guichet introuvable' }
 
   // Seuls les services de l'établissement peuvent être rattachés
   let serviceIds: string[] | undefined
   if (data.serviceIds) {
     const valid = await prisma.service.findMany({
-      where: { id: { in: data.serviceIds }, branch: { organizationId: ctx.orgId } },
+      where: { id: { in: data.serviceIds }, branch: await scopedBranch(ctx.orgId) },
       select: { id: true }
     })
     serviceIds = valid.map(s => s.id)
@@ -88,10 +88,10 @@ export async function updateCounter(id: string, data: { name?: string; isActive?
 }
 
 export async function deleteCounter(id: string) {
-  const ctx = await getManagerContext()
+  const ctx = await getManagerContext('settings.manage')
   if (!ctx) return { success: false, error: 'Non autorisé' }
   // Les tickets passés gardent le nom du guichet (counterName) : l'historique reste lisible
-  const res = await prisma.counter.deleteMany({ where: { id, branch: { organizationId: ctx.orgId } } })
+  const res = await prisma.counter.deleteMany({ where: { id, branch: await scopedBranch(ctx.orgId) } })
   await notifyOrg(ctx.orgId)
   revalidatePath('/dashboard/counters')
   return { success: res.count > 0 }

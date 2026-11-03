@@ -19,7 +19,7 @@ export async function listPriorityCategories() {
 }
 
 export async function savePriorityCategory(data: { id?: string; label: string; level: number; selfService: boolean; isActive: boolean }) {
-  const ctx = await getManagerContext()
+  const ctx = await getManagerContext('settings.manage')
   if (!ctx) return { success: false, error: 'Non autorisé' }
   const label = data.label?.trim().slice(0, 60)
   if (!label) return { success: false, error: 'Donnez un nom au motif' }
@@ -39,7 +39,7 @@ export async function savePriorityCategory(data: { id?: string; label: string; l
 
 /** Supprime un motif ; les tickets déjà émis gardent leur priorité et son libellé. */
 export async function deletePriorityCategory(id: string) {
-  const ctx = await getManagerContext()
+  const ctx = await getManagerContext('settings.manage')
   if (!ctx) return { success: false }
   const res = await prisma.priorityCategory.deleteMany({ where: { id, organizationId: ctx.orgId } })
   revalidatePath(`/org/${ctx.orgId}`)
@@ -48,7 +48,7 @@ export async function deletePriorityCategory(id: string) {
 
 /** Monte ou descend un motif dans la liste proposée aux visiteurs et à l'accueil. */
 export async function movePriorityCategory(id: string, direction: -1 | 1) {
-  const ctx = await getManagerContext()
+  const ctx = await getManagerContext('settings.manage')
   if (!ctx) return { success: false }
   const list = await prisma.priorityCategory.findMany({
     where: { organizationId: ctx.orgId },
@@ -74,7 +74,7 @@ export async function getVisitorPrioritySettings() {
 }
 
 export async function setVisitorPriority(channel: 'app' | 'kiosk', enabled: boolean) {
-  const ctx = await getManagerContext()
+  const ctx = await getManagerContext('settings.manage')
   if (!ctx) return { success: false }
   if (channel !== 'app' && channel !== 'kiosk') return { success: false }
   await prisma.organization.update({

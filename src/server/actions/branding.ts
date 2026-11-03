@@ -25,7 +25,7 @@ export async function getBranding() {
 }
 
 export async function saveBranding(data: { logo?: string | null; brandColor?: string | null }) {
-  const ctx = await getManagerContext()
+  const ctx = await getManagerContext('settings.manage')
   if (!ctx) return { success: false as const, error: 'Réservé au responsable' }
   const update: { logo?: string | null; brandColor?: string | null } = {}
 

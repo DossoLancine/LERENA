@@ -6,8 +6,9 @@ import { getReceptionContext } from '@/lib/session'
 import { normalizePhone } from '@/lib/phone'
 import { audit } from '@/lib/audit'
 import { backfillCustomers, findOrCreateCustomer } from '@/lib/customers'
-import { SEGMENTS, segmentWhere, type CustomerSegment } from '@/lib/customer-segments'
+import { SEGMENTS, customerScopeWhere, segmentWhere, type CustomerSegment } from '@/lib/customer-segments'
 import { TAG_COLORS } from '@/lib/customer-labels'
+import type { Permission } from '@/lib/access-catalog'
 import { hasFeature } from '@/lib/billing'
 import { startOfDayUtc } from '@/lib/followups'
 import { AppointmentError, bookAppointment } from '@/lib/appointments'
@@ -28,7 +29,7 @@ const tagSelect = { tag: { select: { id: true, name: true, color: true } } } as 
 
 /** Liste des visiteurs : recherche, segments prêts à l'emploi, étiquettes, tri. Rattrape l'historique au passage. */
 export async function listCustomers(input: { segment?: CustomerSegment; tagId?: string | null; q?: string; sort?: CustomerSort; page?: number }) {
-  const ctx = await getReceptionContext()
+  const ctx = await getReceptionContext('visitors.view')
   if (!ctx) return null
   await backfillCustomers(ctx.orgId).catch(error => console.error('CRM backfill error:', error))
 
@@ -38,7 +39,7 @@ export async function listCustomers(input: { segment?: CustomerSegment; tagId?: 
   const search: Prisma.CustomerWhereInput = q
     ? { OR: [{ name: { contains: q, mode: 'insensitive' } }, ...(digits.length >= 3 ? [{ phone: { contains: digits.replace(/^0+/, '') } }] : [])] }
     : {}
-  const base: Prisma.CustomerWhereInput = { organizationId: ctx.orgId }
+  const base: Prisma.CustomerWhereInput = { organizationId: ctx.orgId, ...customerScopeWhere(ctx.siteIds) }
   const where: Prisma.CustomerWhereInput = { ...base, ...segmentWhere(segment), ...search, ...(input.tagId ? { tags: { some: { tagId: input.tagId } } } : {}) }
   const orderBy: Prisma.CustomerOrderByWithRelationInput[] =
     input.sort === 'visits' ? [{ visits: 'desc' }, { lastSeenAt: 'desc' }]
@@ -69,10 +70,10 @@ export async function listCustomers(input: { segment?: CustomerSegment; tagId?: 
 
 /** Fiche complète : chiffres, historique des tickets et rendez-vous, notes, étiquettes. Chaque consultation est tracée. */
 export async function getCustomer(id: string) {
-  const ctx = await getReceptionContext()
+  const ctx = await getReceptionContext('visitors.view')
   if (!ctx) return null
   const c = await prisma.customer.findFirst({
-    where: { id, organizationId: ctx.orgId },
+    where: { id, organizationId: ctx.orgId, ...customerScopeWhere(ctx.siteIds) },
     select: {
       id: true, name: true, phone: true, userId: true, visits: true, noShows: true, ratingAvg: true, lastRating: true,
       firstSeenAt: true, lastVisitAt: true, consentAt: true, consentChannel: true, optedOutAt: true, createdAt: true,
@@ -137,16 +138,16 @@ export async function getCustomer(id: string) {
 type Result = { success: true } | { success: false; error: string }
 const denied = { success: false as const, error: 'Non autorisé' }
 
-async function ownCustomer(id: string) {
-  const ctx = await getReceptionContext()
+async function ownCustomer(id: string, permission: Permission = 'visitors.edit') {
+  const ctx = await getReceptionContext(permission)
   if (!ctx) return null
-  const c = await prisma.customer.findFirst({ where: { id, organizationId: ctx.orgId }, select: { id: true } })
+  const c = await prisma.customer.findFirst({ where: { id, organizationId: ctx.orgId, ...customerScopeWhere(ctx.siteIds) }, select: { id: true } })
   return c ? ctx : null
 }
 
 /** Nouvelle fiche saisie à l'accueil (visiteur au téléphone, liste papier). Renvoie la fiche existante si le numéro est connu. */
 export async function createCustomer(input: { name: string; phone: string }) {
-  const ctx = await getReceptionContext()
+  const ctx = await getReceptionContext('visitors.edit')
   if (!ctx) return denied
   const phone = normalizePhone(input.phone)
   if (!phone) return { success: false as const, error: 'Numéro de téléphone invalide' }
@@ -186,7 +187,7 @@ export async function addCustomerNote(id: string, text: string): Promise<Result>
 
 /** Une note se supprime par son auteur, ou par le responsable. */
 export async function deleteCustomerNote(noteId: string): Promise<Result> {
-  const ctx = await getReceptionContext()
+  const ctx = await getReceptionContext('visitors.edit')
   if (!ctx) return denied
   const note = await prisma.customerNote.findFirst({ where: { id: noteId, customer: { organizationId: ctx.orgId } }, select: { id: true, authorId: true } })
   if (!note) return { success: false, error: 'Note introuvable' }
@@ -207,7 +208,7 @@ export async function setCustomerTags(id: string, tagIds: string[]): Promise<Res
 }
 
 export async function createCustomerTag(name: string, color: string) {
-  const ctx = await getReceptionContext()
+  const ctx = await getReceptionContext('visitors.edit')
   if (!ctx) return denied
   const clean = name.trim().replace(/\s+/g, ' ').slice(0, 30)
   if (!clean) return { success: false as const, error: 'Indiquez un nom d’étiquette' }
@@ -224,7 +225,7 @@ export async function createCustomerTag(name: string, color: string) {
 
 /** Supprimer une étiquette la retire de toutes les fiches : réservé au responsable. */
 export async function deleteCustomerTag(tagId: string): Promise<Result> {
-  const ctx = await getReceptionContext()
+  const ctx = await getReceptionContext('visitors.edit')
   if (!ctx || ctx.role !== 'MANAGER') return denied
   const res = await prisma.customerTag.deleteMany({ where: { id: tagId, organizationId: ctx.orgId } })
   return res.count ? { success: true } : { success: false, error: 'Étiquette introuvable' }
@@ -251,7 +252,7 @@ const followUpSelect = {
 
 /** Suivis d'une fiche et équipe (pour la fiche visiteur). */
 export async function getCustomerFollowUps(customerId: string) {
-  const ctx = await ownCustomer(customerId)
+  const ctx = await ownCustomer(customerId, 'visitors.view')
   if (!ctx) return null
   const enabled = await followUpsEnabled(ctx.orgId)
   if (!enabled) return { enabled, items: [], team: [] }
@@ -286,7 +287,7 @@ export async function createFollowUp(customerId: string, input: { dueDate: strin
 
 /** Fait, rouvert ou annulé. */
 export async function setFollowUpStatus(id: string, status: 'OPEN' | 'DONE' | 'CANCELLED'): Promise<Result> {
-  const ctx = await getReceptionContext()
+  const ctx = await getReceptionContext('visitors.edit')
   if (!ctx) return denied
   if (!['OPEN', 'DONE', 'CANCELLED'].includes(status)) return { success: false, error: 'Statut invalide' }
   const me = await prisma.user.findUnique({ where: { id: ctx.userId }, select: { name: true } })
@@ -299,7 +300,7 @@ export async function setFollowUpStatus(id: string, status: 'OPEN' | 'DONE' | 'C
 
 /** « À faire » : suivis en retard et du jour, puis ceux des 14 prochains jours, et les derniers faits. */
 export async function listFollowUps(input: { mine?: boolean } = {}) {
-  const ctx = await getReceptionContext()
+  const ctx = await getReceptionContext('visitors.view')
   if (!ctx) return null
   const enabled = await followUpsEnabled(ctx.orgId)
   if (!enabled) return { enabled, today: [], upcoming: [], done: [] }
@@ -317,7 +318,7 @@ export async function listFollowUps(input: { mine?: boolean } = {}) {
 
 /** Pastille du menu : suivis en retard ou du jour. */
 export async function getDueFollowUpsCount() {
-  const ctx = await getReceptionContext()
+  const ctx = await getReceptionContext('visitors.view')
   if (!ctx) return 0
   return prisma.customerFollowUp.count({ where: { organizationId: ctx.orgId, status: 'OPEN', dueDate: { lte: startOfDayUtc() } } })
 }
@@ -382,7 +383,7 @@ const PURPOSE_LABELS: Record<string, string> = {
 
 /** SMS reçus par le visiteur de la part de l'établissement (les 20 derniers) et possibilité d'en écrire un. */
 export async function getCustomerMessages(customerId: string) {
-  const ctx = await ownCustomer(customerId)
+  const ctx = await ownCustomer(customerId, 'visitors.view')
   if (!ctx) return null
   const c = await prisma.customer.findUnique({ where: { id: customerId }, select: { phone: true, optedOutAt: true } })
   const [enabled, messages] = await Promise.all([

@@ -41,7 +41,7 @@ export async function getSiteLocation() {
 }
 
 export async function updateSiteLocation(data: { lat: number; lng: number; requireGps: boolean; maxRadiusKm: number }) {
-  const ctx = await getManagerContext()
+  const ctx = await getManagerContext('settings.manage')
   if (!ctx) return { success: false, error: 'Non autorisé' }
 
   const valid = Number.isFinite(data.lat) && Number.isFinite(data.lng) && Math.abs(data.lat) <= 90 && Math.abs(data.lng) <= 180
@@ -64,7 +64,7 @@ export async function updateSiteLocation(data: { lat: number; lng: number; requi
 
 /** Remplace les horaires de la semaine (7 lignes, dimanche = 0). Les créneaux de rendez-vous en dépendent. */
 export async function updateBusinessHours(hours: { dayOfWeek: number; openTime: string; closeTime: string; isClosed: boolean }[]) {
-  const ctx = await getManagerContext()
+  const ctx = await getManagerContext('settings.manage')
   if (!ctx) return { success: false, error: 'Non autorisé' }
   const branch = await mainBranch(ctx.orgId)
   if (!branch) return { success: false, error: 'Aucune agence configurée' }

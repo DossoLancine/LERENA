@@ -32,6 +32,7 @@ export const NOTIFICATION_EVENTS: NotificationEvent[] = [
   { id: 'CAMPAIGN_DONE', label: 'Campagne terminée', description: 'Tous les SMS d’une campagne sont partis.', roles: ['MANAGER'], defaults: { MANAGER: ['APP', 'PUSH'] } },
   { id: 'SMS_LOW', label: 'SMS bientôt épuisés', description: 'Il reste moins de 20 SMS (quota du mois et packs).', roles: ['MANAGER'], defaults: { MANAGER: ['APP', 'PUSH', 'EMAIL'] } },
   { id: 'INVOICE_DUE', label: 'Facture à payer', description: 'Une facture de l’abonnement est émise.', roles: ['MANAGER'], defaults: { MANAGER: ['APP', 'EMAIL'] } },
+  { id: 'ACCESS_REVIEW', label: 'Revue des accès', description: 'Chaque mois, les comptes inactifs depuis 60 jours.', roles: ['MANAGER'], defaults: { MANAGER: ['APP', 'EMAIL'] } },
   { id: 'REPORT_READY', label: 'Rapport prêt', description: 'Le rapport de la semaine ou du mois est disponible.', roles: ['MANAGER'], defaults: { MANAGER: ['APP', 'PUSH', 'EMAIL'] }, since: 'N4' },
   { id: 'LEAD_NEW', label: 'Nouveau prospect', description: 'Un établissement demande un pilote ou un devis.', roles: ['SUPER_ADMIN'], defaults: { SUPER_ADMIN: ['APP', 'PUSH', 'EMAIL'] } },
   { id: 'ERROR_SPIKE', label: 'Incident technique', description: 'Une erreur se répète dans l’application.', roles: ['SUPER_ADMIN'], defaults: { SUPER_ADMIN: ['APP', 'PUSH'] }, urgent: true }

@@ -18,3 +18,9 @@ export function segmentWhere(segment: CustomerSegment): Prisma.CustomerWhereInpu
     default: return {}
   }
 }
+
+/** Visiteurs passés par ces sites (ticket ou rendez-vous) ; null = tous les visiteurs de l'établissement. */
+export function customerScopeWhere(siteIds: string[] | null): Prisma.CustomerWhereInput {
+  if (!siteIds) return {}
+  return { OR: [{ tickets: { some: { queue: { branchId: { in: siteIds } } } } }, { appointments: { some: { branchId: { in: siteIds } } } }] }
+}

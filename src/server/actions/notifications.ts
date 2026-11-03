@@ -35,7 +35,7 @@ export async function getNotificationSettings() {
 }
 
 export async function setSmsTurnAlerts(enabled: boolean) {
-  const ctx = await getManagerContext()
+  const ctx = await getManagerContext('settings.manage')
   if (!ctx) return { success: false }
   await prisma.organization.update({ where: { id: ctx.orgId }, data: { smsTurnAlerts: !!enabled } })
   await audit({ action: 'NOTIFICATIONS_UPDATED', targetType: 'Organization', targetId: ctx.orgId, organizationId: ctx.orgId, details: `Alertes SMS : ${enabled ? 'activées' : 'désactivées'}` })

@@ -8,7 +8,8 @@ import { findOrCreateCustomer, mergeCustomers, refreshCustomerStats } from '@/li
 import { MAX_IMPORT_ROWS, type ImportRow } from '@/lib/customer-import'
 import { normalizePhone } from '@/lib/phone'
 import { TAG_COLORS } from '@/lib/customer-labels'
-import { SEGMENTS, segmentWhere, type CustomerSegment } from '@/lib/customer-segments'
+import type { Permission } from '@/lib/access-catalog'
+import { SEGMENTS, customerScopeWhere, segmentWhere, type CustomerSegment } from '@/lib/customer-segments'
 
 // Pilotage du fichier visiteurs (forfaits avec « Pilotage, import et export ») : tableau de bord, import CSV,
 // doublons et fusion, export. Réservé au responsable ; import, fusion et export sont inscrits au journal.
@@ -16,8 +17,8 @@ import { SEGMENTS, segmentWhere, type CustomerSegment } from '@/lib/customer-seg
 const DAY = 86400_000
 const upgrade = 'Le pilotage, l’import et l’export des visiteurs sont inclus à partir du forfait Pro (Abonnement).'
 
-async function insightsContext() {
-  const ctx = await getManagerContext()
+async function insightsContext(permission: Permission) {
+  const ctx = await getManagerContext(permission)
   if (!ctx) return null
   return { ...ctx, enabled: await hasFeature(ctx.orgId, 'CRM_INSIGHTS').catch(() => false) }
 }
@@ -29,28 +30,30 @@ const monthStart = (offset: number) => {
 
 /** Tableau de bord du fichier visiteurs : chiffres clés, 6 derniers mois, points d'attention. */
 export async function getCrmInsights() {
-  const ctx = await insightsContext()
+  const ctx = await insightsContext('stats.view')
   if (!ctx) return null
   if (!ctx.enabled) return { enabled: false as const }
   const org = { organizationId: ctx.orgId }
+  // Fiches visiteurs : limitées aux sites du membre
+  const people = { ...org, ...customerScopeWhere(ctx.siteIds) }
   const now = Date.now()
   const d90 = new Date(now - 90 * DAY)
   const thisMonth = monthStart(0)
   const from = monthStart(-5)
 
   const [total, active, returning, lost, newThisMonth, consenting, appts, noShows, ratings, lapsed, repeatNoShow, unhappy, dueFollowUps, openComplaints, monthly] = await Promise.all([
-    prisma.customer.count({ where: org }),
-    prisma.customer.count({ where: { ...org, lastVisitAt: { gte: d90 } } }),
-    prisma.customer.count({ where: { ...org, lastVisitAt: { gte: d90 }, visits: { gte: 2 } } }),
-    prisma.customer.count({ where: { ...org, visits: { gte: 1 }, lastVisitAt: { lt: d90 } } }),
-    prisma.customer.count({ where: { ...org, firstSeenAt: { gte: thisMonth } } }),
-    prisma.customer.count({ where: { ...org, consentAt: { not: null }, optedOutAt: null } }),
+    prisma.customer.count({ where: people }),
+    prisma.customer.count({ where: { ...people, lastVisitAt: { gte: d90 } } }),
+    prisma.customer.count({ where: { ...people, lastVisitAt: { gte: d90 }, visits: { gte: 2 } } }),
+    prisma.customer.count({ where: { ...people, visits: { gte: 1 }, lastVisitAt: { lt: d90 } } }),
+    prisma.customer.count({ where: { ...people, firstSeenAt: { gte: thisMonth } } }),
+    prisma.customer.count({ where: { ...people, consentAt: { not: null }, optedOutAt: null } }),
     prisma.appointment.count({ where: { ...org, scheduledDate: { gte: d90, lt: new Date() }, status: { in: ['COMPLETED', 'NO_SHOW', 'CONFIRMED'] } } }),
     prisma.appointment.count({ where: { ...org, scheduledDate: { gte: d90, lt: new Date() }, status: 'NO_SHOW' } }),
     prisma.ticket.aggregate({ where: { queue: { branch: { organizationId: ctx.orgId } }, npsScore: { not: null }, createdAt: { gte: d90 } }, _avg: { npsScore: true }, _count: { npsScore: true } }),
-    prisma.customer.count({ where: { ...org, ...segmentWhere('lapsed') } }),
-    prisma.customer.count({ where: { ...org, ...segmentWhere('noshow') } }),
-    prisma.customer.count({ where: { ...org, ...segmentWhere('unhappy') } }),
+    prisma.customer.count({ where: { ...people, ...segmentWhere('lapsed') } }),
+    prisma.customer.count({ where: { ...people, ...segmentWhere('noshow') } }),
+    prisma.customer.count({ where: { ...people, ...segmentWhere('unhappy') } }),
     prisma.customerFollowUp.count({ where: { ...org, status: 'OPEN', dueDate: { lte: new Date(now) } } }),
     prisma.complaint.count({ where: { ...org, status: 'OPEN' } }),
     // Par mois : visiteurs venus, dont nouveaux (premier passage ce mois-là), et passages
@@ -98,7 +101,7 @@ export async function getCrmInsights() {
 
 /** Analyse puis importe un lot de lignes (déjà lues et vérifiées dans le navigateur). dryRun : rien n'est écrit. */
 export async function importCustomers(rows: ImportRow[], opts: { dryRun: boolean }) {
-  const ctx = await insightsContext()
+  const ctx = await insightsContext('visitors.import')
   if (!ctx) return { success: false as const, error: 'Non autorisé' }
   if (!ctx.enabled) return { success: false as const, error: upgrade }
   if (!Array.isArray(rows) || rows.length > MAX_IMPORT_ROWS) return { success: false as const, error: `${MAX_IMPORT_ROWS} lignes au maximum par import` }
@@ -162,7 +165,7 @@ export async function importCustomers(rows: ImportRow[], opts: { dryRun: boolean
 }
 
 export async function getImportContext() {
-  const ctx = await insightsContext()
+  const ctx = await insightsContext('visitors.import')
   if (!ctx) return null
   const config = await prisma.platformConfig.findUnique({ where: { id: 'default' }, select: { defaultCountryCode: true } })
   return { enabled: ctx.enabled, countryCode: config?.defaultCountryCode ?? '+225' }
@@ -174,7 +177,7 @@ const simplify = (name: string | null) => (name ?? '').normalize('NFD').replace(
 
 /** Fiches qui semblent être la même personne : même nom (ordre des mots, accents et majuscules ignorés), ou compte sans numéro et fiche du même nom. */
 export async function findDuplicates() {
-  const ctx = await insightsContext()
+  const ctx = await insightsContext('visitors.import')
   if (!ctx) return null
   if (!ctx.enabled) return { enabled: false as const }
   const [customers, ignored] = await Promise.all([
@@ -208,7 +211,7 @@ export async function findDuplicates() {
 }
 
 export async function mergeDuplicate(keepId: string, removeId: string) {
-  const ctx = await insightsContext()
+  const ctx = await insightsContext('visitors.import')
   if (!ctx?.enabled) return { success: false as const, error: 'Non autorisé' }
   try {
     await mergeCustomers(ctx.orgId, keepId, removeId)
@@ -220,7 +223,7 @@ export async function mergeDuplicate(keepId: string, removeId: string) {
 }
 
 export async function ignoreDuplicate(aId: string, bId: string) {
-  const ctx = await insightsContext()
+  const ctx = await insightsContext('visitors.import')
   if (!ctx?.enabled) return { success: false as const, error: 'Non autorisé' }
   const [customerA, customerB] = [aId, bId].sort()
   const found = await prisma.customer.count({ where: { organizationId: ctx.orgId, id: { in: [customerA, customerB] } } })
@@ -241,12 +244,12 @@ const day = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : '')
 
 /** Export CSV (point-virgule, pour Excel) du segment ou de l'étiquette choisis. Inscrit au journal avec le nombre de fiches. */
 export async function exportCustomers(input: { segment?: CustomerSegment; tagId?: string | null }) {
-  const ctx = await insightsContext()
+  const ctx = await insightsContext('visitors.export')
   if (!ctx) return { success: false as const, error: 'Non autorisé' }
   if (!ctx.enabled) return { success: false as const, error: upgrade }
   const segment = input.segment && SEGMENTS.includes(input.segment) ? input.segment : 'all'
   const rows = await prisma.customer.findMany({
-    where: { organizationId: ctx.orgId, ...segmentWhere(segment), ...(input.tagId ? { tags: { some: { tagId: input.tagId } } } : {}) },
+    where: { organizationId: ctx.orgId, ...customerScopeWhere(ctx.siteIds), ...segmentWhere(segment), ...(input.tagId ? { tags: { some: { tagId: input.tagId } } } : {}) },
     orderBy: { lastSeenAt: 'desc' }, take: 20000,
     select: { name: true, phone: true, visits: true, noShows: true, ratingAvg: true, firstSeenAt: true, lastVisitAt: true, consentAt: true, optedOutAt: true, tags: { select: { tag: { select: { name: true } } } } }
   })

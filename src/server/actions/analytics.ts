@@ -74,7 +74,7 @@ function metrics(rows: Row[]): PeriodMetrics {
 
 export async function getAnalyticsSummary(days: PeriodDays = 7): Promise<AnalyticsSummary | null> {
   try {
-    const ctx = await getManagerContext()
+    const ctx = await getManagerContext('stats.view')
     if (!ctx) return null
     const period = ([1, 7, 30, 90] as const).includes(days) ? days : 7
 

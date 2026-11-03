@@ -37,11 +37,11 @@ const who = (c: Row) => ({
 
 /** Avis à traiter (les plus anciens d'abord) ou traités (les plus récents d'abord). */
 export async function listComplaints(status: 'OPEN' | 'CLOSED' = 'OPEN') {
-  const ctx = await getManagerContext()
+  const ctx = await getManagerContext('visitors.view')
   if (!ctx) return null
   const [items, open, overdue] = await Promise.all([
     prisma.complaint.findMany({
-      where: { organizationId: ctx.orgId, status },
+      where: { organizationId: ctx.orgId, status, ...(ctx.siteIds ? { ticket: { queue: { branchId: { in: ctx.siteIds } } } } : {}) },
       orderBy: status === 'OPEN' ? { createdAt: 'asc' } : { closedAt: 'desc' },
       take: 100, select: complaintSelect
     }),
@@ -53,23 +53,23 @@ export async function listComplaints(status: 'OPEN' | 'CLOSED' = 'OPEN') {
 
 /** Avis complet avec son historique de traitement. */
 export async function getComplaint(id: string) {
-  const ctx = await getManagerContext()
+  const ctx = await getManagerContext('visitors.view')
   if (!ctx) return null
   const c = await prisma.complaint.findFirst({
-    where: { id, organizationId: ctx.orgId },
+    where: { id, organizationId: ctx.orgId, ...(ctx.siteIds ? { ticket: { queue: { branchId: { in: ctx.siteIds } } } } : {}) },
     select: { ...complaintSelect, events: { orderBy: { createdAt: 'asc' }, select: { id: true, kind: true, text: true, authorName: true, createdAt: true } } }
   })
   return c ? { ...c, ...who(c) } : null
 }
 
 export async function getOpenComplaintsCount() {
-  const ctx = await getManagerContext()
+  const ctx = await getManagerContext('visitors.view')
   if (!ctx) return 0
   return prisma.complaint.count({ where: { organizationId: ctx.orgId, status: 'OPEN' } })
 }
 
 async function ownComplaint(id: string) {
-  const ctx = await getManagerContext()
+  const ctx = await getManagerContext('feedback.manage')
   if (!ctx) return null
   const c = await prisma.complaint.findFirst({ where: { id, organizationId: ctx.orgId }, select: { id: true } })
   if (!c) return null
@@ -137,7 +137,7 @@ const avg = (xs: number[]) => (xs.length ? Math.round((xs.reduce((a, b) => a + b
 
 /** Satisfaction sur 8 semaines : moyenne, répartition, par service, par guichet, par semaine, motifs et délai de traitement. */
 export async function getSatisfactionStats() {
-  const ctx = await getManagerContext()
+  const ctx = await getManagerContext('stats.view')
   if (!ctx) return null
   const since = weekStart(new Date(Date.now() - 7 * 7 * 86400_000))
   const [ratings, complaints, completed] = await Promise.all([

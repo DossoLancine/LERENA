@@ -62,7 +62,7 @@ const clean = (v: string | undefined | null, max = 120) => v?.trim().slice(0, ma
 
 /** Nouveau site ; ses services peuvent être copiés depuis le site actif. */
 export async function createSite(data: { name: string; address?: string; city?: string; phone?: string; copyServices?: boolean }) {
-  const ctx = await getManagerContext()
+  const ctx = await getManagerContext('settings.manage')
   if (!ctx) return { success: false as const, error: 'Non autorisé' }
   const name = clean(data.name, 60)
   if (!name) return { success: false as const, error: 'Donnez un nom au site' }
@@ -93,7 +93,7 @@ export async function createSite(data: { name: string; address?: string; city?: 
 }
 
 export async function updateSite(id: string, data: { name?: string; address?: string; city?: string; phone?: string; isActive?: boolean }) {
-  const ctx = await getManagerContext()
+  const ctx = await getManagerContext('settings.manage')
   if (!ctx) return { success: false, error: 'Non autorisé' }
   const site = await prisma.branch.findFirst({ where: { id, organizationId: ctx.orgId } })
   if (!site) return { success: false, error: 'Site introuvable' }
@@ -116,7 +116,7 @@ export async function updateSite(id: string, data: { name?: string; address?: st
 
 /** Suppression : seulement un site jamais utilisé (aucun ticket) et jamais le dernier. */
 export async function deleteSite(id: string) {
-  const ctx = await getManagerContext()
+  const ctx = await getManagerContext('settings.manage')
   if (!ctx) return { success: false, error: 'Non autorisé' }
   const [site, total, tickets] = await Promise.all([
     prisma.branch.findFirst({ where: { id, organizationId: ctx.orgId }, select: { id: true, name: true } }),

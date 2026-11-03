@@ -40,7 +40,7 @@ export async function getManagerStats() {
 // orgId est conservé pour compatibilité ; seule l'organisation du manager connecté est modifiée
 export async function toggleOrganizationStatus(_orgId: string, isOpen: boolean) {
   try {
-    const ctx = await getManagerContext()
+    const ctx = await getManagerContext('queue.manage')
     if (!ctx) return { success: false }
 
     await prisma.organization.update({

@@ -1,5 +1,6 @@
 'use server'
 
+import { scopedBranch } from '@/lib/sites'
 import { prisma } from "@/lib/prisma"
 import { ticketRoutes } from '@/lib/ticket-route'
 import { revalidatePath } from "next/cache"
@@ -23,7 +24,7 @@ export async function getAgentQueue(counterId?: string | null) {
     if (!ctx) return []
 
     const counter = counterId
-      ? await prisma.counter.findFirst({ where: { id: counterId, branch: { organizationId: ctx.orgId } }, select: { branchId: true } })
+      ? await prisma.counter.findFirst({ where: { id: counterId, branch: await scopedBranch(ctx.orgId) }, select: { branchId: true } })
       : null
     const queueIds = counter ? await siteQueueIds(ctx.orgId, counter.branchId) : await getOrgQueueIds(ctx.orgId)
     if (queueIds.length === 0) return []
@@ -59,12 +60,12 @@ export async function getAgentCounters() {
 
   const [counters, services] = await Promise.all([
     prisma.counter.findMany({
-      where: { isActive: true, branch: { organizationId: ctx.orgId } },
+      where: { isActive: true, branch: await scopedBranch(ctx.orgId) },
       orderBy: [{ branch: { createdAt: 'asc' } }, { name: 'asc' }],
       select: { id: true, name: true, serviceIds: true, branchId: true, branch: { select: { name: true } } }
     }),
     prisma.service.findMany({
-      where: { isActive: true, branch: { organizationId: ctx.orgId } },
+      where: { isActive: true, branch: await scopedBranch(ctx.orgId) },
       orderBy: { name: 'asc' },
       select: { id: true, name: true, branchId: true }
     })
@@ -84,17 +85,17 @@ export async function updateTicketStatus(
   counterId?: string
 ) {
   try {
-    const ctx = await getStaffContext()
+    const ctx = await getStaffContext('queue.serve')
     if (!ctx) return { success: false }
 
     const currentTicket = await prisma.ticket.findFirst({
-      where: { id: ticketId, queue: { branch: { organizationId: ctx.orgId } } }
+      where: { id: ticketId, queue: { branch: await scopedBranch(ctx.orgId) } }
     })
     if (!currentTicket) return { success: false }
 
     // Le guichet doit appartenir à l'établissement de l'agent
     const counter = counterId
-      ? await prisma.counter.findFirst({ where: { id: counterId, branch: { organizationId: ctx.orgId } }, select: { id: true, name: true } })
+      ? await prisma.counter.findFirst({ where: { id: counterId, branch: await scopedBranch(ctx.orgId) }, select: { id: true, name: true } })
       : null
 
     const now = new Date()
@@ -173,7 +174,7 @@ async function findOwnTicket(ticketId: string, orgId: string) {
 
 /** Rappel : la TV annonce à nouveau le numéro et le client reçoit une nouvelle alerte. */
 export async function recallTicket(ticketId: string) {
-  const ctx = await getStaffContext()
+  const ctx = await getStaffContext('queue.serve')
   if (!ctx) return { success: false }
   const ticket = await findOwnTicket(ticketId, ctx.orgId)
   if (!ticket || ticket.status !== 'CALLED') return { success: false }
@@ -193,7 +194,7 @@ export async function recallTicket(ticketId: string) {
 
 /** Reprise d'un ticket mis en pause : il revient au guichet qui l'avait appelé. */
 export async function resumeTicket(ticketId: string) {
-  const ctx = await getStaffContext()
+  const ctx = await getStaffContext('queue.serve')
   if (!ctx) return { success: false }
   const ticket = await findOwnTicket(ticketId, ctx.orgId)
   if (!ticket || ticket.status !== 'ON_HOLD') return { success: false }
@@ -209,13 +210,13 @@ export async function resumeTicket(ticketId: string) {
  * Le client garde son numéro et passe en fin de la nouvelle file, avec sa priorité.
  */
 export async function transferTicket(ticketId: string, toServiceId: string, note?: string) {
-  const ctx = await getStaffContext()
+  const ctx = await getStaffContext('queue.serve')
   if (!ctx) return { success: false, error: 'Non autorisé' }
 
   const [ticket, target] = await Promise.all([
     findOwnTicket(ticketId, ctx.orgId),
     prisma.service.findFirst({
-      where: { id: toServiceId, isActive: true, branch: { organizationId: ctx.orgId } },
+      where: { id: toServiceId, isActive: true, branch: await scopedBranch(ctx.orgId) },
       include: { branch: { include: { queues: true } } }
     })
   ])
@@ -258,7 +259,7 @@ export async function transferTicket(ticketId: string, toServiceId: string, note
 
 /** Note interne sur un ticket, visible des agents (utile lors d'un transfert). */
 export async function addTicketNote(ticketId: string, note: string) {
-  const ctx = await getStaffContext()
+  const ctx = await getStaffContext('queue.serve')
   if (!ctx) return { success: false }
   const clean = note.trim().slice(0, 500)
   if (!clean) return { success: false }
@@ -310,7 +311,7 @@ export async function getAgentStats() {
     if (!ctx) return fallback
 
     const today = startOfToday()
-    const orgScope = { branch: { organizationId: ctx.orgId } }
+    const orgScope = { branch: await scopedBranch(ctx.orgId) }
 
     const [servedToday, avg] = await Promise.all([
       prisma.ticket.count({

@@ -14,7 +14,7 @@ import { audienceWhere, inSendingHours, MAX_RECIPIENTS, messageValuesFor, proces
 const upgrade = 'Les campagnes SMS sont incluses à partir du forfait Pro (Abonnement).'
 
 async function campaignContext() {
-  const ctx = await getManagerContext()
+  const ctx = await getManagerContext('campaigns.manage')
   if (!ctx) return null
   return { ...ctx, enabled: await hasFeature(ctx.orgId, 'CRM_CAMPAIGNS').catch(() => false) }
 }
@@ -42,7 +42,7 @@ export async function getCampaigns() {
       where: { organizationId: ctx.orgId }, orderBy: { createdAt: 'desc' }, take: 50,
       select: { id: true, name: true, status: true, scheduledAt: true, finishedAt: true, recipients: true, sent: true, failed: true, skipped: true, unsubscribed: true, createdByName: true, createdAt: true }
     }),
-    prisma.customer.count({ where: audienceWhere(ctx.orgId, {}) }),
+    prisma.customer.count({ where: audienceWhere(ctx.orgId, {}, ctx.siteIds) }),
     prisma.customer.count({ where: { organizationId: ctx.orgId } }),
     balanceOf(ctx.orgId)
   ])
@@ -57,9 +57,9 @@ export async function getComposer() {
   const [org, tags, segmentCounts, balance, sample] = await Promise.all([
     prisma.organization.findUnique({ where: { id: ctx.orgId }, select: { name: true } }),
     prisma.customerTag.findMany({ where: { organizationId: ctx.orgId }, orderBy: { name: 'asc' }, select: { id: true, name: true, color: true } }),
-    Promise.all(SEGMENTS.map(s => prisma.customer.count({ where: audienceWhere(ctx.orgId, { segment: s }) }))),
+    Promise.all(SEGMENTS.map(s => prisma.customer.count({ where: audienceWhere(ctx.orgId, { segment: s }, ctx.siteIds) }))),
     balanceOf(ctx.orgId),
-    prisma.customer.findFirst({ where: audienceWhere(ctx.orgId, {}), orderBy: { lastSeenAt: 'desc' }, select: { id: true } })
+    prisma.customer.findFirst({ where: audienceWhere(ctx.orgId, {}, ctx.siteIds), orderBy: { lastSeenAt: 'desc' }, select: { id: true } })
   ])
   const orgName = org?.name ?? ''
   const values = sample ? await messageValuesFor(sample.id, ctx.orgId, orgName) : null
@@ -80,7 +80,7 @@ export async function getComposer() {
 export async function countAudience(target: CampaignTarget) {
   const ctx = await campaignContext()
   if (!ctx?.enabled) return 0
-  return prisma.customer.count({ where: audienceWhere(ctx.orgId, cleanTarget(target)) })
+  return prisma.customer.count({ where: audienceWhere(ctx.orgId, cleanTarget(target), ctx.siteIds) })
 }
 
 /** Recherche de visiteurs joignables pour une sélection à la main. */
@@ -91,7 +91,7 @@ export async function searchReachable(q: string) {
   if (term.length < 2) return []
   const digits = term.replace(/\D/g, '').replace(/^0+/, '')
   return prisma.customer.findMany({
-    where: { ...audienceWhere(ctx.orgId, {}), OR: [{ name: { contains: term, mode: 'insensitive' } }, ...(digits.length >= 3 ? [{ phone: { contains: digits } }] : [])] },
+    where: { ...audienceWhere(ctx.orgId, {}, ctx.siteIds), OR: [{ name: { contains: term, mode: 'insensitive' } }, ...(digits.length >= 3 ? [{ phone: { contains: digits } }] : [])] },
     take: 10, orderBy: { lastSeenAt: 'desc' }, select: { id: true, name: true, phone: true }
   })
 }
@@ -109,7 +109,7 @@ export async function createCampaign(input: { name: string; body: string; target
   if (scheduledAt.getTime() > Date.now() + 90 * 86400_000) return { success: false as const, error: 'Programmez l’envoi dans les 90 jours' }
 
   const target = cleanTarget(input.target)
-  const audience = await prisma.customer.findMany({ where: audienceWhere(ctx.orgId, target), select: { id: true }, take: MAX_RECIPIENTS })
+  const audience = await prisma.customer.findMany({ where: audienceWhere(ctx.orgId, target, ctx.siteIds), select: { id: true }, take: MAX_RECIPIENTS })
   if (audience.length === 0) return { success: false as const, error: 'Aucun visiteur de cette cible n’a accepté de recevoir vos messages' }
   const balance = await balanceOf(ctx.orgId)
   if (balance.total < audience.length) return { success: false as const, error: `Il vous reste ${balance.total} SMS pour ${audience.length} destinataires : achetez un pack dans Abonnement → Boutique` }

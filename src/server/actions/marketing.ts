@@ -157,7 +157,7 @@ export async function createPromotion(data: {
   imageUrl?: string
   price?: string
 }) {
-  const ctx = await getManagerContext()
+  const ctx = await getManagerContext('settings.manage')
   if (!ctx) return { success: false, error: "Non autorisé" }
   if (!data.title?.trim()) return { success: false, error: "Le titre est requis" }
   const limit = await checkLimit(() => assertFeature(ctx.orgId, 'TV_ADS'))
@@ -179,7 +179,7 @@ export async function createPromotion(data: {
 }
 
 export async function deletePromotion(id: string) {
-  const ctx = await getManagerContext()
+  const ctx = await getManagerContext('settings.manage')
   if (!ctx) return { success: false, error: "Non autorisé" }
 
   await prisma.promotion.deleteMany({

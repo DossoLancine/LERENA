@@ -2,7 +2,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { getReceptionContext } from '@/lib/session'
-import { branchFilter } from '@/lib/sites'
+import { branchFilter, scopedBranch } from '@/lib/sites'
 import { issueTicket, TicketError } from '@/lib/ticketing'
 import { normalizePhone } from '@/lib/phone'
 import { notifyOrg } from '@/lib/realtime'
@@ -66,7 +66,7 @@ export async function getRecentTickets() {
 
 /** Émet un ticket au comptoir et renvoie ce qu'il faut imprimer. */
 export async function issueReceptionTicket(input: { serviceId: string; priorityId?: string | null; name?: string; phone?: string }) {
-  const ctx = await getReceptionContext()
+  const ctx = await getReceptionContext('tickets.issue')
   if (!ctx) return { success: false as const, error: 'Non autorisé' }
 
   const phone = input.phone ? normalizePhone(input.phone) : null
@@ -116,7 +116,7 @@ export async function issueReceptionTicket(input: { serviceId: string; priorityI
 
 /** Change la priorité d'un ticket en attente (motif repéré à l'accueil) ; null = sans priorité. */
 export async function setTicketPriority(ticketId: string, priorityId: string | null) {
-  const ctx = await getReceptionContext()
+  const ctx = await getReceptionContext('tickets.issue')
   if (!ctx) return { success: false }
   let priority: Awaited<ReturnType<typeof resolvePriority>>
   try {
@@ -126,7 +126,7 @@ export async function setTicketPriority(ticketId: string, priorityId: string | n
   }
 
   const res = await prisma.ticket.updateMany({
-    where: { id: ticketId, status: 'WAITING', queue: { branch: { organizationId: ctx.orgId } } },
+    where: { id: ticketId, status: 'WAITING', queue: { branch: await scopedBranch(ctx.orgId) } },
     data: { priorityScore: priority.score, priorityReason: priority.reason }
   })
   if (res.count === 0) return { success: false }

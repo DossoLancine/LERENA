@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { getManagerContext } from '@/lib/session'
-import { branchFilter, siteForWrite } from '@/lib/sites'
+import { branchFilter, siteForWrite, scopedBranch } from '@/lib/sites'
 
 // Planning hebdomadaire des agents : qui tient quel guichet, et quand
 
@@ -44,7 +44,7 @@ export async function getWeekPlanning(monday: string) {
 }
 
 export async function addShift(input: { userId: string; counterId?: string | null; date: string; startTime: string; endTime: string }) {
-  const ctx = await getManagerContext()
+  const ctx = await getManagerContext('settings.manage')
   if (!ctx) return { success: false, error: 'Non autorisé' }
   if (!DAY_RE.test(input.date) || !TIME_RE.test(input.startTime) || !TIME_RE.test(input.endTime) || input.startTime >= input.endTime) {
     return { success: false, error: 'Horaires invalides : le début doit précéder la fin.' }
@@ -53,7 +53,7 @@ export async function addShift(input: { userId: string; counterId?: string | nul
   // L'agent et le guichet doivent appartenir à l'établissement
   const [member, counter, branch] = await Promise.all([
     prisma.organizationMember.findFirst({ where: { organizationId: ctx.orgId, userId: input.userId } }),
-    input.counterId ? prisma.counter.findFirst({ where: { id: input.counterId, branch: { organizationId: ctx.orgId } } }) : Promise.resolve(null),
+    input.counterId ? prisma.counter.findFirst({ where: { id: input.counterId, branch: await scopedBranch(ctx.orgId) } }) : Promise.resolve(null),
     // Site du créneau : celui du guichet choisi, sinon le site actif
     siteForWrite(ctx.orgId).then(id => (id ? { id } : null))
   ])
@@ -76,16 +76,16 @@ export async function addShift(input: { userId: string; counterId?: string | nul
 }
 
 export async function deleteShift(id: string) {
-  const ctx = await getManagerContext()
+  const ctx = await getManagerContext('settings.manage')
   if (!ctx) return { success: false }
-  const res = await prisma.shift.deleteMany({ where: { id, branch: { organizationId: ctx.orgId } } })
+  const res = await prisma.shift.deleteMany({ where: { id, branch: await scopedBranch(ctx.orgId) } })
   revalidatePath('/dashboard/planning')
   return { success: res.count > 0 }
 }
 
 /** Recopie les créneaux de la semaine précédente sur la semaine affichée (les jours vides seulement). */
 export async function copyPreviousWeek(monday: string) {
-  const ctx = await getManagerContext()
+  const ctx = await getManagerContext('settings.manage')
   if (!ctx || !DAY_RE.test(monday)) return { success: false, count: 0 }
 
   const start = new Date(`${monday}T00:00:00Z`)

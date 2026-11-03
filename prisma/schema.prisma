@@ -103,16 +103,25 @@ model Organization {
   followUps          CustomerFollowUp[]
   campaigns          Campaign[]
   complaints         Complaint[]
+  regions            Region[]
+  customRoles        CustomRole[]
   network            Network?             @relation(fields: [networkId], references: [id], onDelete: SetNull)
   sector             Sector?              @relation(fields: [sectorId], references: [id], onDelete: SetNull)
 }
 
 model OrganizationMember {
-  id             String   @id @default(cuid())
+  id             String    @id @default(cuid())
   userId         String
   organizationId String
-  role           String   @default("AGENT")
-  createdAt      DateTime @default(now())
+  role           String    @default("AGENT") // classe d'accès : MANAGER | RECEPTION | AGENT (écrans autorisés)
+  // Rôle détaillé (lib/access-catalog.ts) et périmètre : sites et régions ; les deux vides = tout l'établissement
+  accessRole     String?
+  customRoleId   String?
+  siteIds        String[]  @default([])
+  regionIds      String[]  @default([])
+  expiresAt      DateTime? // accès temporaire : coupé automatiquement à cette date
+  disabledAt     DateTime? // accès suspendu (revue des accès)
+  createdAt      DateTime  @default(now())
 
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -130,10 +139,12 @@ model Branch {
   lng            Float?
   phone          String?
   isActive       Boolean  @default(true)
+  regionId       String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
   organization  Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  region        Region?           @relation(fields: [regionId], references: [id], onDelete: SetNull)
   services      Service[]
   queues        Queue[]
   businessHours BusinessHour[]
@@ -1013,4 +1024,32 @@ model Integration {
   lastError  String?
   updatedBy  String?
   updatedAt  DateTime  @updatedAt
+}
+
+// Région : regroupement de sites (directeur régional)
+model Region {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  branches     Branch[]
+
+  @@unique([organizationId, name])
+}
+
+// Rôle sur mesure : copie d'un rôle de base avec ses propres droits
+model CustomRole {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  baseRole       String
+  permissions    String[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, name])
 }

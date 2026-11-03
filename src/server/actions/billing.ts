@@ -18,7 +18,7 @@ const DENIED = { success: false as const, error: 'Réservé au responsable de l�
 const fail = (e: unknown) => ({ success: false as const, error: e instanceof BillingError || e instanceof Error ? e.message : 'Opération impossible' })
 
 export async function getMyBilling() {
-  const ctx = await getManagerContext()
+  const ctx = await getManagerContext('billing.view')
   if (!ctx) return null
   const [billing, config, sms, plans, products, invoices, counters, services] = await Promise.all([
     getOrgBilling(ctx.orgId), getPlatformConfig(), smsAllowance(ctx.orgId),
@@ -66,7 +66,7 @@ export async function getBillingBanner() {
  * transmis à l'équipe Lerena pour un forfait sur devis.
  */
 export async function changeMyPlan(planId: string, cycle: 'MONTHLY' | 'YEARLY') {
-  const ctx = await getManagerContext()
+  const ctx = await getManagerContext('billing.manage')
   if (!ctx) return DENIED
   const plan = await prisma.plan.findFirst({ where: { id: planId, isActive: true, isPublic: true } })
   if (!plan) return { success: false as const, error: 'Forfait indisponible' }
@@ -99,7 +99,7 @@ export async function changeMyPlan(planId: string, cycle: 'MONTHLY' | 'YEARLY') 
 
 /** Commande au catalogue : crée la facture ; les SMS ou la mise en avant s'activent au paiement. */
 export async function orderProducts(items: { productId: string; qty: number; rental?: boolean }[]) {
-  const ctx = await getManagerContext()
+  const ctx = await getManagerContext('billing.manage')
   if (!ctx) return DENIED
   if (!items.length) return { success: false as const, error: 'Panier vide' }
   try {
@@ -112,7 +112,7 @@ export async function orderProducts(items: { productId: string; qty: number; ren
 
 /** « J'ai payé » : le paiement est vérifié puis enregistré par l'équipe Lerena. */
 export async function declarePayment(invoiceId: string, method: string, reference: string) {
-  const ctx = await getManagerContext()
+  const ctx = await getManagerContext('billing.manage')
   if (!ctx) return DENIED
   const invoice = await prisma.invoice.findFirst({ where: { id: invoiceId, organizationId: ctx.orgId }, select: { id: true, number: true, total: true, status: true, notes: true } })
   if (!invoice || invoice.status !== 'SENT') return { success: false as const, error: 'Facture introuvable ou déjà réglée' }
@@ -129,7 +129,7 @@ export async function declarePayment(invoiceId: string, method: string, referenc
 
 /** Facture imprimable : visible par l'établissement concerné et par l'équipe Lerena. */
 export async function getInvoiceDocument(invoiceId: string) {
-  const [admin, ctx] = await Promise.all([getSuperAdmin(), getManagerContext()])
+  const [admin, ctx] = await Promise.all([getSuperAdmin(), getManagerContext('billing.view')])
   const invoice = await prisma.invoice.findUnique({
     where: { id: invoiceId },
     include: { organization: { select: { id: true, name: true, address: true, city: true, phone: true, email: true } }, payments: { orderBy: { receivedAt: 'asc' } } }

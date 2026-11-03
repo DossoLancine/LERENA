@@ -16,6 +16,8 @@ import { getNewAppointmentsCount } from '@/server/actions/appointments'
 import { getDueFollowUpsCount } from '@/server/actions/customers'
 import { getOpenComplaintsCount } from '@/server/actions/feedback'
 import { COUNTS_EVENT } from '@/components/crm/parts'
+import { getMyAccess } from '@/server/actions/team'
+import { MENU_PERMISSIONS, type Permission } from '@/lib/access-catalog'
 import { usePathname } from 'next/navigation'
 import { usePolling } from '@/hooks/use-polling'
 
@@ -88,7 +90,11 @@ export function DashboardShell({ children }: { children: ReactNode }) {
     return () => window.removeEventListener(COUNTS_EVENT, refresh)
   }, [pathname])
   const counts: Record<string, number> = { '/dashboard/agenda': newAppts, '/dashboard/followups': dueFollowUps, '/dashboard/feedback': openComplaints }
-  const groups = GROUPS.map(g => ({ ...g, items: g.items.map(i => (i.href in counts ? { ...i, count: counts[i.href] } : i)) }))
+  // Menu selon les droits du rôle (un comptable ne voit pas les visiteurs, un auditeur pas les réglages…)
+  const [perms, setPerms] = useState<Permission[] | null>(null)
+  useEffect(() => { getMyAccess().then(a => setPerms(a?.permissions ?? null)).catch(() => null) }, [])
+  const allowed = (href: string) => !perms || !MENU_PERMISSIONS[href] || perms.includes(MENU_PERMISSIONS[href])
+  const groups = GROUPS.map(g => ({ ...g, items: g.items.filter(i => allowed(i.href)).map(i => (i.href in counts ? { ...i, count: counts[i.href] } : i)) })).filter(g => g.items.length)
 
   if (loading && !stats) return <DashboardSkeleton />
   const isOpen = !!stats?.isOpen

@@ -87,7 +87,7 @@ export async function getDeviceStatus(token: string) {
 
 /** Le responsable rattache l'appareil à son établissement en saisissant le code affiché. */
 export async function pairDevice(code: string, name: string, role?: DeviceType) {
-  const ctx = await getManagerContext()
+  const ctx = await getManagerContext('settings.manage')
   if (!ctx) return { success: false, error: 'Non autorisé' }
   const clean = code.replace(/\D/g, '')
   if (clean.length !== 6) return { success: false, error: 'Le code fait 6 chiffres' }
@@ -140,7 +140,7 @@ export async function listDevices() {
 }
 
 export async function renameDevice(id: string, name: string) {
-  const ctx = await getManagerContext()
+  const ctx = await getManagerContext('settings.manage')
   if (!ctx) return { success: false }
   const res = await prisma.device.updateMany({ where: { id, organizationId: ctx.orgId }, data: { name: name.trim().slice(0, 40) } })
   return { success: res.count > 0 }
@@ -148,7 +148,7 @@ export async function renameDevice(id: string, name: string) {
 
 /** Retire l'appareil : son jeton ne donne plus accès à rien, il revient à l'écran d'appairage. */
 export async function removeDevice(id: string) {
-  const ctx = await getManagerContext()
+  const ctx = await getManagerContext('settings.manage')
   if (!ctx) return { success: false }
   const res = await prisma.device.deleteMany({ where: { id, organizationId: ctx.orgId } })
   revalidatePath('/dashboard/settings/devices')
@@ -244,7 +244,7 @@ const SETUP_LINK_TTL_MIN = 30
 
 /** Nouveau lien d'installation pour l'établissement ; les liens précédents non utilisés sont annulés. */
 export async function createSetupLink() {
-  const ctx = await getManagerContext()
+  const ctx = await getManagerContext('settings.manage')
   if (!ctx) return null
   const now = new Date()
   await prisma.deviceSetupLink.updateMany({
@@ -280,7 +280,7 @@ export async function getSetupLinkState(id: string) {
 }
 
 export async function revokeSetupLink(id: string) {
-  const ctx = await getManagerContext()
+  const ctx = await getManagerContext('settings.manage')
   if (!ctx) return { success: false }
   await prisma.deviceSetupLink.updateMany({ where: { id, organizationId: ctx.orgId, usedAt: null }, data: { expiresAt: new Date() } })
   return { success: true }

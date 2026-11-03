@@ -3,7 +3,7 @@ import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { appUrl, sendSmsWithStatus } from '@/lib/messaging'
 import { normalizePhone } from '@/lib/phone'
-import { SEGMENTS, segmentWhere, type CustomerSegment } from '@/lib/customer-segments'
+import { SEGMENTS, customerScopeWhere, segmentWhere, type CustomerSegment } from '@/lib/customer-segments'
 import { firstNameOf, renderMessage, stopFooter } from '@/lib/campaign-text'
 import { notify } from '@/lib/notifications'
 
@@ -23,10 +23,11 @@ const STUCK_MS = 10 * 60_000
 export const inSendingHours = (d = new Date()) => d.getUTCHours() >= SEND_HOURS[0] && d.getUTCHours() < SEND_HOURS[1]
 
 /** Visiteurs joignables par campagne : accord donné, pas de « STOP », numéro connu. */
-export function audienceWhere(orgId: string, target: CampaignTarget): Prisma.CustomerWhereInput {
+export function audienceWhere(orgId: string, target: CampaignTarget, siteIds: string[] | null = null): Prisma.CustomerWhereInput {
   const segment = target.segment && SEGMENTS.includes(target.segment) ? target.segment : 'all'
   return {
     organizationId: orgId,
+    ...customerScopeWhere(siteIds),
     consentAt: { not: null },
     optedOutAt: null,
     phone: { not: null },

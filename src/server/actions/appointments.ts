@@ -67,7 +67,7 @@ export async function createGuestAppointment(input: { orgId: string; serviceId: 
 
 /** Réservation prise par l'accueil (au téléphone) : les règles de quota ne s'appliquent pas. */
 export async function createAppointmentByReception(input: { serviceId: string; scheduledDate: Date; name: string; phone: string }) {
-  const ctx = (await getReceptionContext()) ?? (await getManagerContext())
+  const ctx = (await getReceptionContext('appointments.book')) ?? (await getManagerContext())
   if (!ctx) return { success: false as const, error: 'Non autorisé' }
   const phone = normalizePhone(input.phone)
   if (!phone) return { success: false as const, error: 'Numéro de téléphone invalide' }
@@ -131,7 +131,7 @@ export async function rescheduleAppointmentByToken(token: string, scheduledDate:
 
 /** L'accueil signale l'arrivée (par la liste du jour ou le code à 6 chiffres). */
 export async function checkInAppointment(input: { id?: string; code?: string }) {
-  const ctx = (await getReceptionContext()) ?? (await getManagerContext())
+  const ctx = (await getReceptionContext('appointments.book')) ?? (await getManagerContext())
   if (!ctx) return { success: false as const, error: 'Non autorisé' }
   const appt = input.id
     ? await prisma.appointment.findFirst({ where: { id: input.id, organizationId: ctx.orgId }, select: { id: true } })
@@ -148,7 +148,7 @@ export async function checkInAppointment(input: { id?: string; code?: string }) 
 
 /** Rendez-vous du jour (site actif) pour l'accueil et le responsable. */
 export async function getTodayAppointments() {
-  const ctx = (await getReceptionContext()) ?? (await getManagerContext())
+  const ctx = (await getReceptionContext('appointments.view')) ?? (await getManagerContext())
   if (!ctx) return []
   await runAppointmentJobs().catch(() => null)
   const start = new Date(`${new Date().toISOString().slice(0, 10)}T00:00:00Z`)
@@ -170,7 +170,7 @@ export async function getTodayAppointments() {
 // orgId est conservé pour compatibilité ; seuls les rendez-vous du manager connecté sont lus
 export async function getAppointments(_orgId?: string) {
   try {
-    const ctx = await getManagerContext()
+    const ctx = await getManagerContext('appointments.view')
     if (!ctx) return { success: false, error: 'Unauthorized' }
 
     const appointments = await prisma.appointment.findMany({
@@ -190,7 +190,7 @@ export async function getAppointments(_orgId?: string) {
 
 export async function updateAppointmentStatus(id: string, status: string) {
   try {
-    const ctx = await getManagerContext()
+    const ctx = await getManagerContext('appointments.book')
     if (!ctx) return { success: false, error: 'Unauthorized' }
     if (!(APPOINTMENT_STATUSES as readonly string[]).includes(status)) {
       return { success: false, error: 'Statut invalide' }
@@ -211,7 +211,7 @@ export async function updateAppointmentStatus(id: string, status: string) {
 
 /** Indicateurs des 30 derniers jours : remplissage, absences, annulations. */
 export async function getAppointmentStats() {
-  const ctx = await getManagerContext()
+  const ctx = await getManagerContext('appointments.view')
   if (!ctx) return null
   const since = new Date(Date.now() - 30 * 86400_000)
   const rows = await prisma.appointment.groupBy({
@@ -245,7 +245,7 @@ export async function getAppointmentSettings() {
 const int = (v: unknown, min: number, max: number, def: number) => Math.min(max, Math.max(min, Math.round(Number(v)) || def))
 
 export async function updateAppointmentRules(data: { bookingMode: string; apptMaxActive: number; apptCancelHours: number; apptNoShowGraceMin: number; apptNoShowBlock: number; apptNoShowSms?: boolean }) {
-  const ctx = await getManagerContext()
+  const ctx = await getManagerContext('settings.manage')
   if (!ctx) return { success: false }
   const mode = ['QUEUE_ONLY', 'APPOINTMENT_ONLY', 'HYBRID'].includes(data.bookingMode) ? data.bookingMode : 'HYBRID'
   await prisma.organization.update({
@@ -264,7 +264,7 @@ export async function updateAppointmentRules(data: { bookingMode: string; apptMa
 }
 
 export async function updateServiceBooking(serviceId: string, data: { apptCapacity: number; apptLeadMin: number; apptHorizonDays: number }) {
-  const ctx = await getManagerContext()
+  const ctx = await getManagerContext('settings.manage')
   if (!ctx) return { success: false }
   const res = await prisma.service.updateMany({
     where: { id: serviceId, branch: { organizationId: ctx.orgId } },
@@ -274,7 +274,7 @@ export async function updateServiceBooking(serviceId: string, data: { apptCapaci
 }
 
 export async function addClosureDay(data: { date: string; label?: string; siteId?: string | null }) {
-  const ctx = await getManagerContext()
+  const ctx = await getManagerContext('settings.manage')
   if (!ctx) return { success: false, error: 'Non autorisé' }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(data.date)) return { success: false, error: 'Date invalide' }
   if (data.siteId && !(await prisma.branch.findFirst({ where: { id: data.siteId, organizationId: ctx.orgId } }))) return { success: false, error: 'Site introuvable' }
@@ -283,7 +283,7 @@ export async function addClosureDay(data: { date: string; label?: string; siteId
 }
 
 export async function removeClosureDay(id: string) {
-  const ctx = await getManagerContext()
+  const ctx = await getManagerContext('settings.manage')
   if (!ctx) return { success: false }
   const res = await prisma.closureDay.deleteMany({ where: { id, organizationId: ctx.orgId } })
   return { success: res.count > 0 }

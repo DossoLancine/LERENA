@@ -1,7 +1,7 @@
 // Guide d'utilisation affiché dans Paramètres → Guide d'utilisation.
 // À METTRE À JOUR à chaque évolution de l'application (nouvel écran, nouvelle étape, changement de nom).
 
-export const GUIDE_UPDATED_AT = '3 novembre 2026 (notifications, même application fermée)'
+export const GUIDE_UPDATED_AT = '3 novembre 2026 (équipe et accès : rôles, sites, régions)'
 
 export interface GuideSection {
   id: string
@@ -285,6 +285,21 @@ export const GUIDE: GuideSection[] = [
     tips: [
       'Après 5 erreurs de mot de passe, la connexion est bloquée 15 minutes pour ce compte.',
       'Clients : un code PIN d’au moins 6 chiffres. Personnel : un mot de passe de 8 caractères avec lettres et chiffres.'
+    ]
+  },
+  {
+    id: 'equipe-acces',
+    title: 'Équipe et accès',
+    intro: 'Paramètres → Équipe et accès. Chaque membre a un rôle et un périmètre : il ne voit et ne fait que ce dont il a besoin, sur ses sites (file, rendez-vous, visiteurs, avis, statistiques).',
+    steps: [
+      'Rôles : Propriétaire (tout, abonnement compris), Directeur général (tout piloter, sauf changer l’abonnement), Directeur régional, Responsable de site, Accueil, Agent de guichet, Caissier, Comptable (factures et statistiques, aucune donnée de visiteur), Auditeur (lecture seule). L’onglet « Rôles » montre, droit par droit, ce que chacun peut faire.',
+      '« Ajouter un membre » : nom, e-mail, rôle, puis périmètre (tout l’établissement, des régions ou des sites). Un mot de passe provisoire s’affiche une fois et part par e-mail ; il sera changé à la première connexion.',
+      'Accès temporaire (intérim, stage) : cochez la case et choisissez la date ; l’accès est coupé tout seul ce jour-là.',
+      '« Suspendre » coupe l’accès et ferme ses sessions tout de suite, sans supprimer son historique. Chaque mois, le Propriétaire et le DG reçoivent la liste des comptes inactifs depuis 60 jours.',
+      'Rôles sur mesure : partez d’un rôle et retirez des droits (ex. « Accueil sans export »).',
+      'Régions : regroupez vos sites (ex. « Abidjan Nord ») pour confier une région à un directeur régional.',
+      'Garde-fous : personne ne donne plus de droits qu’il n’en a ; seul un Propriétaire nomme un Propriétaire ; il reste toujours au moins un Propriétaire ; un responsable de site n’accorde des accès que sur ses sites.',
+      'Les comptes existants n’ont rien perdu : les responsables sont devenus Propriétaires, l’accueil et les agents gardent leur rôle sur tous les sites.'
     ]
   },
   {
