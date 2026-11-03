@@ -31,7 +31,8 @@ export async function runRetentionJobs() {
       where: { scheduledDate: { lt: cutoff }, OR: [{ guestName: { not: null } }, { guestPhone: { not: null } }, { userId: { not: null } }, { notes: { not: null } }] },
       data: { guestName: null, guestPhone: null, userId: null, notes: null, manageTokenHash: null, code: null }
     }),
-    prisma.notification.deleteMany({ where: { createdAt: { lt: cutoff } } })
+    // Cloche : 90 jours d'historique
+    prisma.notification.deleteMany({ where: { createdAt: { lt: ago(90) } } })
   ])
   // Fiches visiteurs sans passage ni rendez-vous depuis la durée réglée, sauf accord pour recevoir des messages
   const complaints = await prisma.complaint.deleteMany({ where: { createdAt: { lt: cutoff } } })

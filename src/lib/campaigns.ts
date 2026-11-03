@@ -5,6 +5,7 @@ import { appUrl, sendSmsWithStatus } from '@/lib/messaging'
 import { normalizePhone } from '@/lib/phone'
 import { SEGMENTS, segmentWhere, type CustomerSegment } from '@/lib/customer-segments'
 import { firstNameOf, renderMessage, stopFooter } from '@/lib/campaign-text'
+import { notify } from '@/lib/notifications'
 
 // Campagnes SMS (CRM, forfaits avec « Messages et campagnes ») : uniquement aux visiteurs qui ont donné leur accord
 // et ne l'ont pas retiré, avec lien de désinscription. Envoi par lots, entre 8 h et 20 h (heure d'Abidjan = UTC).
@@ -72,10 +73,16 @@ async function syncCounters(campaignId: string) {
   const groups = await prisma.campaignRecipient.groupBy({ by: ['status'], where: { campaignId }, _count: { _all: true } })
   const n = (s: string) => groups.find(g => g.status === s)?._count._all ?? 0
   const open = n('PENDING') + n('SENDING')
-  await prisma.campaign.update({
-    where: { id: campaignId },
-    data: { sent: n('SENT'), failed: n('FAILED'), skipped: n('SKIPPED'), ...(open === 0 ? { status: 'SENT', finishedAt: new Date() } : {}) }
-  })
+  if (open === 0) {
+    // Fin de l'envoi, une seule fois (la campagne passe de « en cours » à « envoyée »)
+    const finished = await prisma.campaign.updateMany({ where: { id: campaignId, status: { in: ['SCHEDULED', 'SENDING'] } }, data: { sent: n('SENT'), failed: n('FAILED'), skipped: n('SKIPPED'), status: 'SENT', finishedAt: new Date() } })
+    if (finished.count) {
+      const c = await prisma.campaign.findUnique({ where: { id: campaignId }, select: { name: true, organizationId: true, createdById: true } })
+      if (c) await notify({ event: 'CAMPAIGN_DONE', orgId: c.organizationId, ...(c.createdById ? { userIds: [c.createdById] } : {}), url: `/dashboard/campaigns/${campaignId}`, title: `Campagne envoyée : ${c.name}`, body: `${n('SENT')} envoyés · ${n('FAILED')} échecs · ${n('SKIPPED')} non envoyés` })
+    }
+    return
+  }
+  await prisma.campaign.update({ where: { id: campaignId }, data: { sent: n('SENT'), failed: n('FAILED'), skipped: n('SKIPPED') } })
 }
 
 /** Envoie un lot d'une campagne due. Appelé par les tâches automatiques et par la page de suivi tant qu'elle est ouverte. */

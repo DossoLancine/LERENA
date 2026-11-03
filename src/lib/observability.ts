@@ -59,6 +59,8 @@ async function alertIfNew(fingerprint: string) {
   const to = process.env.ALERT_EMAIL || config?.companyEmail
   if (!event || !to) return
   const { sendEmail, appUrl } = await import('@/lib/messaging')
+  const { notify } = await import('@/lib/notifications')
+  await notify({ event: 'ERROR_SPIKE', url: '/admin/health', groupKey: 'error', title: `Erreur ${event.source === 'SERVER' ? 'serveur' : 'navigateur'}`, groupTitle: n => `${n} nouvelles erreurs`, body: event.message.slice(0, 140) }).catch(() => null)
   await sendEmail({
     to, purpose: 'ANNOUNCEMENT',
     subject: `[Lerena] Nouvelle erreur ${event.source === 'SERVER' ? 'serveur' : 'navigateur'} : ${event.message.slice(0, 80)}`,

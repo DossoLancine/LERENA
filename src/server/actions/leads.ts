@@ -1,5 +1,6 @@
 'use server'
 
+import { notify } from '@/lib/notifications'
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { getSuperAdmin } from '@/lib/session'
@@ -33,6 +34,7 @@ export async function submitLead(input: { contactName: string; organization: str
   const lead = await prisma.lead.create({
     data: { contactName, organization, phone, email, sites, sector: clean(input.sector, 60), city: clean(input.city, 60), message: clean(input.message, 1000) }
   })
+  await notify({ event: 'LEAD_NEW', url: '/admin/leads', groupKey: 'lead-new', title: `Nouveau prospect : ${organization}`, groupTitle: n => `${n} nouveaux prospects`, body: `${contactName} · ${phone}${sites ? ` · ${sites} site${sites > 1 ? 's' : ''}` : ''}` })
   const config = await getPlatformConfig()
   const to = process.env.ALERT_EMAIL || config.companyEmail
   if (to) {

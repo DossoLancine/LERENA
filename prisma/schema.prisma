@@ -28,18 +28,19 @@ model User {
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
-  memberships        OrganizationMember[]
-  tickets            Ticket[]
-  appointments       Appointment[]
-  agentSessions      ServiceSession[]     @relation("AgentSessions")
-  favorites          Favorite[]
-  notifications      Notification[]
-  pushSubscriptions  PushSubscription[]
-  shifts             Shift[]
-  networkMemberships NetworkMember[]
-  passwordResets     PasswordReset[]
-  authSessions       AuthSession[]
-  customers          Customer[]
+  memberships          OrganizationMember[]
+  tickets              Ticket[]
+  appointments         Appointment[]
+  agentSessions        ServiceSession[]      @relation("AgentSessions")
+  favorites            Favorite[]
+  notifications        Notification[]
+  pushSubscriptions    PushSubscription[]
+  shifts               Shift[]
+  networkMemberships   NetworkMember[]
+  passwordResets       PasswordReset[]
+  authSessions         AuthSession[]
+  customers            Customer[]
+  notificationSettings NotificationSettings?
 }
 
 model Organization {
@@ -278,18 +279,39 @@ model Favorite {
   @@unique([userId, organizationId])
 }
 
+// Centre de notifications (cloche) : une ligne par personne et par événement, regroupées par groupKey
 model Notification {
-  id        String   @id @default(cuid())
-  userId    String
-  ticketId  String?
-  type      String
-  title     String
-  body      String
-  isRead    Boolean  @default(false)
-  createdAt DateTime @default(now())
+  id             String    @id @default(cuid())
+  userId         String
+  ticketId       String?
+  type           String // événement (voir lib/notification-events.ts)
+  title          String
+  body           String
+  url            String? // page ouverte au clic
+  organizationId String?
+  groupKey       String? // notifications du même type regroupées (« 3 nouveaux rendez-vous »)
+  count          Int       @default(1)
+  isRead         Boolean   @default(false)
+  readAt         DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @default(now()) @updatedAt
 
   user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   ticket Ticket? @relation(fields: [ticketId], references: [id])
+
+  @@index([userId, isRead, updatedAt])
+  @@index([userId, groupKey])
+}
+
+// Préférences de notification d'une personne : canaux par événement et heures de silence (heure d'Abidjan)
+model NotificationSettings {
+  userId    String   @id
+  prefs     Json     @default("{}") // { [événement]: ["APP", "PUSH", "EMAIL", "WHATSAPP"] }
+  quietFrom Int?     @default(21) // null = jamais de silence
+  quietTo   Int?     @default(7)
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // Abonnement aux notifications push d'un appareil, lié au ticket suivi
@@ -931,20 +953,21 @@ model CampaignRecipient {
 
 // Avis négatif à traiter (note de 2 étoiles ou moins, ou commentaire négatif) : appel, SMS, note, clôture avec motif
 model Complaint {
-  id             String    @id @default(cuid())
-  organizationId String
-  ticketId       String    @unique
-  customerId     String?
-  rating         Int
-  comment        String?
-  reason         String? // motif donné par le visiteur
-  status         String    @default("OPEN") // OPEN | CLOSED
-  closeReason    String? // WAIT | WELCOME | ERROR | CLEANLINESS | OTHER : cause retenue par l'établissement
-  resolution     String? // ce qui a été fait
-  closedAt       DateTime?
-  closedByName   String?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  id                String    @id @default(cuid())
+  organizationId    String
+  ticketId          String    @unique
+  customerId        String?
+  rating            Int
+  comment           String?
+  reason            String? // motif donné par le visiteur
+  status            String    @default("OPEN") // OPEN | CLOSED
+  closeReason       String? // WAIT | WELCOME | ERROR | CLEANLINESS | OTHER : cause retenue par l'établissement
+  resolution        String? // ce qui a été fait
+  closedAt          DateTime?
+  closedByName      String?
+  overdueNotifiedAt DateTime? // rappel « non traité sous 48 h » envoyé
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   ticket       Ticket           @relation(fields: [ticketId], references: [id], onDelete: Cascade)

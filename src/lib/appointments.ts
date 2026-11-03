@@ -9,6 +9,7 @@ import { hasFeature } from '@/lib/billing'
 import { attachAppointmentToCustomer, refreshCustomersOfAppointments } from '@/lib/customers'
 import { runFollowUpJobs } from '@/lib/followups'
 import { runCampaignJobs } from '@/lib/campaigns'
+import { notify } from '@/lib/notifications'
 
 // Rendez-vous : réservation, arrivée sur place (le RDV devient un ticket placé à son heure),
 // rappels automatiques et absences. Utilisé par l'application, les invités, l'accueil et la borne.
@@ -107,9 +108,17 @@ export async function bookAppointment(input: BookingInput) {
 async function alertTeamOfBooking(b: { orgId: string; orgName: string; siteName: string | null; serviceName: string; date: Date; visitor: string; phone: string | null | undefined; code: string }) {
   const org = await prisma.organization.findUnique({
     where: { id: b.orgId },
-    select: { email: true, members: { where: { role: { in: ['MANAGER', 'RECEPTION'] } }, select: { user: { select: { email: true } } } } }
+    select: { email: true, members: { select: { user: { select: { email: true } } } } }
   })
-  const recipients = Array.from(new Set([org?.email, ...(org?.members ?? []).map(m => m.user.email)].filter((e): e is string => !!e)))
+  // Équipe (responsables, accueil) : cloche, téléphone et e-mail selon les préférences de chacun
+  await notify({
+    event: 'APPOINTMENT_NEW', orgId: b.orgId, url: '/dashboard/agenda', groupKey: `appt-new:${b.orgId}`,
+    title: 'Nouveau rendez-vous', groupTitle: n => `${n} nouveaux rendez-vous`,
+    body: `${b.visitor} · ${b.serviceName}, ${fmt(b.date)}${b.siteName ? ` · ${b.siteName}` : ''}`
+  })
+  // Adresse générale de l'établissement, si ce n'est pas déjà celle d'un membre
+  const memberEmails = new Set((org?.members ?? []).map(m => m.user.email))
+  const recipients = org?.email && !memberEmails.has(org.email) ? [org.email] : []
   const text = `Nouveau rendez-vous chez ${b.orgName}${b.siteName ? ` (${b.siteName})` : ''}\n\n${b.visitor}${b.phone ? ` · ${b.phone}` : ''}\n${b.serviceName} — ${fmt(b.date)}\nCode d'arrivée : ${b.code}\n\nVoir l'agenda : ${appUrl()}/dashboard/agenda`
   for (const to of recipients) {
     await sendEmail({ to, purpose: 'APPOINTMENT_NEW', organizationId: b.orgId, subject: `Nouveau rendez-vous : ${b.serviceName}, ${fmt(b.date)}`, text })

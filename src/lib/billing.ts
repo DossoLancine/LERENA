@@ -148,11 +148,29 @@ export async function smsAllowance(orgId: string) {
 /** Réserve un SMS pour l'établissement : quota du mois d'abord, puis crédits achetés. false = plus de SMS. */
 export async function consumeSms(orgId: string) {
   const a = await smsAllowance(orgId)
-  if (a.includedLeft > 0) return true
+  if (a.includedLeft > 0) {
+    await warnSmsLow(orgId, a.includedLeft - 1 + a.credits)
+    return true
+  }
   const taken = await prisma.organization.updateMany({ where: { id: orgId, smsCredits: { gt: 0 } }, data: { smsCredits: { decrement: 1 } } })
   if (taken.count === 0) return false
   await prisma.smsLedger.create({ data: { organizationId: orgId, delta: -1, reason: 'SMS envoyé' } })
+  await warnSmsLow(orgId, a.credits - 1)
   return true
+}
+
+/** Alerte aux responsables quand il reste 20 SMS, puis quand il n'en reste plus (une fois par seuil et par mois). */
+async function warnSmsLow(orgId: string, remaining: number) {
+  if (remaining !== 20 && remaining !== 0) return
+  const month = new Date().toISOString().slice(0, 7)
+  const claimed = await prisma.jobRun.create({ data: { id: `sms-low:${orgId}:${month}:${remaining}`, lastRunAt: new Date() } }).then(() => true).catch(() => false)
+  if (!claimed) return
+  const { notify } = await import('@/lib/notifications')
+  await notify({
+    event: 'SMS_LOW', orgId, url: '/dashboard/billing',
+    title: remaining ? 'Plus que 20 SMS disponibles' : 'Plus aucun SMS disponible',
+    body: remaining ? 'Achetez un pack dans Abonnement → Boutique pour ne pas interrompre rappels et campagnes.' : 'Les rappels et campagnes par SMS sont en pause : achetez un pack dans Abonnement → Boutique.'
+  })
 }
 
 // ---- Factures ----
@@ -196,7 +214,11 @@ export async function createInvoice(input: {
     }
   }
   if (!invoice) throw new BillingError('Numérotation impossible, réessayez')
-  if (input.notify !== false) await notifyInvoice(invoice.id).catch(() => null)
+  if (input.notify !== false) {
+    await notifyInvoice(invoice.id).catch(() => null)
+    const { notify } = await import('@/lib/notifications')
+    await notify({ event: 'INVOICE_DUE', orgId: input.orgId, url: `/dashboard/billing/invoices/${invoice.id}`, title: `Facture ${invoice.number} : ${fcfa(invoice.total)}`, body: `À régler avant le ${invoice.dueAt.toLocaleDateString('fr-FR', { timeZone: 'UTC' })}.` }).catch(() => null)
+  }
   return invoice
 }
 

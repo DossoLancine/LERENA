@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { Printer, Plus, LogOut, Users, Clock, ChevronDown, Accessibility, Siren, UserRound, Contact, ListChecks } from 'lucide-react'
 import { getDueFollowUpsCount } from '@/server/actions/customers'
 import { TagChip } from '@/components/crm/parts'
+import { NotificationBell } from '@/components/notifications/notification-bell'
 import { getReceptionBoard, getRecentTickets, issueReceptionTicket, setTicketPriority } from '@/server/actions/reception'
 import { Button, TextInput, TicketStatusBadge, useToast } from '@/components/ui'
 import PhoneInput from '@/components/ui/phone-input'
@@ -123,6 +124,7 @@ export default function ReceptionPage() {
               <span className={cn('h-2 w-2 rounded-full', live ? 'bg-success animate-pulse' : 'bg-gray-400')} />
               {live ? t('reception.live') : t('reception.offline')}
             </span>
+            <NotificationBell align="right" />
             <Link href="/reception/followups" className="inline-flex items-center gap-1.5 rounded-xl border border-surface-line px-3 py-1.5 text-sm font-semibold text-ink hover:border-brand hover:text-brand">
               <ListChecks size={15} /> À faire{dueFollowUps > 0 && <span className="rounded-full bg-brand px-1.5 text-xs text-white tabular-nums">{dueFollowUps}</span>}
             </Link>

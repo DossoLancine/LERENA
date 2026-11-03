@@ -12,6 +12,7 @@ import {
 import { Badge } from '@/components/ui'
 import { cn } from '@/lib/cn'
 import { useSlidingIndicator } from '@/hooks/use-sliding-indicator'
+import { NotificationBell } from '@/components/notifications/notification-bell'
 
 // Icônes désignées par leur nom : les mises en page serveur ne peuvent pas transmettre de composants
 const ICONS = {
@@ -147,6 +148,8 @@ export function SidebarShell({ eyebrow, title, badge, groups, header, footer, on
               <ShieldCheck size={18} aria-hidden="true" />{!narrow && 'Mon compte'}
             </Link>
           )}
+          {/* Cloche : barre fixe sur ordinateur (sur téléphone, elle est dans l'en-tête) */}
+          <NotificationBell className="hidden lg:block" />
           <button type="button" onClick={() => signOut({ callbackUrl: '/pro/login' })} aria-label="Déconnexion" title="Déconnexion"
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-ink-muted hover:bg-danger-soft hover:text-danger">
             <LogOut size={18} aria-hidden="true" />
@@ -177,6 +180,7 @@ export function SidebarShell({ eyebrow, title, badge, groups, header, footer, on
         <div className="min-w-0">
           <p className="truncate text-[11px] font-medium text-ink-subtle">{title}</p>
           <p key={current?.href} className="animate-rise-in truncate text-sm font-bold text-ink">{current?.label ?? eyebrow}</p>
+          <NotificationBell align="right" className="ml-auto" />
         </div>
       </header>
       {drawer && (

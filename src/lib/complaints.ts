@@ -1,7 +1,8 @@
 import { prisma } from '@/lib/prisma'
-import { appUrl, sendEmail } from '@/lib/messaging'
+import { appUrl } from '@/lib/messaging'
 import { refreshCustomersOfTickets } from '@/lib/customers'
 import { FEEDBACK_REASONS, type FeedbackReason } from '@/lib/customer-labels'
+import { notify } from '@/lib/notifications'
 
 // Satisfaction et réclamations : la note donnée après le passage, avec commentaire et motif facultatifs.
 // Une note de 2 étoiles ou moins, ou un 3 accompagné d'un motif ou d'un commentaire négatif, ouvre un avis « à traiter ».
@@ -50,8 +51,6 @@ export async function recordRating(ticketId: string, score: number, extra: { com
 
 /** Les responsables sont prévenus par e-mail de chaque nouvel avis à traiter (objectif : réponse sous 48 h). */
 async function alertManagers(orgId: string, c: { id: string; orgName: string; site: string; score: number; comment: string | null; reason: string | null; ticket: string; service: string; counter: string | null }) {
-  const managers = await prisma.organizationMember.findMany({ where: { organizationId: orgId, role: 'MANAGER' }, select: { user: { select: { email: true } } } })
-  const to = Array.from(new Set(managers.map(m => m.user.email).filter((e): e is string => !!e)))
   const text = [
     `Avis à traiter chez ${c.orgName} (${c.site})`, '',
     `${c.score} étoile${c.score > 1 ? 's' : ''} sur 5${c.reason ? ` · ${FEEDBACK_REASONS[c.reason as FeedbackReason]}` : ''}`,
@@ -60,5 +59,9 @@ async function alertManagers(orgId: string, c: { id: string; orgName: string; si
     `Ticket ${c.ticket} · ${c.service}${c.counter ? ` · ${c.counter}` : ''}`, '',
     `Traiter l'avis : ${appUrl()}/dashboard/feedback?id=${c.id}`
   ].join('\n')
-  for (const email of to) await sendEmail({ to: email, subject: `Avis à traiter : ${c.score}/5, ${c.service}`, text, purpose: 'COMPLAINT_NEW', organizationId: orgId })
+  await notify({
+    event: 'COMPLAINT_NEW', orgId, url: `/dashboard/feedback?id=${c.id}`,
+    title: `Avis à traiter : ${c.score}/5, ${c.service}`,
+    body: text.split('\n').slice(2, 4).filter(Boolean).join(' · ')
+  })
 }

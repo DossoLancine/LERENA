@@ -1,7 +1,7 @@
 // Guide d'utilisation affiché dans Paramètres → Guide d'utilisation.
 // À METTRE À JOUR à chaque évolution de l'application (nouvel écran, nouvelle étape, changement de nom).
 
-export const GUIDE_UPDATED_AT = '3 novembre 2026 (fichier visiteurs complet : pilotage, import, doublons, export)'
+export const GUIDE_UPDATED_AT = '3 novembre 2026 (notifications, même application fermée)'
 
 export interface GuideSection {
   id: string
@@ -285,6 +285,19 @@ export const GUIDE: GuideSection[] = [
     tips: [
       'Après 5 erreurs de mot de passe, la connexion est bloquée 15 minutes pour ce compte.',
       'Clients : un code PIN d’au moins 6 chiffres. Personnel : un mot de passe de 8 caractères avec lettres et chiffres.'
+    ]
+  },
+  {
+    id: 'cloche',
+    title: 'Notifications de l’équipe (même application fermée)',
+    intro: 'La cloche, en bas de la barre de menu (en haut sur téléphone, au guichet et à l’accueil), réunit tout ce qui demande votre attention : nouveaux rendez-vous, avis négatifs, suivis du jour, campagnes terminées, SMS bientôt épuisés, factures.',
+    steps: [
+      'Touchez la cloche : la liste s’ouvre, un appui mène directement à la bonne page. « Tout lu » vide le compteur.',
+      'Recevoir les alertes application fermée : touchez « Activer » dans la cloche, puis acceptez. Android et ordinateur : c’est tout. iPhone (iOS 16.4 ou plus) : touchez d’abord Partager puis « Sur l’écran d’accueil », ouvrez Lerena depuis l’icône, puis activez.',
+      'Choisir ce que vous recevez : la roue dentée de la cloche (ou Mon compte → Notifications). Pour chaque événement, cochez Téléphone, E-mail ou WhatsApp ; la cloche garde toujours tout.',
+      'Heures de silence (21 h – 7 h par défaut) : rien sur le téléphone ni par WhatsApp, sauf les urgences signalées par ⚠ (attente trop longue, site sans guichet).',
+      'Plusieurs événements du même type sont regroupés (« 3 nouveaux rendez-vous ») et l’e-mail ne part qu’une fois.',
+      '« Tester » envoie une notification sur vos appareils pour vérifier que tout fonctionne.'
     ]
   },
   {

@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { appUrl, sendSmsMessage } from '@/lib/messaging'
 import { hasFeature } from '@/lib/billing'
+import { notify } from '@/lib/notifications'
 
 // Suivis et relances (CRM, forfaits avec « Suivis et relances ») : rappel SMS du jour d'un suivi,
 // SMS au visiteur absent à son rendez-vous pour reprogrammer, étiquette « Absences répétées ».
@@ -72,7 +73,45 @@ export async function runFollowUpJobs(now = new Date()) {
     }
   }
 
-  return { followUpReminders: reminders, noShowSms }
+  // 3. Équipe : avis non traités sous 48 h, et chaque matin les suivis du jour
+  const overdue = await notifyOverdueComplaints(now)
+  const followUpNotices = now.getUTCHours() >= SEND_FROM_HOUR ? await notifyDueFollowUps(now) : 0
+
+  return { followUpReminders: reminders, noShowSms, overdueComplaints: overdue, followUpNotices }
+}
+
+async function notifyOverdueComplaints(now: Date) {
+  const late = await prisma.complaint.findMany({
+    where: { status: 'OPEN', overdueNotifiedAt: null, createdAt: { lt: new Date(now.getTime() - 2 * DAY) } },
+    select: { id: true, organizationId: true, rating: true, ticket: { select: { service: { select: { name: true } } } } },
+    take: 200
+  })
+  for (const c of late) {
+    const claimed = await prisma.complaint.updateMany({ where: { id: c.id, overdueNotifiedAt: null }, data: { overdueNotifiedAt: now } })
+    if (claimed.count === 0) continue
+    await notify({
+      event: 'COMPLAINT_OVERDUE', orgId: c.organizationId, url: `/dashboard/feedback?id=${c.id}`, groupKey: `complaint-late:${c.organizationId}`,
+      title: 'Avis non traité depuis 48 h', groupTitle: n => `${n} avis non traités depuis 48 h`,
+      body: `${c.rating}/5 · ${c.ticket.service.name} : le visiteur attend une réponse.`
+    })
+  }
+  return late.length
+}
+
+async function notifyDueFollowUps(now: Date) {
+  const today = startOfDayUtc(now)
+  const key = today.toISOString().slice(0, 10)
+  const groups = await prisma.customerFollowUp.groupBy({ by: ['organizationId'], where: { status: 'OPEN', dueDate: { lte: today } }, _count: { _all: true } })
+  let sent = 0
+  for (const g of groups) {
+    // Une seule fois par jour et par établissement (la ligne de JobRun sert de verrou)
+    const claimed = await prisma.jobRun.create({ data: { id: `followup-notice:${g.organizationId}:${key}`, lastRunAt: now } }).then(() => true).catch(() => false)
+    if (!claimed) continue
+    const n = g._count._all
+    await notify({ event: 'FOLLOWUP_DUE', orgId: g.organizationId, url: '/dashboard/followups', title: `${n} suivi${n > 1 ? 's' : ''} à faire aujourd’hui`, body: 'Appelez, puis cochez : ils passent dans « Faits ».' })
+    sent++
+  }
+  return sent
 }
 
 /**

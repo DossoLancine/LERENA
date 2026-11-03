@@ -19,6 +19,7 @@ import { haptics } from '@/lib/haptics'
 import type { TicketStatus } from '@/lib/constants'
 import { cn } from '@/lib/cn'
 import { TagChip } from '@/components/crm/parts'
+import { NotificationBell } from '@/components/notifications/notification-bell'
 import { priorityText } from '@/lib/priority-text'
 import { t } from '@/lib/i18n'
 
@@ -275,6 +276,7 @@ export default function AgentPage() {
             </button>
           </div>
           <div className="flex items-center gap-1.5">
+            <NotificationBell align="right" />
             <span className={cn('mr-1 h-2 w-2 rounded-full', live ? 'bg-success animate-pulse' : 'bg-gray-400')} aria-hidden="true" />
             <button onClick={() => saveUi({ ...ui, compact: !ui.compact })} aria-label={t('agent.compact')} title={t('agent.compact')}
               className={cn('flex h-9 w-9 items-center justify-center rounded-full', dark ? 'bg-gray-700 text-gray-200' : 'bg-gray-100 text-gray-700')}>
