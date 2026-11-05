@@ -516,6 +516,7 @@ model AuthSession {
   createdAt  DateTime  @default(now())
   lastSeenAt DateTime  @default(now())
   revokedAt  DateTime?
+  method     String? // PASSWORD | PHONE_CODE | EMAIL_LINK | GOOGLE | MICROSOFT
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -1026,7 +1027,7 @@ model CustomerDuplicateIgnore {
 // Connecteur vers un service extérieur (e-mail, SMS, WhatsApp, push, IA, paiement, connexion), réglé depuis la console.
 // Les clés sont chiffrées ; en mode SIMULATION rien ne part, tout est journalisé.
 model Integration {
-  kind       String    @id // EMAIL | SMS | WHATSAPP | PUSH | AI | PAYMENT | AUTH
+  kind       String    @id // EMAIL | SMS | WHATSAPP | PUSH | AI | PAYMENT | AUTH (Google) | AUTH_MICROSOFT
   provider   String
   mode       String    @default("SIMULATION") // SIMULATION | LIVE
   settings   Json      @default("{}") // réglages non secrets (expéditeur, hôte, identifiants publics)
@@ -1260,4 +1261,17 @@ model MessagingSettings {
   updatedAt       DateTime @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+// Lien de connexion envoyé par e-mail (N9) : empreinte seulement, valable 15 minutes, une seule fois
+model LoginToken {
+  id          String    @id @default(cuid())
+  email       String
+  tokenHash   String    @unique
+  acceptTerms Boolean   @default(false) // conditions acceptées à la demande (création de compte au premier lien)
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([email, createdAt])
 }

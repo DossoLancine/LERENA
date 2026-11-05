@@ -7,7 +7,9 @@ import { ArrowLeft, Zap, Briefcase, Headphones, User } from 'lucide-react'
 import PhoneInput from '@/components/ui/phone-input'
 import { homeForRole } from '@/lib/constants'
 import { getPublicConfig } from '@/server/actions/platform'
-import { signInWithCredentials } from '@/lib/sign-in'
+import { destinationAfterSignIn, signInWithCredentials, SSO_ERRORS } from '@/lib/sign-in'
+import { getSignInMethods } from '@/server/actions/sign-in'
+import { CodeSignIn, EmailLinkSignIn, SsoButtons } from '@/components/auth/passwordless'
 import { LegalLinks } from '@/components/legal/legal-links'
 
 function LoginForm() {
@@ -15,6 +17,12 @@ function LoginForm() {
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get('callbackUrl')
   const justReset = searchParams.get('reset') === '1'
+  const ssoError = searchParams.get('error')
+  // Méthodes proposées selon les connecteurs branchés : code (par défaut s'il existe), lien e-mail, Google, code PIN
+  const [methods, setMethods] = useState<Awaited<ReturnType<typeof getSignInMethods>> | null>(null)
+  const [mode, setMode] = useState<'code' | 'email' | 'pin'>('pin')
+  useEffect(() => { getSignInMethods().then(m => { setMethods(m); if (m.phoneCode) setMode('code') }).catch(() => null) }, [])
+  const afterSignIn = async () => { router.push(callbackUrl || await destinationAfterSignIn(homeForRole as never)); router.refresh() }
   
   const [email, setEmail] = useState('')
   const [demoMode, setDemoMode] = useState(false)
@@ -91,7 +99,7 @@ function LoginForm() {
       <div className="flex-1 px-6 py-6 max-w-md mx-auto w-full flex flex-col justify-center">
         <div className="mb-6">
           <h1 className="font-display text-[32px] font-extrabold leading-tight tracking-tight text-ink">Content de vous revoir</h1>
-          <p className="mt-1 text-sm text-ink-muted">Votre numéro et votre code PIN, et c’est parti.</p>
+          <p className="mt-1 text-sm text-ink-muted">{mode === 'code' ? 'Votre numéro, un code reçu par message, et c’est parti.' : mode === 'email' ? 'Un lien de connexion dans votre messagerie.' : 'Votre numéro et votre code PIN, et c’est parti.'}</p>
         </div>
 
         {/* Compte démo : affiché seulement en mode démo */}
@@ -114,13 +122,26 @@ function LoginForm() {
 
         {justReset && !error && <p role="status" className="mb-4 rounded-xl bg-green-50 p-3 text-sm font-medium text-green-800">Mot de passe modifié : connectez-vous avec le nouveau.</p>}
 
-        {error && (
+        {ssoError && !error && <p role="alert" className="mb-4 rounded-xl border border-red-100 bg-red-50 p-3 text-sm font-medium text-red-600">{SSO_ERRORS[ssoError] ?? 'La connexion n’a pas abouti : réessayez.'}</p>}
+
+        {methods && (methods.phoneCode || methods.emailLink) && (
+          <nav className="mb-5 grid grid-cols-3 gap-1 rounded-2xl bg-white/80 p-1 text-sm font-semibold ring-1 ring-black/5" aria-label="Méthode de connexion">
+            {([['code', 'Code reçu', !!methods.phoneCode], ['email', 'E-mail', !!methods.emailLink], ['pin', 'Code PIN', true]] as const).filter(m => m[2]).map(([id, label]) => (
+              <button key={id} type="button" onClick={() => { setMode(id); setError('') }} aria-pressed={mode === id} className={`rounded-xl px-2 py-2 ${mode === id ? 'bg-ink text-white' : 'text-ink-muted'}`}>{label}</button>
+            ))}
+          </nav>
+        )}
+
+        {mode === 'code' && methods?.phoneCode && <CodeSignIn simulated={methods.phoneCode.simulated} onSignedIn={afterSignIn} />}
+        {mode === 'email' && methods?.emailLink && <EmailLinkSignIn simulated={methods.emailLink.simulated} />}
+
+        {mode === 'pin' && error && (
           <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-xl text-sm font-medium border border-red-100">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        {mode === 'pin' && <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="login-phone" className="block text-sm font-medium text-gray-700 mb-1">Numéro de téléphone</label>
             <PhoneInput id="login-phone"
@@ -162,7 +183,14 @@ function LoginForm() {
               <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
             ) : "Continuer"}
           </button>
-        </form>
+        </form>}
+
+        {methods && (methods.google) && (
+          <div className="mt-6">
+            <p className="mb-3 flex items-center gap-3 text-xs text-ink-subtle"><span className="h-px flex-1 bg-gray-200" />ou<span className="h-px flex-1 bg-gray-200" /></p>
+            <SsoButtons google={methods.google} microsoft={false} note="En continuant avec Google, vous acceptez les conditions d’utilisation et la politique de confidentialité." />
+          </div>
+        )}
 
         <p className="text-center mt-8 text-sm text-gray-500">
           Nouveau sur Lerena ?{' '}

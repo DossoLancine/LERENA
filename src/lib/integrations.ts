@@ -121,7 +121,7 @@ export async function recordIntegrationTest(kind: IntegrationKind, ok: boolean, 
 /** Vue de la console : réglages visibles, secrets seulement signalés (jamais renvoyés). */
 export async function describeIntegrations() {
   const rows = await prisma.integration.findMany()
-  const kinds: IntegrationKind[] = ['EMAIL', 'SMS', 'WHATSAPP', 'PUSH', 'AI', 'PAYMENT', 'AUTH']
+  const kinds: IntegrationKind[] = ['EMAIL', 'SMS', 'WHATSAPP', 'PUSH', 'AI', 'PAYMENT', 'AUTH', 'AUTH_MICROSOFT']
   return Promise.all(kinds.map(async kind => {
     clearIntegrationCache(kind)
     const r = await getIntegration(kind)

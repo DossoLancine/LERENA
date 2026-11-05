@@ -5,6 +5,11 @@ import bcrypt from "bcryptjs"
 import { clearFailures, clientIp, isLocked, LOCKED_MESSAGE, recordFailure } from "./login-guard"
 import { decryptSecret, hashRecoveryCode, verifyTotp } from "./totp"
 import { STAFF_ROLES, type Role } from "./constants"
+import { normalizePhone } from "./phone"
+import { verifyOtp } from "./otp"
+import { hashSecret, isPlausibleSecret } from "./secrets"
+import { openSession, passwordlessAllowed, ssoAllowed, type SignInMethod } from "./auth-methods"
+import { TERMS_VERSION } from "@/app/legal/content"
 
 // Clé de signature des sessions : obligatoire, jamais écrite dans le code
 const secret = process.env.NEXTAUTH_SECRET
@@ -33,6 +38,14 @@ async function checkSecondFactor(user: { id: string; twoFactorSecret: string | n
     return true
   }
   return false
+}
+
+/** Utilisateur tel que transmis au jeton de session. */
+function sessionUser(user: { id: string; name: string | null; email: string | null; image: string | null; role: string; sessionVersion: number; mustChangePassword: boolean; twoFactorEnabled: boolean }, sid: string) {
+  return {
+    id: user.id, name: user.name, email: user.email, image: user.image, role: user.role,
+    sid, sv: user.sessionVersion, mcp: user.mustChangePassword, tfa: user.twoFactorEnabled
+  } as any
 }
 
 export const authOptions: NextAuthOptions = {
@@ -82,28 +95,99 @@ export const authOptions: NextAuthOptions = {
 
         // Une session par appareil : listée et révocable dans « Sécurité du compte »
         const ua = typeof headers?.['user-agent'] === 'string' ? (headers['user-agent'] as string).slice(0, 200) : null
-        const [session] = await Promise.all([
-          prisma.authSession.create({ data: { userId: user.id, userAgent: ua, ip }, select: { id: true } }),
-          prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } })
-        ])
+        const sid = await openSession(user.id, 'PASSWORD', { userAgent: ua, ip })
+        return sessionUser(user, sid)
+      }
+    }),
 
-        return {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          image: user.image,
-          role: user.role,
-          sid: session.id,
-          sv: user.sessionVersion,
-          mcp: user.mustChangePassword,
-          tfa: user.twoFactorEnabled
-        } as any
+    // Code reçu par SMS ou WhatsApp (visiteurs) : connexion sans mot de passe, compte créé au premier code
+    CredentialsProvider({
+      id: 'phone-code',
+      name: 'Code',
+      credentials: { phone: { type: 'text' }, code: { type: 'text' }, acceptTerms: { type: 'text' }, name: { type: 'text' } },
+      async authorize(credentials, req) {
+        const phone = normalizePhone(credentials?.phone)
+        const code = credentials?.code?.trim() ?? ''
+        if (!phone || !/^\d{6}$/.test(code)) throw new Error('Code incorrect ou expiré')
+        const headers = req?.headers as Record<string, unknown> | undefined
+        const ip = clientIp(headers)
+        if (await isLocked(phone, ip)) throw new Error(LOCKED_MESSAGE)
+        let user = await prisma.user.findUnique({ where: { phone } })
+        // Nouveau numéro : les conditions doivent être acceptées avant de consommer le code
+        if (!user && credentials?.acceptTerms !== 'true') throw new Error('TERMS_REQUIRED')
+        if (!(await verifyOtp(phone, 'LOGIN', code))) {
+          await recordFailure(phone, ip)
+          throw new Error('Code incorrect ou expiré')
+        }
+        if (user && !passwordlessAllowed(user.role)) throw new Error('Les comptes d’équipe se connectent avec leur mot de passe, sur l’espace Pro.')
+        if (!user) {
+          const name = credentials?.name?.trim().slice(0, 80) || null
+          user = await prisma.user.create({ data: { phone, name, role: 'CLIENT', termsAcceptedAt: new Date(), termsVersion: TERMS_VERSION } })
+        }
+        await clearFailures(phone)
+        const ua = typeof headers?.['user-agent'] === 'string' ? (headers['user-agent'] as string) : null
+        return sessionUser(user, await openSession(user.id, 'PHONE_CODE', { userAgent: ua, ip }))
+      }
+    }),
+
+    // Lien reçu par e-mail (visiteurs) : valable 15 minutes, une seule fois
+    CredentialsProvider({
+      id: 'email-link',
+      name: 'Lien',
+      credentials: { token: { type: 'text' } },
+      async authorize(credentials, req) {
+        const token = credentials?.token
+        if (!isPlausibleSecret(token)) throw new Error('Lien invalide ou expiré')
+        const entry = await prisma.loginToken.findUnique({ where: { tokenHash: hashSecret(token) } })
+        if (!entry || entry.usedAt || entry.expiresAt < new Date()) throw new Error('Lien invalide ou expiré : demandez-en un nouveau.')
+        const claimed = await prisma.loginToken.updateMany({ where: { id: entry.id, usedAt: null }, data: { usedAt: new Date() } })
+        if (claimed.count !== 1) throw new Error('Ce lien a déjà servi : demandez-en un nouveau.')
+        let user = await prisma.user.findUnique({ where: { email: entry.email } })
+        if (user && !passwordlessAllowed(user.role)) throw new Error('Les comptes d’équipe se connectent avec leur mot de passe, sur l’espace Pro.')
+        if (!user) {
+          if (!entry.acceptTerms) throw new Error('Lien invalide ou expiré')
+          user = await prisma.user.create({ data: { email: entry.email, role: 'CLIENT', termsAcceptedAt: new Date(), termsVersion: TERMS_VERSION } })
+        }
+        const headers = req?.headers as Record<string, unknown> | undefined
+        const ua = typeof headers?.['user-agent'] === 'string' ? (headers['user-agent'] as string) : null
+        return sessionUser(user, await openSession(user.id, 'EMAIL_LINK', { userAgent: ua, ip: clientIp(headers) }))
       }
     })
   ],
   callbacks: {
-    async jwt({ token, user, trigger }) {
+    /**
+     * Google ou Microsoft : adresse vérifiée exigée. Google crée un compte visiteur au besoin ;
+     * Microsoft (entreprises) n'ouvre que les comptes d'équipe déjà inscrits avec cette adresse.
+     */
+    async signIn({ account, profile, user }) {
+      if (account?.type !== 'oauth') return true
+      const p = (profile ?? {}) as { email?: string; email_verified?: boolean; name?: string; picture?: string }
+      const email = (user?.email ?? p.email ?? '').toLowerCase()
+      const back = account.provider === 'azure-ad' ? '/pro/login' : '/auth/login'
+      if (!email || (account.provider === 'google' && p.email_verified === false)) return `${back}?error=SSO_NO_EMAIL`
+      const existing = await prisma.user.findUnique({ where: { email }, select: { id: true, role: true } })
+      if (existing) return ssoAllowed(existing.role) ? true : `${back}?error=SSO_ROLE`
+      if (account.provider !== 'google') return `${back}?error=SSO_UNKNOWN`
+      await prisma.user.create({ data: { email, name: user?.name ?? p.name ?? null, image: user?.image ?? p.picture ?? null, role: 'CLIENT', termsAcceptedAt: new Date(), termsVersion: TERMS_VERSION } })
+      return true
+    },
+    async jwt({ token, user, trigger, account }) {
       const t = token as any
+      if (account?.type === 'oauth') {
+        const email = (user?.email ?? token.email ?? '').toLowerCase()
+        const dbUser = email ? await prisma.user.findUnique({ where: { email } }) : null
+        if (!dbUser || !ssoAllowed(dbUser.role)) return {} as any
+        let info: { userAgent?: string | null; ip?: string | null } = {}
+        try {
+          const { headers } = await import('next/headers')
+          const h = headers()
+          info = { userAgent: h.get('user-agent'), ip: (h.get('x-forwarded-for') ?? '').split(',')[0].trim() || null }
+        } catch { /* hors requête */ }
+        const method: SignInMethod = account.provider === 'azure-ad' ? 'MICROSOFT' : 'GOOGLE'
+        const u = sessionUser(dbUser, await openSession(dbUser.id, method, info))
+        Object.assign(t, { id: u.id, role: u.role, sid: u.sid, sv: u.sv, mcp: u.mcp, tfa: u.tfa, name: u.name, chk: Date.now(), act: Date.now() })
+        return token
+      }
       if (user) {
         const u = user as any
         Object.assign(t, { id: u.id, role: u.role, sid: u.sid, sv: u.sv, mcp: u.mcp, tfa: u.tfa, chk: Date.now(), act: Date.now() })

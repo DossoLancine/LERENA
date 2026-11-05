@@ -51,8 +51,8 @@ export default function ForgotPasswordPage() {
       )}
       {step === 'sms-code' && (
         <form onSubmit={reset} className="space-y-4">
-          <p className="text-sm text-ink-muted">Si un compte correspond à ce numéro, un code à 4 chiffres vient d’être envoyé par SMS.</p>
-          <TextInput label="Code reçu par SMS" value={code} onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 4))} inputMode="numeric" autoComplete="one-time-code" required />
+          <p className="text-sm text-ink-muted">Si un compte correspond à ce numéro, un code à 4 chiffres vient d’être envoyé par WhatsApp ou par SMS.</p>
+          <TextInput label="Code reçu" value={code} onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 4))} inputMode="numeric" autoComplete="one-time-code" required />
           <TextInput label="Nouveau mot de passe" type="password" value={password} onChange={e => setPassword(e.target.value)} autoComplete="new-password" required hint="Code PIN de 6 chiffres ou mot de passe de 8 caractères" />
           {error && <p role="alert" className="text-sm font-medium text-danger">{error}</p>}
           <Button type="submit" fullWidth loading={busy}>Enregistrer</Button>

@@ -6,11 +6,11 @@ import { generatePushIntegrationKeys, getIntegrations, testIntegration, updateIn
 import { INTEGRATIONS, type IntegrationDefinition, type IntegrationKind, type IntegrationMode } from '@/lib/integration-catalog'
 import { Badge, Button, useToast } from '@/components/ui'
 import { cn } from '@/lib/cn'
-import { WHATSAPP_TEMPLATES } from '@/lib/whatsapp-templates'
+import { AUTH_TEMPLATE, WHATSAPP_TEMPLATES } from '@/lib/whatsapp-templates'
 
 type Item = NonNullable<Awaited<ReturnType<typeof getIntegrations>>>[number]
 
-const ICONS: Record<IntegrationKind, typeof Mail> = { EMAIL: Mail, SMS: MessageSquareText, WHATSAPP: MessageCircle, PUSH: BellRing, AI: Sparkles, PAYMENT: Wallet, AUTH: KeyRound }
+const ICONS: Record<IntegrationKind, typeof Mail> = { EMAIL: Mail, SMS: MessageSquareText, WHATSAPP: MessageCircle, PUSH: BellRing, AI: Sparkles, PAYMENT: Wallet, AUTH: KeyRound, AUTH_MICROSOFT: KeyRound }
 
 function status(i: Item) {
   if (i.live) return { tone: 'success' as const, label: 'En production', Icon: CheckCircle2 }
@@ -185,6 +185,12 @@ function WhatsAppTemplates() {
             <button onClick={() => navigator.clipboard?.writeText(t.body).then(() => toast('Texte copié', 'success')).catch(() => null)} className="mt-2 text-xs font-semibold text-brand hover:underline">Copier le texte</button>
           </li>
         ))}
+        <li className="rounded-xl border border-surface-line p-3">
+          <p className="flex flex-wrap items-center gap-2"><code className="rounded bg-surface-sunken px-1.5 py-0.5 text-xs font-semibold text-ink">{AUTH_TEMPLATE.name}</code><Badge tone="success">Authentification</Badge></p>
+          <p className="mt-1 text-xs text-ink-muted">{AUTH_TEMPLATE.label}. Chez Meta, choisissez la catégorie « Authentification » avec le bouton « Copier le code ».</p>
+          <pre className="mt-2 whitespace-pre-wrap rounded-lg bg-surface-sunken p-2 text-xs text-ink">{AUTH_TEMPLATE.body}</pre>
+          <p className="mt-1 text-[11px] text-ink-subtle">Exemple : {'{{1}}'} = {AUTH_TEMPLATE.sample}</p>
+        </li>
       </ul>
     </section>
   )

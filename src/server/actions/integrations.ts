@@ -103,7 +103,8 @@ export async function testIntegration(kind: string, target?: string) {
         break
       }
       case 'AUTH':
-        detail = 'Identifiants complets. La connexion sera proposée à l’étape N9.'
+      case 'AUTH_MICROSOFT':
+        detail = `Identifiants complets. Le bouton apparaît sur les pages de connexion une fois le connecteur en production. Adresse de retour : ${appUrl()}/api/auth/callback/${kind === 'AUTH' ? 'google' : 'azure-ad'}`
         break
     }
   } catch (error) {

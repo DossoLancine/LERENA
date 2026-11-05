@@ -48,3 +48,10 @@ export const templateForPurpose = (purpose: string) => WHATSAPP_TEMPLATES.find(t
 
 /** Paramètre accepté par WhatsApp : sans retour à la ligne ni tabulation, ni plus de 4 espaces de suite, 1 024 caractères au plus. */
 export const templateParam = (v: string) => v.replace(/[\r\n\t]+/g, ' · ').replace(/ {4,}/g, '   ').trim().slice(0, 1000) || '-'
+
+/** Modèle « Authentification » de Meta pour les codes de connexion (un seul paramètre : le code). */
+export const AUTH_TEMPLATE = {
+  name: 'lerena_code', category: 'AUTHENTICATION' as const, label: 'Code de connexion et de récupération',
+  body: '{{1}} est votre code de vérification. Pour votre sécurité, ne le communiquez à personne.',
+  sample: '482913'
+}

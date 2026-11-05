@@ -6,7 +6,9 @@ import { Building2, ArrowRight, ShieldCheck } from 'lucide-react'
 import Link from 'next/link'
 import { homeForRole } from '@/lib/constants'
 import { getPublicConfig } from '@/server/actions/platform'
-import { signInWithCredentials } from '@/lib/sign-in'
+import { signInWithCredentials, SSO_ERRORS } from '@/lib/sign-in'
+import { getSignInMethods } from '@/server/actions/sign-in'
+import { SsoButtons } from '@/components/auth/passwordless'
 import { LegalLinks } from '@/components/legal/legal-links'
 
 function ProLoginForm() {
@@ -14,6 +16,9 @@ function ProLoginForm() {
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get('callbackUrl')
   const justReset = searchParams.get('reset') === '1'
+  const ssoError = searchParams.get('error')
+  const [sso, setSso] = useState({ google: false, microsoft: false })
+  useEffect(() => { getSignInMethods().then(m => setSso({ google: m.google, microsoft: m.microsoft })).catch(() => null) }, [])
   
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -125,6 +130,7 @@ function ProLoginForm() {
 
           {justReset && !error && <p role="status" className="mb-4 rounded-xl bg-green-50 p-3 text-sm font-medium text-green-800">Mot de passe modifié : connectez-vous avec le nouveau.</p>}
 
+          {ssoError && !error && <p role="alert" className="mb-4 rounded-xl border border-red-100 bg-red-50 p-3 text-sm font-medium text-red-600">{SSO_ERRORS[ssoError] ?? 'La connexion n’a pas abouti : réessayez.'}</p>}
           {error && (
             <div className="mb-6 p-3 bg-red-50 text-red-600 rounded-lg text-sm border border-red-100 flex items-center gap-2">
               <span className="font-medium">{error}</span>
@@ -178,6 +184,12 @@ function ProLoginForm() {
               )}
             </button>
           </form>
+          {(sso.google || sso.microsoft) && (
+            <div className="mt-5">
+              <p className="mb-3 flex items-center gap-3 text-xs text-gray-400"><span className="h-px flex-1 bg-gray-200" />ou avec le compte de votre entreprise<span className="h-px flex-1 bg-gray-200" /></p>
+              <SsoButtons google={sso.google} microsoft={sso.microsoft} note="Utilisez l’adresse avec laquelle votre responsable vous a ajouté à l’équipe." />
+            </div>
+          )}
           <LegalLinks pro className="mt-6" />
 
           {/* Boutons démo */}

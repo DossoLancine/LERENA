@@ -1,7 +1,7 @@
 // Catalogue des connecteurs vers les services extérieurs : prestataires et champs à remplir dans la console.
 // Sans accès à la base ni aux secrets : utilisé par la console (affichage) et par le serveur (validation).
 
-export type IntegrationKind = 'EMAIL' | 'SMS' | 'WHATSAPP' | 'PUSH' | 'AI' | 'PAYMENT' | 'AUTH'
+export type IntegrationKind = 'EMAIL' | 'SMS' | 'WHATSAPP' | 'PUSH' | 'AI' | 'PAYMENT' | 'AUTH' | 'AUTH_MICROSOFT'
 export type IntegrationMode = 'SIMULATION' | 'LIVE'
 
 export interface IntegrationField {
@@ -188,23 +188,31 @@ export const INTEGRATIONS: IntegrationDefinition[] = [
   },
   {
     kind: 'AUTH',
-    label: 'Connexion Google ou Microsoft',
-    description: 'Connexion des équipes d’entreprise avec leur compte Google ou Microsoft (étape N9).',
-    simulation: 'Connexion par mot de passe et double authentification uniquement.',
+    label: 'Connexion avec Google',
+    description: 'Bouton « Continuer avec Google » pour les visiteurs (création de compte en un appui) et pour les équipes déjà inscrites avec la même adresse.',
+    simulation: 'Le bouton Google n’apparaît pas.',
     providers: [
       {
-        id: 'google', label: 'Google', testHint: 'Vérifie que les identifiants sont complets.',
+        id: 'google', label: 'Google', testHint: 'Vérifie que les identifiants sont complets. Adresse de retour à déclarer chez Google : /api/auth/callback/google',
         fields: [
           { key: 'clientId', label: 'Client ID', required: true },
           { key: 'clientSecret', label: 'Client secret', secret: true, required: true }
         ]
-      },
+      }
+    ]
+  },
+  {
+    kind: 'AUTH_MICROSOFT',
+    label: 'Connexion avec Microsoft',
+    description: 'Bouton « Continuer avec Microsoft » sur l’espace Pro, pour les entreprises (banques, groupes) : seuls les membres déjà inscrits avec la même adresse entrent.',
+    simulation: 'Le bouton Microsoft n’apparaît pas.',
+    providers: [
       {
-        id: 'microsoft', label: 'Microsoft (Entra ID)', testHint: 'Vérifie que les identifiants sont complets.',
+        id: 'microsoft', label: 'Microsoft (Entra ID)', testHint: 'Vérifie que les identifiants sont complets. Adresse de retour à déclarer chez Microsoft : /api/auth/callback/azure-ad',
         fields: [
           { key: 'clientId', label: 'Application (client) ID', required: true },
           { key: 'clientSecret', label: 'Client secret', secret: true, required: true },
-          { key: 'tenantId', label: 'Tenant ID', placeholder: 'common' }
+          { key: 'tenantId', label: 'Tenant ID', placeholder: 'common', hint: 'Identifiant de l’annuaire de l’entreprise ; « common » pour tous les comptes Microsoft' }
         ]
       }
     ]

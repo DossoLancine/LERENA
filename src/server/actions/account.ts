@@ -21,7 +21,7 @@ import { HOUR, RATE_LIMITED, rateLimitAll, requestIp } from '@/lib/rate-limit'
 
 const RESET_TTL_MIN = 60
 const MAX_RESETS_PER_HOUR = 3
-const GENERIC_SENT = 'Si un compte correspond, vous allez recevoir un lien (e-mail) ou un code (SMS) pour choisir un nouveau mot de passe.'
+const GENERIC_SENT = 'Si un compte correspond, vous allez recevoir un lien (e-mail) ou un code (WhatsApp ou SMS) pour choisir un nouveau mot de passe.'
 
 
 /** Nouveau mot de passe : toutes les sessions ouvertes sont fermées. */
@@ -138,7 +138,7 @@ export async function getSecurityOverview() {
   const sessions = await prisma.authSession.findMany({
     where: { userId: user.id, revokedAt: null, lastSeenAt: { gte: new Date(Date.now() - 30 * 86400_000) } },
     orderBy: { lastSeenAt: 'desc' },
-    select: { id: true, userAgent: true, ip: true, createdAt: true, lastSeenAt: true }
+    select: { id: true, userAgent: true, ip: true, createdAt: true, lastSeenAt: true, method: true }
   })
   return {
     email: user.email,

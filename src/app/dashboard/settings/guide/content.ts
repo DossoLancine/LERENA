@@ -1,7 +1,7 @@
 // Guide d'utilisation affiché dans Paramètres → Guide d'utilisation.
 // À METTRE À JOUR à chaque évolution de l'application (nouvel écran, nouvelle étape, changement de nom).
 
-export const GUIDE_UPDATED_AT = '5 novembre 2026 (conversations WhatsApp et SMS)'
+export const GUIDE_UPDATED_AT = '5 novembre 2026 (connexion par code, lien, Google, Microsoft)'
 
 export interface GuideSection {
   id: string
@@ -288,10 +288,23 @@ export const GUIDE: GuideSection[] = [
     ]
   },
   {
+    id: 'connexion-visiteurs',
+    title: 'Connexion de vos visiteurs',
+    intro: 'Vos visiteurs se connectent sans mot de passe à retenir. Chaque méthode n’apparaît que lorsque son service est branché par l’équipe Lerena.',
+    steps: [
+      'Code reçu : le visiteur saisit son numéro et reçoit un code à 6 chiffres par WhatsApp (ou par SMS). Un numéro inconnu crée son compte au passage, après acceptation des conditions.',
+      'Lien par e-mail : un lien de connexion valable 15 minutes, utilisable une seule fois.',
+      'Continuer avec Google : un appui, le compte se crée avec son adresse Google.',
+      'Le code PIN reste possible. Ces connexions sans mot de passe sont réservées aux visiteurs : les comptes d’équipe se connectent sur l’espace Pro.'
+    ]
+  },
+  {
     id: 'compte',
     title: 'Compte et sécurité',
     steps: [
-      'Mot de passe oublié : sur la page de connexion, « Mot de passe oublié ? ». Avec un e-mail, vous recevez un lien valable 1 heure ; avec un numéro, un code par SMS.',
+      'Mot de passe oublié : sur la page de connexion, « Mot de passe oublié ? ». Avec un e-mail, vous recevez un lien valable 1 heure ; avec un numéro, un code par WhatsApp (s’il est branché) ou par SMS.',
+      'Connexion avec Microsoft ou Google (espace Pro), quand l’équipe Lerena l’a branchée pour vous : utilisez l’adresse avec laquelle votre responsable vous a ajouté dans Équipe. Une adresse inconnue n’entre pas ; les comptes d’administration de la plateforme gardent mot de passe et double authentification.',
+      'Sécurité du compte : chaque appareil connecté est listé avec sa méthode de connexion (mot de passe, code, lien, Google, Microsoft) et peut être déconnecté à distance.',
       'Un collaborateur créé dans « Équipe & agents » reçoit un mot de passe provisoire (affiché une fois et envoyé par e-mail). Il doit le remplacer à sa première connexion.',
       'Double authentification : depuis « Sécurité du compte » (bouton bouclier ou fenêtre « Mon profil »), activez un code à 6 chiffres via une application comme Google Authenticator. Elle est fortement conseillée aux administrateurs de réseau et de la plateforme (un bandeau le rappelle) et deviendra obligatoire pour eux en production. Notez vos 8 codes de secours.',
       'Appareils connectés : « Sécurité du compte » liste les appareils ouverts sur votre compte ; vous pouvez en déconnecter un, ou tous les autres.',

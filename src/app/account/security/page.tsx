@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { Smartphone, Monitor, KeyRound, LogOut, Copy, Check } from 'lucide-react'
 import { confirmTwoFactor, disableTwoFactor, getSecurityOverview, revokeOtherSessions, revokeSession, startTwoFactorSetup } from '@/server/actions/account'
 import { AccountCard } from '@/components/account/account-card'
+import { METHOD_LABELS, type SignInMethod } from '@/lib/auth-method-labels'
 import { Badge, Button, TextInput, useToast } from '@/components/ui'
 
 type Overview = NonNullable<Awaited<ReturnType<typeof getSecurityOverview>>>
@@ -137,7 +138,7 @@ function SecurityContent() {
               <li key={s.id} className="flex items-center justify-between gap-3 py-3 text-sm">
                 <div className="min-w-0">
                   <p className="font-medium text-ink">{deviceLabel(s.userAgent)} {s.current && <Badge tone="brand">Cet appareil</Badge>}</p>
-                  <p className="text-xs text-ink-muted">Actif {when(s.lastSeenAt)}{s.ip ? ` · ${s.ip}` : ''}</p>
+                  <p className="text-xs text-ink-muted">Actif {when(s.lastSeenAt)}{s.method ? ` · ${METHOD_LABELS[s.method as SignInMethod] ?? s.method}` : ''}{s.ip ? ` · ${s.ip}` : ''}</p>
                 </div>
                 {!s.current && (
                   <Button size="sm" variant="secondary" onClick={async () => { await revokeSession(s.id); toast('Appareil déconnecté'); load() }}>Déconnecter</Button>
