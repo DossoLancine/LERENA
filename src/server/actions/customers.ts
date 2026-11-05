@@ -378,7 +378,8 @@ export async function bookSeriesForCustomer(customerId: string, input: { service
 
 const PURPOSE_LABELS: Record<string, string> = {
   DIRECT: 'Message', CAMPAIGN: 'Campagne', FOLLOW_UP: 'Rappel de suivi', APPOINTMENT_MISSED: 'Rendez-vous manqué',
-  APPOINTMENT_CONFIRMED: 'Confirmation de rendez-vous', APPOINTMENT_REMINDER: 'Rappel de rendez-vous', APPOINTMENT_CANCELLED: 'Annulation', TURN_SOON: 'Bientôt son tour'
+  APPOINTMENT_CONFIRMED: 'Confirmation de rendez-vous', APPOINTMENT_REMINDER: 'Rappel de rendez-vous', APPOINTMENT_CANCELLED: 'Annulation', TURN_SOON: 'Bientôt son tour',
+  CONVERSATION: 'Conversation', COMPLAINT_REPLY: 'Réponse à son avis', SHOP_ORDER: 'Achat'
 }
 
 /** SMS reçus par le visiteur de la part de l'établissement (les 20 derniers) et possibilité d'en écrire un. */

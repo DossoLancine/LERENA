@@ -142,7 +142,7 @@ async function takeTicketChoose(conv: Conv, n: number) {
   try {
     const customer = conv.customerId ? await prisma.customer.findUnique({ where: { id: conv.customerId }, select: { name: true } }) : null
     // Pas de position GPS par message : la borne fait le même contrôle (personne sur place ou non)
-    const t = await issueTicket({ orgId: conv.organizationId, serviceId, channel: 'kiosk', owner: { userId: null, name: customer?.name || 'Visiteur WhatsApp', phone: conv.phone } })
+    const t = await issueTicket({ orgId: conv.organizationId, serviceId, channel: 'kiosk', owner: { userId: null, name: customer?.name ?? '', phone: conv.phone } })
     const { attachTicketToCustomer } = await import('@/lib/customers')
     const customerId = await attachTicketToCustomer(t.id, { orgId: conv.organizationId, userId: null, phone: conv.phone, name: customer?.name ?? null })
     if (customerId && !conv.customerId) await prisma.conversation.update({ where: { id: conv.id }, data: { customerId } })
