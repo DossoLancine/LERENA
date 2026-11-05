@@ -4,9 +4,10 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { signOut, useSession } from 'next-auth/react'
 import QRCode from 'qrcode'
 import Link from 'next/link'
-import { Printer, Plus, LogOut, Users, Clock, ChevronDown, Accessibility, Siren, UserRound, Contact, ListChecks, ShoppingBag } from 'lucide-react'
+import { Printer, Plus, LogOut, Users, Clock, ChevronDown, Accessibility, Siren, UserRound, Contact, ListChecks, ShoppingBag, MessageCircle } from 'lucide-react'
 import { getDueFollowUpsCount } from '@/server/actions/customers'
 import { countOpenOrders } from '@/server/actions/shop'
+import { countUnreadConversations } from '@/server/actions/conversations'
 import { TagChip } from '@/components/crm/parts'
 import { NotificationBell } from '@/components/notifications/notification-bell'
 import { getReceptionBoard, getRecentTickets, issueReceptionTicket, setTicketPriority } from '@/server/actions/reception'
@@ -46,8 +47,9 @@ export default function ReceptionPage() {
   const [dueFollowUps, setDueFollowUps] = useState(0)
   useEffect(() => { getDueFollowUpsCount().then(setDueFollowUps).catch(() => null) }, [])
   const [openOrders, setOpenOrders] = useState(0)
+  const [unreadConv, setUnreadConv] = useState(0)
   useEffect(() => {
-    const load = () => countOpenOrders().then(setOpenOrders).catch(() => null)
+    const load = () => { countOpenOrders().then(setOpenOrders).catch(() => null); countUnreadConversations().then(setUnreadConv).catch(() => null) }
     load()
     const timer = setInterval(load, 20000)
     return () => clearInterval(timer)
@@ -135,6 +137,9 @@ export default function ReceptionPage() {
             <NotificationBell align="right" />
             <Link href="/reception/followups" className="inline-flex items-center gap-1.5 rounded-xl border border-surface-line px-3 py-1.5 text-sm font-semibold text-ink hover:border-brand hover:text-brand">
               <ListChecks size={15} /> À faire{dueFollowUps > 0 && <span className="rounded-full bg-brand px-1.5 text-xs text-white tabular-nums">{dueFollowUps}</span>}
+            </Link>
+            <Link href="/reception/conversations" className="inline-flex items-center gap-1.5 rounded-xl border border-surface-line px-3 py-1.5 text-sm font-semibold text-ink hover:border-brand hover:text-brand">
+              <MessageCircle size={15} /> Messages{unreadConv > 0 && <span className="rounded-full bg-brand px-1.5 text-xs text-white tabular-nums">{unreadConv}</span>}
             </Link>
             <Link href="/reception/orders" className="inline-flex items-center gap-1.5 rounded-xl border border-surface-line px-3 py-1.5 text-sm font-semibold text-ink hover:border-brand hover:text-brand">
               <ShoppingBag size={15} /> Commandes{openOrders > 0 && <span className="rounded-full bg-brand px-1.5 text-xs text-white tabular-nums">{openOrders}</span>}

@@ -10,9 +10,18 @@ export interface WhatsAppTemplate {
   params?: string[]
 }
 
+export interface WhatsAppButton { id: string; title: string }
+
 const digits = (to: string) => to.replace(/\D/g, '')
 
-function cloudPayload(to: string, text: string, template?: WhatsAppTemplate) {
+function cloudPayload(to: string, text: string, template?: WhatsAppTemplate, buttons?: WhatsAppButton[]) {
+  if (!template && buttons?.length) {
+    // 3 boutons au plus ; au-delà, une liste à choix (titres de 24 caractères au plus)
+    const interactive = buttons.length <= 3
+      ? { type: 'button', body: { text: text.slice(0, 1024) }, action: { buttons: buttons.map(b => ({ type: 'reply', reply: { id: b.id, title: b.title.slice(0, 20) } })) } }
+      : { type: 'list', body: { text: text.slice(0, 1024) }, action: { button: 'Choisir', sections: [{ title: 'Options', rows: buttons.slice(0, 10).map(b => ({ id: b.id, title: b.title.slice(0, 24) })) }] } }
+    return { messaging_product: 'whatsapp', to: digits(to), type: 'interactive', interactive }
+  }
   return template
     ? {
         messaging_product: 'whatsapp', to: digits(to), type: 'template',
@@ -29,7 +38,7 @@ export async function whatsappEnabled() {
 }
 
 /** Envoie un message WhatsApp ; lève une erreur détaillée en cas d'échec. Renvoie le prestataire utilisé. */
-export async function deliverWhatsApp(to: string, text: string, template?: WhatsAppTemplate, config?: ResolvedIntegration) {
+export async function deliverWhatsApp(to: string, text: string, template?: WhatsAppTemplate, config?: ResolvedIntegration, buttons?: WhatsAppButton[]) {
   const c = config ?? await getIntegration('WHATSAPP')
   if (!c.live) throw new Error('Connecteur WhatsApp en simulation')
   const v = c.values
@@ -37,7 +46,7 @@ export async function deliverWhatsApp(to: string, text: string, template?: Whats
     const res = await fetch(`https://graph.facebook.com/${v.apiVersion || 'v21.0'}/${encodeURIComponent(v.phoneNumberId)}/messages`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${v.accessToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(cloudPayload(to, text, template))
+      body: JSON.stringify(cloudPayload(to, text, template, buttons))
     })
     if (!res.ok) throw new Error(`WhatsApp Meta ${res.status} : ${(await res.text()).slice(0, 200)}`)
     return 'meta'
@@ -46,7 +55,7 @@ export async function deliverWhatsApp(to: string, text: string, template?: Whats
     const res = await fetch('https://waba-v2.360dialog.io/messages', {
       method: 'POST',
       headers: { 'D360-API-KEY': v.apiKey, 'Content-Type': 'application/json' },
-      body: JSON.stringify(cloudPayload(to, text, template))
+      body: JSON.stringify(cloudPayload(to, text, template, buttons))
     })
     if (!res.ok) throw new Error(`360dialog ${res.status} : ${(await res.text()).slice(0, 200)}`)
     return '360dialog'

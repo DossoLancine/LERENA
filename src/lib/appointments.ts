@@ -1,7 +1,7 @@
 import { randomInt } from 'crypto'
 import { prisma } from '@/lib/prisma'
 import { hashSecret, newSecret } from '@/lib/secrets'
-import { appUrl, sendEmail, sendSmsMessage } from '@/lib/messaging'
+import { appUrl, sendEmail, sendToVisitor } from '@/lib/messaging'
 import { isSlotAvailable } from '@/lib/slots'
 import { issueTicket } from '@/lib/ticketing'
 import { notifyOrg } from '@/lib/realtime'
@@ -94,7 +94,7 @@ export async function bookAppointment(input: BookingInput) {
   const manageUrl = `${appUrl()}/rdv/${token}`
   const text = `Lerena : RDV ${service.name} chez ${org.name}${service.branch.name ? ` (${service.branch.name})` : ''}, ${fmt(date)}. Code d'arrivée : ${code}. Gérer : ${manageUrl}`
   const phone = input.guestPhone ?? (input.userId ? (await prisma.user.findUnique({ where: { id: input.userId }, select: { phone: true } }))?.phone : null)
-  if (phone && input.notify !== false) await sendSmsMessage({ to: phone, text, purpose: 'APPOINTMENT_CONFIRMED', organizationId: input.orgId })
+  if (phone && input.notify !== false) await sendToVisitor({ to: phone, text, purpose: 'APPOINTMENT_CONFIRMED', organizationId: input.orgId })
   if (input.email && input.notify !== false) await sendEmail({ to: input.email, subject: `Rendez-vous confirmé — ${org.name}`, text, purpose: 'APPOINTMENT_CONFIRMED', organizationId: input.orgId })
 
   // L'établissement est prévenu des réservations faites par les visiteurs (pas de celles saisies par l'accueil)
@@ -182,7 +182,7 @@ export async function runAppointmentJobs(force = false) {
     for (const a of list) {
       const phone = a.guestPhone || a.user?.phone
       if (phone) {
-        await sendSmsMessage({
+        await sendToVisitor({
           to: phone,
           text: `Lerena : rappel, RDV ${a.service?.name ?? ''} chez ${a.organization.name} ${label === 'demain' ? 'demain' : 'à'} ${a.scheduledDate.toISOString().slice(11, 16)}. Code d'arrivée : ${a.code ?? ''}.`,
           purpose: 'APPOINTMENT_REMINDER',

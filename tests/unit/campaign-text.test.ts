@@ -22,7 +22,9 @@ describe('SMS des campagnes', () => {
   it('compte les parties : 160 caractères en alphabet SMS, 70 en Unicode', () => {
     expect(smsParts('a'.repeat(160)).parts).toBe(1)
     expect(smsParts('a'.repeat(161)).parts).toBe(2)
-    expect(smsParts('ê'.repeat(70))).toMatchObject({ parts: 1, unicode: true })
+    expect(smsParts('Ж'.repeat(70))).toMatchObject({ parts: 1, unicode: true })
+    // ê, ô, ç… sont convertis à l'envoi : le message reste en alphabet SMS
+    expect(smsParts('ê'.repeat(160))).toMatchObject({ parts: 1, unicode: false })
     expect(smsParts('é'.repeat(160))).toMatchObject({ parts: 1, unicode: false })
   })
 

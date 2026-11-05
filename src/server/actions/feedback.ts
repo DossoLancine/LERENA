@@ -3,7 +3,7 @@
 import { prisma } from '@/lib/prisma'
 import { getManagerContext } from '@/lib/session'
 import { audit } from '@/lib/audit'
-import { sendSmsWithStatus } from '@/lib/messaging'
+import { sendToVisitor } from '@/lib/messaging'
 import { normalizePhone } from '@/lib/phone'
 import { rateLimit } from '@/lib/rate-limit'
 import { MAX_BODY, normalizeSms } from '@/lib/campaign-text'
@@ -96,7 +96,7 @@ export async function replyToComplaint(id: string, text: string): Promise<Result
   if (body.length < 2) return { success: false, error: 'Le message est vide' }
   if (!(await rateLimit(`complaint-sms:${ctx.userId}`, 30, HOUR))) return { success: false, error: 'Trop de messages envoyés : réessayez dans une heure' }
   const org = await prisma.organization.findUnique({ where: { id: ctx.orgId }, select: { name: true } })
-  const status = await sendSmsWithStatus({ to: c.phone, text: `${org?.name ?? 'Lerena'} : ${body}`, purpose: 'COMPLAINT_REPLY', organizationId: ctx.orgId })
+  const { status } = await sendToVisitor({ to: c.phone, text: `${org?.name ?? 'Lerena'} : ${body}`, purpose: 'COMPLAINT_REPLY', organizationId: ctx.orgId })
   if (status === 'SKIPPED') return { success: false, error: 'Plus de SMS disponibles : achetez un pack dans Abonnement → Boutique' }
   if (status === 'FAILED') return { success: false, error: 'L’opérateur a refusé le message. Vérifiez le numéro.' }
   await prisma.complaintEvent.create({ data: { complaintId: id, kind: 'SMS', text: body, authorName: ctx.name } })

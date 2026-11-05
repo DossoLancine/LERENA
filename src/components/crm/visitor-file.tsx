@@ -151,7 +151,7 @@ export function VisitorFile({ id, basePath }: { id: string; basePath: string }) 
             </ol>
           )}
         </section>
-        {c.phone && <MessagesCard customerId={c.id} orgName={c.orgName} name={c.name || 'ce visiteur'} open={showSms} onOpenChange={setShowSms} />}
+        {c.phone && <MessagesCard customerId={c.id} orgName={c.orgName} name={c.name || 'ce visiteur'} open={showSms} onOpenChange={setShowSms} basePath={basePath.replace(/\/visitors$/, '')} />}
         </div>
 
         <div className="space-y-5">

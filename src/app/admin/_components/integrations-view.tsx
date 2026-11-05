@@ -6,6 +6,7 @@ import { generatePushIntegrationKeys, getIntegrations, testIntegration, updateIn
 import { INTEGRATIONS, type IntegrationDefinition, type IntegrationKind, type IntegrationMode } from '@/lib/integration-catalog'
 import { Badge, Button, useToast } from '@/components/ui'
 import { cn } from '@/lib/cn'
+import { WHATSAPP_TEMPLATES } from '@/lib/whatsapp-templates'
 
 type Item = NonNullable<Awaited<ReturnType<typeof getIntegrations>>>[number]
 
@@ -40,6 +41,7 @@ export function IntegrationsView() {
           })}
         </div>
       )}
+      <WhatsAppTemplates />
     </div>
   )
 }
@@ -162,6 +164,28 @@ function IntegrationCard({ def, item, onChange }: { def: IntegrationDefinition; 
         </div>
         <Button size="sm" loading={busy === 'save'} onClick={() => save()}>Enregistrer</Button>
       </footer>
+    </section>
+  )
+}
+
+/** Modèles à créer chez Meta (WhatsApp Manager → Modèles de message), en français, avec ces noms exacts. */
+function WhatsAppTemplates() {
+  const toast = useToast()
+  return (
+    <section className="rounded-card border border-surface-line bg-white p-5 shadow-card">
+      <h2 className="flex items-center gap-2 font-semibold text-ink"><MessageCircle size={16} className="text-[#128c7e]" /> Modèles WhatsApp à faire valider</h2>
+      <p className="mt-1 max-w-3xl text-sm text-ink-muted">Hors des 24 h qui suivent un message du visiteur, WhatsApp n’accepte que des modèles approuvés. Créez-les chez Meta avec ces noms exacts, langue « Français », puis passez le connecteur en production : Lerena choisit le bon modèle selon le message.</p>
+      <ul className="mt-4 grid gap-3 lg:grid-cols-2">
+        {WHATSAPP_TEMPLATES.map(t => (
+          <li key={t.name} className="rounded-xl border border-surface-line p-3">
+            <p className="flex flex-wrap items-center gap-2"><code className="rounded bg-surface-sunken px-1.5 py-0.5 text-xs font-semibold text-ink">{t.name}</code><Badge tone={t.category === 'MARKETING' ? 'warning' : 'info'}>{t.category === 'MARKETING' ? 'Marketing' : 'Utilitaire'}</Badge></p>
+            <p className="mt-1 text-xs text-ink-muted">{t.label}</p>
+            <pre className="mt-2 whitespace-pre-wrap rounded-lg bg-surface-sunken p-2 text-xs text-ink">{t.body}</pre>
+            <p className="mt-1 text-[11px] text-ink-subtle">Exemple : {'{{1}}'} = {t.sample[0]} · {'{{2}}'} = {t.sample[1]}</p>
+            <button onClick={() => navigator.clipboard?.writeText(t.body).then(() => toast('Texte copié', 'success')).catch(() => null)} className="mt-2 text-xs font-semibold text-brand hover:underline">Copier le texte</button>
+          </li>
+        ))}
+      </ul>
     </section>
   )
 }

@@ -6,7 +6,7 @@ import { hasFeature, smsAllowance } from '@/lib/billing'
 import { audit } from '@/lib/audit'
 import { appUrl } from '@/lib/messaging'
 import { SEGMENTS, type CustomerSegment } from '@/lib/customer-segments'
-import { MAX_BODY, normalizeSms } from '@/lib/campaign-text'
+import { MAX_BODY, normalizeSms, renderMessage, smsParts, stopFooter } from '@/lib/campaign-text'
 import { audienceWhere, inSendingHours, MAX_RECIPIENTS, messageValuesFor, processCampaign, type CampaignTarget } from '@/lib/campaigns'
 
 // Campagnes SMS : réservées au responsable, forfaits avec « Messages et campagnes SMS ».
@@ -119,7 +119,10 @@ export async function createCampaign(input: { name: string; body: string; target
   const audience = await prisma.customer.findMany({ where: audienceWhere(ctx.orgId, target, ctx.siteIds), select: { id: true }, take: MAX_RECIPIENTS })
   if (audience.length === 0) return { success: false as const, error: 'Aucun visiteur de cette cible n’a accepté de recevoir vos messages' }
   const balance = await balanceOf(ctx.orgId)
-  if (balance.total < audience.length) return { success: false as const, error: `Il vous reste ${balance.total} SMS pour ${audience.length} destinataires : achetez un pack dans Abonnement → Boutique` }
+  // Un message long ou accentué compte pour plusieurs SMS (estimation avec un prénom moyen et le lien STOP)
+  const parts = smsParts(renderMessage(body, { firstName: 'Aminata', orgName: '', link: appUrl(), service: null, nextDate: null }) + stopFooter(appUrl(), 'a1b2c3d4e5')).parts
+  const needed = audience.length * parts
+  if (balance.total < needed) return { success: false as const, error: `Il faut ${needed} SMS (${audience.length} destinataires${parts > 1 ? ` × ${parts} parties` : ''}) et il vous en reste ${balance.total} : achetez un pack dans Abonnement → Boutique` }
 
   const me = await prisma.user.findUnique({ where: { id: ctx.userId }, select: { name: true } })
   const campaign = await prisma.campaign.create({

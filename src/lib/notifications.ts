@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { appUrl, sendEmail, sendWhatsAppMessage } from '@/lib/messaging'
+import { templateParam } from '@/lib/whatsapp-templates'
 import { sendPushToUser } from '@/lib/push'
 import { defaultChannels, eventDefinition, inQuietHours, type NotificationChannel, type NotifiedRole } from '@/lib/notification-events'
 
@@ -107,7 +108,8 @@ export async function notify(input: NotifyInput) {
           await sendEmail({ to: r.email, subject: input.title, text: `${input.body}\n\n${link}\n\n—\nRégler vos notifications : ${appUrl()}/account/notifications`, purpose: 'ALERT', organizationId: input.orgId ?? null })
         }
         if (channels.has('WHATSAPP') && r.phone && !quiet) {
-          await sendWhatsAppMessage({ to: r.phone, text: `${input.title}\n${input.body}\n${link}`, purpose: 'ALERT', organizationId: input.orgId ?? null, fallbackToSms: false })
+          // Hors fenêtre de 24 h, WhatsApp n'accepte que le modèle validé « lerena_alerte »
+          await sendWhatsAppMessage({ to: r.phone, text: `${input.title}\n${input.body}\n${link}`, template: { name: 'lerena_alerte', language: 'fr', params: [templateParam(input.title), templateParam(`${input.body} ${link}`)] }, purpose: 'ALERT', organizationId: input.orgId ?? null, fallbackToSms: false })
         }
       } catch (error) {
         console.error('Notification error:', error)

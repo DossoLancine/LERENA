@@ -93,6 +93,8 @@ model Organization {
   promotions         Promotion[]
   shopProducts       ShopProduct[]
   shopOrders         ShopOrder[]
+  conversations      Conversation[]
+  messagingSettings  MessagingSettings?
   appointments       Appointment[]
   devices            Device[]
   setupLinks         DeviceSetupLink[]
@@ -533,6 +535,7 @@ model OutboundMessage {
   error          String?
   organizationId String?
   ticketId       String? // ticket concerné (évite d'envoyer deux fois la même alerte)
+  parts          Int      @default(1) // SMS : nombre de parties facturées par l'opérateur
   createdAt      DateTime @default(now())
 
   @@index([organizationId, createdAt])
@@ -857,6 +860,7 @@ model Customer {
   campaignSends CampaignRecipient[]
   complaints    Complaint[]
   shopOrders    ShopOrder[]
+  conversations Conversation[]
 
   @@unique([organizationId, phone])
   @@unique([organizationId, userId])
@@ -1196,4 +1200,64 @@ model ShopOrderEvent {
   order ShopOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([orderId])
+}
+
+// ---- Conversations avec les visiteurs (N8) ----
+// Réponses reçues par WhatsApp ou SMS, réponses automatiques (menu, absence) et réponses de l'équipe.
+
+model Conversation {
+  id               String    @id @default(cuid())
+  organizationId   String
+  phone            String // numéro du visiteur (+225…)
+  customerId       String?
+  channel          String    @default("SMS") // canal du dernier message reçu : SMS | WHATSAPP
+  status           String    @default("OPEN") // OPEN | DONE
+  assignedToId     String? // membre de l'équipe chargé de répondre
+  unread           Int       @default(0)
+  lastMessageAt    DateTime  @default(now())
+  lastInboundAt    DateTime? // fenêtre WhatsApp de 24 h pour le texte libre
+  lastHumanAt      DateTime? // dernière réponse de l'équipe : les réponses automatiques se taisent un moment
+  humanRequestedAt DateTime? // le visiteur a demandé à parler à l'accueil
+  lastMenuAt       DateTime? // dernier menu automatique envoyé (une fois par demi-journée au plus)
+  botState         String? // étape en cours : TICKET_SERVICE | CONFIRM_CANCEL
+  botData          Json?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  organization Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer     Customer?             @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  messages     ConversationMessage[]
+
+  @@unique([organizationId, phone])
+  @@index([organizationId, status, lastMessageAt])
+}
+
+model ConversationMessage {
+  id             String   @id @default(cuid())
+  conversationId String
+  direction      String // IN | OUT
+  channel        String // SMS | WHATSAPP
+  body           String
+  auto           Boolean  @default(false) // réponse automatique
+  authorId       String? // membre de l'équipe (réponse écrite)
+  status         String? // envoi : SENT | SIMULATED | FAILED | SKIPPED
+  parts          Int      @default(1)
+  createdAt      DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+}
+
+model MessagingSettings {
+  id              String   @id @default(cuid())
+  organizationId  String   @unique
+  autoMenu        Boolean  @default(true) // menu « Mon ticket, Mon rendez-vous… » en réponse à un message
+  awayMessage     String? // réponse hors des horaires (vide = message par défaut)
+  whatsappTickets Boolean  @default(false) // prise de ticket par « TICKET <code> »
+  code            String?  @unique // code de l'établissement pour les messages entrants (ex. HME)
+  quickReplies    String[]
+  updatedAt       DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 }

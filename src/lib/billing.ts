@@ -141,28 +141,37 @@ export async function smsAllowance(orgId: string) {
   const { plan, sites } = await getOrgBilling(orgId)
   const org = await prisma.organization.findUnique({ where: { id: orgId }, select: { smsCredits: true } })
   const monthStart = new Date(new Date().toISOString().slice(0, 8) + '01T00:00:00Z')
-  const used = await prisma.outboundMessage.count({ where: { organizationId: orgId, channel: 'SMS', status: { in: ['SENT', 'SIMULATED'] }, createdAt: { gte: monthStart } } })
+  // Un SMS long ou accentué compte pour autant de SMS que de parties facturées par l'opérateur
+  const used = (await prisma.outboundMessage.aggregate({ where: { organizationId: orgId, channel: 'SMS', status: { in: ['SENT', 'SIMULATED'] }, createdAt: { gte: monthStart } }, _sum: { parts: true } }))._sum.parts ?? 0
   const included = plan.smsIncluded * sites
   return { included, used, includedLeft: Math.max(0, included - used), credits: org?.smsCredits ?? 0 }
 }
 
-/** Réserve un SMS pour l'établissement : quota du mois d'abord, puis crédits achetés. false = plus de SMS. */
-export async function consumeSms(orgId: string) {
+/**
+ * Réserve les SMS d'un envoi (une unité par partie) : quota du mois d'abord, puis crédits achetés pour le reste.
+ * false = pas assez de SMS.
+ */
+export async function consumeSms(orgId: string, parts = 1) {
+  const n = Math.max(1, Math.floor(parts))
   const a = await smsAllowance(orgId)
-  if (a.includedLeft > 0) {
-    await warnSmsLow(orgId, a.includedLeft - 1 + a.credits)
+  if (a.includedLeft >= n) {
+    await warnSmsLow(orgId, a.includedLeft - n + a.credits, n)
     return true
   }
-  const taken = await prisma.organization.updateMany({ where: { id: orgId, smsCredits: { gt: 0 } }, data: { smsCredits: { decrement: 1 } } })
+  const need = n - a.includedLeft
+  const taken = await prisma.organization.updateMany({ where: { id: orgId, smsCredits: { gte: need } }, data: { smsCredits: { decrement: need } } })
   if (taken.count === 0) return false
-  await prisma.smsLedger.create({ data: { organizationId: orgId, delta: -1, reason: 'SMS envoyé' } })
-  await warnSmsLow(orgId, a.credits - 1)
+  await prisma.smsLedger.create({ data: { organizationId: orgId, delta: -need, reason: n > 1 ? `SMS envoyé (${n} parties)` : 'SMS envoyé' } })
+  await warnSmsLow(orgId, a.credits - need, n)
   return true
 }
 
 /** Alerte aux responsables quand il reste 20 SMS, puis quand il n'en reste plus (une fois par seuil et par mois). */
-async function warnSmsLow(orgId: string, remaining: number) {
-  if (remaining !== 20 && remaining !== 0) return
+async function warnSmsLow(orgId: string, remaining: number, step = 1) {
+  // Seuil franchi par cet envoi (un SMS en plusieurs parties peut sauter le chiffre exact)
+  const threshold = remaining <= 0 ? 0 : remaining <= 20 && remaining + step > 20 ? 20 : null
+  if (threshold == null) return
+  remaining = threshold
   const month = new Date().toISOString().slice(0, 7)
   const claimed = await claimOnce(`sms-low:${orgId}:${month}:${remaining}`)
   if (!claimed) return

@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { claimOnce } from '@/lib/locks'
-import { appUrl, sendSmsMessage } from '@/lib/messaging'
+import { appUrl, sendToVisitor } from '@/lib/messaging'
 import { hasFeature } from '@/lib/billing'
 import { notify } from '@/lib/notifications'
 
@@ -43,7 +43,7 @@ export async function runFollowUpJobs(now = new Date()) {
       // Marqué d'abord : jamais deux SMS pour le même suivi, même si deux passages se croisent
       const claimed = await prisma.customerFollowUp.updateMany({ where: { id: f.id, smsSentAt: null }, data: { smsSentAt: now } })
       if (claimed.count === 0 || !f.customer.phone || !(await enabled(f.organizationId))) continue
-      await sendSmsMessage({
+      await sendToVisitor({
         to: f.customer.phone,
         text: `${f.organization.name} : ${f.customer.name ? `${f.customer.name.split(' ')[0]}, ` : ''}${f.title}. Réservez votre créneau : ${bookingLink(f.organizationId)}`,
         purpose: 'FOLLOW_UP',
@@ -64,7 +64,7 @@ export async function runFollowUpJobs(now = new Date()) {
       const claimed = await prisma.appointment.updateMany({ where: { id: a.id, noShowSmsAt: null }, data: { noShowSmsAt: now } })
       const phone = a.guestPhone || a.user?.phone
       if (claimed.count === 0 || !phone || !(await enabled(a.organizationId))) continue
-      await sendSmsMessage({
+      await sendToVisitor({
         to: phone,
         text: `${a.organization.name} : vous n’avez pas pu venir à votre rendez-vous ${a.service?.name ?? ''} du ${day(a.scheduledDate)}. Reprenez un créneau : ${bookingLink(a.organizationId)}`,
         purpose: 'APPOINTMENT_MISSED',

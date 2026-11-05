@@ -47,7 +47,18 @@ export const stopFooter = (base: string, token: string) => `\nSTOP : ${base.repl
 const GSM = '@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !"#¤%&\'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà'
 const GSM_EXT = '^{}\\[~]|€'
 
-export function smsParts(text: string) {
+// Lettres absentes de l'alphabet SMS (â, ê, î, ô, û, ç…) : remplacées par leur lettre simple à l'envoi,
+// sinon tout le message passe en Unicode et coûte deux fois plus (70 caractères par partie au lieu de 160)
+const TO_GSM: Record<string, string> = {
+  â: 'a', ê: 'e', î: 'i', ô: 'o', û: 'u', ë: 'e', ï: 'i', ÿ: 'y', ç: 'c', á: 'a', í: 'i', ó: 'o', ú: 'u', ã: 'a', õ: 'o', œ: 'oe',
+  Â: 'A', Ê: 'E', Î: 'I', Ô: 'O', Û: 'U', Ë: 'E', Ï: 'I', È: 'E', À: 'A', Ù: 'U', Ì: 'I', Ò: 'O', Á: 'A', Í: 'I', Ó: 'O', Ú: 'U', Œ: 'OE'
+}
+/** Texte tel qu'il part par SMS : ponctuation et lettres ramenées à l'alphabet SMS quand c'est possible. */
+export const toGsm = (text: string) => normalizeSms(text).replace(/[âêîôûëïÿçáíóúãõœÂÊÎÔÛËÏÈÀÙÌÒÁÍÓÚŒ]/g, ch => TO_GSM[ch] ?? ch)
+
+/** Parties facturées par l'opérateur pour ce texte, tel qu'il partira (après conversion à l'alphabet SMS). */
+export function smsParts(raw: string) {
+  const text = toGsm(raw)
   let gsm = true
   let length = 0
   for (const ch of text) {

@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { notify } from '@/lib/notifications'
 import { notifyOrg } from '@/lib/realtime'
 import { sendPushToTicket } from '@/lib/push'
-import { appUrl, sendEmail, sendWhatsAppMessage } from '@/lib/messaging'
+import { appUrl, sendEmail, sendToVisitor } from '@/lib/messaging'
 import { canTransition, deliveredLabel, isShopPayMethod, needsReason, orderNo, priceCart, priceLabel, SHOP_PAY_METHODS, type CartLine, type OrderStatus, type ShopMoment } from '@/lib/shop'
 
 // Boutique côté serveur : produits proposés à un moment donné, commande du visiteur, validation par l'équipe.
@@ -174,7 +174,7 @@ export async function deliverDigital(orderId: string) {
   if (ticket) await sendPushToTicket(ticket.id, { title: 'Votre achat est disponible', body: lines.join(' · ').slice(0, 140), url: `/ticket/${ticket.id}`, tag: `order-${o.id}` }).catch(() => null)
   // Message de service lié à un achat : envoyé même sans accord pour les messages d'information
   const phone = o.customer?.phone || ticket?.guestPhone || ticket?.user?.phone
-  if (phone) await sendWhatsAppMessage({ to: phone, text, purpose: 'SHOP_ORDER', organizationId: o.organizationId, ticketId: o.ticketId }).catch(() => null)
+  if (phone) await sendToVisitor({ to: phone, text, purpose: 'SHOP_ORDER', organizationId: o.organizationId, ticketId: o.ticketId }).catch(() => null)
   const email = ticket?.user?.email
   if (email) await sendEmail({ to: email, subject: `Votre achat · ${o.organization.name}`, text: `${text}\n\nReçu : ${appUrl()}/shop/receipt/${o.id}`, purpose: 'SHOP_ORDER', organizationId: o.organizationId }).catch(() => null)
   return true

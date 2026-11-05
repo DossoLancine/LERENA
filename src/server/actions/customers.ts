@@ -12,7 +12,7 @@ import type { Permission } from '@/lib/access-catalog'
 import { hasFeature } from '@/lib/billing'
 import { startOfDayUtc } from '@/lib/followups'
 import { AppointmentError, bookAppointment } from '@/lib/appointments'
-import { sendSmsMessage, sendSmsWithStatus } from '@/lib/messaging'
+import { sendToVisitor } from '@/lib/messaging'
 import { MAX_BODY, normalizeSms } from '@/lib/campaign-text'
 import { rateLimit } from '@/lib/rate-limit'
 import { randomUUID } from 'crypto'
@@ -364,7 +364,7 @@ export async function bookSeriesForCustomer(customerId: string, input: { service
   const org = await prisma.organization.findUnique({ where: { id: ctx.orgId }, select: { name: true } })
   const fmt = (iso: string) => new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', timeZone: 'UTC' })
   const list = booked.slice(0, 8).map(b => fmt(b.date)).join(', ') + (booked.length > 8 ? '…' : '')
-  await sendSmsMessage({
+  await sendToVisitor({
     to: customer.phone,
     text: `Lerena : ${booked.length} rendez-vous confirmés chez ${org?.name ?? ''} à ${booked[0].date.slice(11, 16)} : ${list} (rappel la veille de chacun).`,
     purpose: 'APPOINTMENT_CONFIRMED',
@@ -386,17 +386,24 @@ export async function getCustomerMessages(customerId: string) {
   const ctx = await ownCustomer(customerId, 'visitors.view')
   if (!ctx) return null
   const c = await prisma.customer.findUnique({ where: { id: customerId }, select: { phone: true, optedOutAt: true } })
-  const [enabled, messages] = await Promise.all([
+  const [enabled, messages, conv] = await Promise.all([
     hasFeature(ctx.orgId, 'CRM_CAMPAIGNS').catch(() => false),
     c?.phone ? prisma.outboundMessage.findMany({
-      where: { organizationId: ctx.orgId, channel: 'SMS', to: c.phone }, orderBy: { createdAt: 'desc' }, take: 20,
-      select: { id: true, purpose: true, status: true, body: true, createdAt: true }
-    }) : []
+      where: { organizationId: ctx.orgId, channel: { in: ['SMS', 'WHATSAPP'] }, to: c.phone }, orderBy: { createdAt: 'desc' }, take: 20,
+      select: { id: true, purpose: true, status: true, body: true, createdAt: true, channel: true }
+    }) : [],
+    // Réponses du visiteur (WhatsApp, SMS) : elles se lisent et se traitent dans Conversations
+    c?.phone ? prisma.conversation.findUnique({ where: { organizationId_phone: { organizationId: ctx.orgId, phone: c.phone } }, select: { id: true, messages: { where: { direction: 'IN' }, orderBy: { createdAt: 'desc' }, take: 20, select: { id: true, body: true, createdAt: true, channel: true } } } }) : null
   ])
+  const items = [
+    ...messages.map(m => ({ ...m, inbound: false, label: `${PURPOSE_LABELS[m.purpose] ?? 'Message'}${m.channel === 'WHATSAPP' ? ' · WhatsApp' : ''}` })),
+    ...(conv?.messages ?? []).map(m => ({ id: m.id, purpose: 'REPLY', status: 'SENT', body: m.body, createdAt: m.createdAt, channel: m.channel, inbound: true, label: `Réponse du visiteur${m.channel === 'WHATSAPP' ? ' · WhatsApp' : ' · SMS'}` }))
+  ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()).slice(0, 30)
   return {
     enabled,
     optedOut: !!c?.optedOutAt,
-    messages: messages.map(m => ({ ...m, label: PURPOSE_LABELS[m.purpose] ?? 'SMS' }))
+    conversationId: conv?.id ?? null,
+    messages: items
   }
 }
 
@@ -412,7 +419,7 @@ export async function sendDirectSms(customerId: string, text: string): Promise<R
   if (body.length < 2) return { success: false, error: 'Le message est vide' }
   if (!(await rateLimit(`direct-sms:${ctx.userId}`, 30, 3600_000))) return { success: false, error: 'Trop de messages envoyés : réessayez dans une heure' }
   const org = await prisma.organization.findUnique({ where: { id: ctx.orgId }, select: { name: true } })
-  const status = await sendSmsWithStatus({ to: c.phone, text: `${org?.name ?? 'Lerena'} : ${body}`, purpose: 'DIRECT', organizationId: ctx.orgId })
+  const { status } = await sendToVisitor({ to: c.phone, text: `${org?.name ?? 'Lerena'} : ${body}`, purpose: 'DIRECT', organizationId: ctx.orgId })
   if (status === 'SKIPPED') return { success: false, error: 'Plus de SMS disponibles : achetez un pack dans Abonnement → Boutique' }
   if (status === 'FAILED') return { success: false, error: 'L’opérateur a refusé le message. Vérifiez le numéro.' }
   return { success: true }

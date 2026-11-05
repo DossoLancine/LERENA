@@ -1,7 +1,7 @@
 // Guide d'utilisation affiché dans Paramètres → Guide d'utilisation.
 // À METTRE À JOUR à chaque évolution de l'application (nouvel écran, nouvelle étape, changement de nom).
 
-export const GUIDE_UPDATED_AT = '4 novembre 2026 (boutique)'
+export const GUIDE_UPDATED_AT = '5 novembre 2026 (conversations WhatsApp et SMS)'
 
 export interface GuideSection {
   id: string
@@ -92,7 +92,7 @@ export const GUIDE: GuideSection[] = [
     intro: 'Paramètres → Rendez-vous : mode de l’établissement (file, rendez-vous ou les deux), règles, réglages par service et jours de fermeture.',
     steps: [
       'Le visiteur réserve depuis la fiche de l’établissement, avec ou sans compte (prénom et téléphone). Il reçoit un code d’arrivée à 6 chiffres et un lien pour voir, reporter ou annuler son rendez-vous.',
-      'Rappels automatiques par SMS la veille et 2 heures avant.',
+      'Rappels automatiques la veille et 2 heures avant (WhatsApp si branché, sinon SMS).',
       'Chaque nouvelle réservation faite par un visiteur est envoyée par e-mail aux responsables et à l’accueil (et à l’adresse de l’établissement). Dans le menu, une pastille sur « Agenda » compte les nouveaux rendez-vous depuis votre dernière visite.',
       'À l’arrivée : le visiteur tape son code sur la borne (« J’ai un rendez-vous »), ou l’accueil le signale dans « Rendez-vous du jour ». Un ticket est créé et placé à l’heure du rendez-vous : il ne repasse pas derrière la file.',
       'Sans arrivée après le délai fixé (15 minutes par défaut), le rendez-vous est noté « absent ». Vous pouvez bloquer la réservation en ligne après plusieurs absences.',
@@ -138,6 +138,21 @@ export const GUIDE: GuideSection[] = [
       'Menu « À faire » (bouton « À faire » à l’accueil) : suivis en retard et du jour, puis ceux des 14 prochains jours. Appelez, puis cochez : le suivi passe dans « Faits cette semaine ». La pastille du menu indique ce qui reste pour aujourd’hui.',
       'Rendez-vous récurrents : fiche → « Rendez-vous » → choisissez le premier créneau, puis « Chaque semaine », « Toutes les 2 semaines » ou « Chaque mois » et le nombre de rendez-vous. Toute la série est réservée d’un coup ; un seul SMS récapitule les dates et chaque rendez-vous a son rappel la veille. Les dates impossibles (jour fermé, complet) sont listées.',
       'Absences : après un rendez-vous manqué, le visiteur reçoit un SMS avec le lien pour reprendre un créneau (réglable dans Paramètres → Rendez-vous). Au seuil d’absences, sa fiche reçoit l’étiquette « Absences répétées ».'
+    ]
+  },
+  {
+    id: 'conversations',
+    title: 'Conversations WhatsApp et SMS',
+    intro: 'Menu « Conversations » (à l’accueil : bouton « Messages »). Les réponses de vos visiteurs par WhatsApp et par SMS arrivent dans une boîte commune, avec une pastille pour les messages à lire.',
+    steps: [
+      'Canal automatique : rappels de rendez-vous, ticket bientôt appelé, suivis, campagnes et réponses partent par WhatsApp quand le connecteur est branché, sinon par SMS (et par SMS si WhatsApp échoue).',
+      'Menu automatique (pas un robot) : le visiteur répond 1 pour son ticket (numéro, personnes avant lui, lien de suivi), 2 pour son prochain rendez-vous, 3 pour l’annuler (il confirme par OUI), 4 pour parler à l’accueil. Sur WhatsApp, ce sont des boutons.',
+      'Tout autre message part à l’accueil (notification « Message d’un visiteur ») avec un accusé de réception ; hors des horaires, c’est le message d’absence. Ces réponses automatiques partent au plus une fois par demi-journée et se taisent 30 minutes après une réponse de l’équipe.',
+      'Répondre : ouvrez la conversation, écrivez (ou choisissez une réponse rapide), « Envoyer ». Le canal et le nombre de SMS s’affichent avant l’envoi. Attribuez la conversation à un membre, puis « Traité ».',
+      'Prise de ticket par message (option) : le visiteur envoie « TICKET » suivi du code de votre établissement, choisit son service et reçoit son ticket avec le lien de suivi. Affichez ce code à l’entrée. Refusé si vous exigez la présence sur place (GPS).',
+      'Réglages (bouton « Réponses automatiques ») : menu oui ou non, message d’absence, prise de ticket et code, réponses rapides. « Tester sans téléphone » simule un message reçu tant que le connecteur n’est pas branché : tout se voit dans la boîte et le journal.',
+      'Décompte réel : un SMS long compte pour le nombre de parties facturées par l’opérateur (160 caractères, puis 153 par partie). Les lettres ô, ê, â, ç… sont écrites sans accent par SMS pour ne pas passer à 70 caractères ; WhatsApp garde les accents.',
+      'STOP, par SMS ou WhatsApp, retire l’accord du visiteur pour vos campagnes. Les réponses de l’équipe à un message qu’il vous a envoyé restent possibles.'
     ]
   },
   {

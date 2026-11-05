@@ -159,7 +159,7 @@ export function CampaignComposer() {
   const sample = { firstName: d.sample?.firstName ?? 'Aya', orgName: d.orgName, link: d.link, service: d.sample?.service ?? 'Consultation', nextDate: d.sample?.nextDate ?? null }
   const preview = body.trim() ? renderMessage(body, sample) + stopFooter(d.appBase, 'a1b2c3d4e5') : ''
   const parts = smsParts(preview)
-  const n = count ?? 0
+  const n = (count ?? 0) * Math.max(1, parts.parts)
   const enough = d.balance.total >= n
   const placeholders = /\[[^\]]+\]/.test(body)
   const scheduledIso = schedule && at ? new Date(at).toISOString() : null
@@ -291,13 +291,13 @@ export function CampaignComposer() {
                 ) : <p className="pt-8 text-center text-xs text-ink-subtle">Votre message apparaîtra ici</p>}
               </div>
               {preview && <p className={cn('mt-2 text-center text-[11px]', parts.parts > 1 ? 'text-warning-ink' : 'text-ink-subtle')}>{parts.length} caractères{parts.parts > 1 ? ` · arrive en ${parts.parts} parties` : ''}</p>}
-              {preview && parts.unicode && <p className="mt-1 text-center text-[11px] text-ink-subtle">Lettres comme ê, â, ç : 70 caractères par partie au lieu de 160.</p>}
+              {preview && parts.unicode && <p className="mt-1 text-center text-[11px] text-ink-subtle">Émoji ou caractères spéciaux : 70 caractères par partie au lieu de 160.</p>}
             </div>
           </div>
           <div className="rounded-card border border-surface-line bg-white p-5 shadow-card">
             <dl className="space-y-2 text-sm">
               <div className="flex justify-between"><dt className="text-ink-muted">Destinataires</dt><dd className="font-display text-lg font-bold tabular-nums text-ink">{count ?? '…'}</dd></div>
-              <div className="flex justify-between"><dt className="text-ink-muted">SMS utilisés</dt><dd className="font-semibold tabular-nums text-ink">{n}</dd></div>
+              <div className="flex justify-between"><dt className="text-ink-muted">SMS utilisés{parts.parts > 1 ? ` (${parts.parts} parties chacun)` : ''}</dt><dd className="font-semibold tabular-nums text-ink">{n}</dd></div>
               <div className="flex justify-between"><dt className="text-ink-muted">Disponibles</dt><dd className={cn('font-semibold tabular-nums', enough ? 'text-ink' : 'text-danger')}>{d.balance.total}</dd></div>
             </dl>
             {!enough && <p className="mt-3 text-xs font-semibold text-danger">Pas assez de SMS : achetez un pack dans Abonnement → Boutique.</p>}

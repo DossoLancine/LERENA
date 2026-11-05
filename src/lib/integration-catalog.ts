@@ -114,19 +114,24 @@ export const INTEGRATIONS: IntegrationDefinition[] = [
           { key: 'phoneNumberId', label: 'Identifiant du numéro', required: true, placeholder: '1234567890' },
           { key: 'accessToken', label: 'Jeton d’accès permanent', secret: true, required: true },
           { key: 'apiVersion', label: 'Version de l’API', placeholder: 'v21.0' },
-          { key: 'verifyToken', label: 'Jeton de vérification du webhook', secret: true, hint: 'Pour recevoir les réponses (étape N8)' }
+          { key: 'verifyToken', label: 'Jeton de vérification du webhook', secret: true, hint: 'Choisi par vous, à recopier chez Meta. Adresse du webhook : /api/whatsapp/webhook' },
+          { key: 'appSecret', label: 'Clé secrète de l’application Meta', secret: true, hint: 'Vérifie que les messages reçus viennent bien de Meta' }
         ]
       },
       {
         id: '360dialog', label: '360dialog', testHint: 'Envoie un message de test au numéro indiqué.',
-        fields: [{ key: 'apiKey', label: 'Clé API (D360-API-KEY)', secret: true, required: true }]
+        fields: [
+          { key: 'apiKey', label: 'Clé API (D360-API-KEY)', secret: true, required: true },
+          { key: 'verifyToken', label: 'Jeton du webhook', secret: true, hint: 'Adresse à déclarer : /api/whatsapp/webhook?token=<jeton>' }
+        ]
       },
       {
         id: 'twilio', label: 'Twilio WhatsApp', testHint: 'Envoie un message de test au numéro indiqué.',
         fields: [
           { key: 'accountSid', label: 'Account SID', required: true },
           { key: 'authToken', label: 'Auth token', secret: true, required: true },
-          { key: 'from', label: 'Numéro WhatsApp', required: true, placeholder: '+14155238886' }
+          { key: 'from', label: 'Numéro WhatsApp', required: true, placeholder: '+14155238886' },
+          { key: 'verifyToken', label: 'Jeton du webhook', secret: true, hint: 'Adresse à déclarer : /api/whatsapp/webhook?token=<jeton>' }
         ]
       }
     ]

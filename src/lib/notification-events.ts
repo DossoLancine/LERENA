@@ -30,6 +30,7 @@ export const NOTIFICATION_EVENTS: NotificationEvent[] = [
   { id: 'SITE_NO_COUNTER', label: 'Site sans guichet actif', description: 'Site ouvert sans aucun guichet actif depuis 20 minutes.', roles: ['MANAGER'], defaults: { MANAGER: ['APP', 'PUSH'] }, urgent: true },
   { id: 'COMPLAINT_BURST', label: 'Avis négatifs en rafale', description: 'Plusieurs avis négatifs en une heure sur un site.', roles: ['MANAGER'], defaults: { MANAGER: ['APP', 'PUSH'] }, urgent: true },
   { id: 'ORDER_NEW', label: 'Nouvelle commande boutique', description: 'Un visiteur réserve un produit ou un service.', roles: ['MANAGER', 'RECEPTION', 'AGENT'], defaults: { MANAGER: ['APP'], RECEPTION: ['APP', 'PUSH'], AGENT: ['APP'] } },
+  { id: 'INBOX_MESSAGE', label: 'Message d’un visiteur', description: 'Un visiteur répond par WhatsApp ou SMS, ou demande à parler à l’accueil.', roles: ['MANAGER', 'RECEPTION'], defaults: { MANAGER: ['APP'], RECEPTION: ['APP', 'PUSH'] } },
   { id: 'STOCK_LOW', label: 'Stock bas', description: 'Un produit de la boutique passe sous son seuil ou est épuisé.', roles: ['MANAGER'], defaults: { MANAGER: ['APP', 'PUSH'] } },
   { id: 'CAMPAIGN_DONE', label: 'Campagne terminée', description: 'Tous les SMS d’une campagne sont partis.', roles: ['MANAGER'], defaults: { MANAGER: ['APP', 'PUSH'] } },
   { id: 'SMS_LOW', label: 'SMS bientôt épuisés', description: 'Il reste moins de 20 SMS (quota du mois et packs).', roles: ['MANAGER'], defaults: { MANAGER: ['APP', 'PUSH', 'EMAIL'] } },

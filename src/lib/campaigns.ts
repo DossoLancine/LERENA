@@ -1,7 +1,7 @@
 import { randomBytes } from 'crypto'
 import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { appUrl, sendSmsWithStatus } from '@/lib/messaging'
+import { appUrl, sendToVisitor } from '@/lib/messaging'
 import { normalizePhone } from '@/lib/phone'
 import { SEGMENTS, customerScopeWhere, segmentWhere, type CustomerSegment } from '@/lib/customer-segments'
 import { firstNameOf, renderMessage, stopFooter } from '@/lib/campaign-text'
@@ -114,7 +114,7 @@ export async function processCampaign(campaignId: string, budget = 40, now = new
     }
     const values = await messageValuesFor(r.customerId!, campaign.organizationId, campaign.organization.name)
     const text = renderMessage(campaign.body, values) + stopFooter(appUrl(), await ensureUnsubToken(r.customerId!))
-    const status = await sendSmsWithStatus({ to: phone, text, purpose: 'CAMPAIGN', organizationId: campaign.organizationId })
+    const { status } = await sendToVisitor({ to: phone, text, purpose: 'CAMPAIGN', organizationId: campaign.organizationId })
     if (status === 'SKIPPED') {
       outOfSms = true
       await prisma.campaignRecipient.update({ where: { id: r.id }, data: { status: 'SKIPPED', error: 'Plus de SMS disponibles' } })
